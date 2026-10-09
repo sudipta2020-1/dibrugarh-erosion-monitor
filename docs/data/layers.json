@@ -64,8 +64,12 @@
   ],
   "legend": [
    [
-    "Bank erosion (land to water)",
+    "Bank erosion (stable land to water)",
     "#d7191c"
+   ],
+   [
+    "Char or sandbar lost (within river belt)",
+    "#f59ec0"
    ],
    [
     "Accretion (water to land)",

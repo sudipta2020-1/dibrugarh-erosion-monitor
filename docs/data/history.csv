@@ -1,2 +1,2 @@
-run_date,current_start,current_end,baseline_start,baseline_end,clear_coverage_pct,confidence,mean_soil_loss_t_ha_yr,risk_very_low_ha,risk_low_ha,risk_moderate_ha,risk_high_ha,risk_very_high_ha,chg_bank_erosion_ha,chg_accretion_ha,chg_vegetation_loss_ha,chg_new_bare_soil_ha
-2026-10-09,2025-10-31,2026-02-28,2019-10-31,2020-02-28,100.0,normal,0.58,313374.6,2139.8,143.7,15.0,2.0,11554.3,16158.3,20674.8,16932.4
+run_date,current_start,current_end,baseline_start,baseline_end,clear_coverage_pct,confidence,mean_soil_loss_t_ha_yr,risk_very_low_ha,risk_low_ha,risk_moderate_ha,risk_high_ha,risk_very_high_ha,chg_bank_erosion_ha,chg_accretion_ha,chg_vegetation_loss_ha,chg_new_bare_soil_ha,chg_char_or_sandbar_lost_ha
+2026-10-09,2025-10-31,2026-02-28,2019-10-31,2020-02-28,100.0,normal,0.58,314236.4,2222.9,164.4,19.5,2.6,766.4,15395.6,21118.4,17564.6,10405.1

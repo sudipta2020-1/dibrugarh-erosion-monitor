@@ -1,5 +1,5 @@
 {
-  "run_date": "2026-10-09 11:29 UTC",
+  "run_date": "2026-10-09 13:14 UTC",
   "district": "Dibrugarh",
   "period_baseline": [
     "2019-10-31",
@@ -16,17 +16,48 @@
   "clear_coverage_pct": 100.0,
   "mean_soil_loss_t_ha_yr": 0.58,
   "risk_class_area_ha": {
-    "Very low": 313374.6,
-    "Low": 2139.8,
-    "Moderate": 143.7,
-    "High": 15.0,
-    "Very high": 2.0
+    "Very low": 314236.4,
+    "Low": 2222.9,
+    "Moderate": 164.4,
+    "High": 19.5,
+    "Very high": 2.6
   },
   "change_area_ha": {
-    "Bank erosion (land to water)": 11554.3,
-    "Accretion (water to land)": 16158.3,
-    "Vegetation loss": 20674.8,
-    "New bare soil": 16932.4
+    "Bank erosion (stable land to water)": 766.4,
+    "Accretion (water to land)": 15395.6,
+    "Vegetation loss": 21118.4,
+    "New bare soil": 17564.6,
+    "Char or sandbar lost (within river belt)": 10405.1
+  },
+  "years_between_periods": 6.0,
+  "water_detection": {
+    "baseline": {
+      "mndwi_threshold_otsu": 0.164,
+      "edge_pixels_optical": 608036,
+      "mndwi_threshold_used": 0.15,
+      "vv_threshold_otsu": -15.68,
+      "edge_pixels_radar": 1128447,
+      "vv_threshold_used": -16.0,
+      "share_from_optical_frequency_pct": 99.8,
+      "share_from_radar_frequency_pct": 0.2,
+      "share_from_composite_pct": 0.0,
+      "frequency_min": 0.5,
+      "min_observations": 2
+    },
+    "current": {
+      "mndwi_threshold_otsu": 0.104,
+      "edge_pixels_optical": 552348,
+      "mndwi_threshold_used": 0.1,
+      "vv_threshold_otsu": -15.36,
+      "edge_pixels_radar": 863153,
+      "vv_threshold_used": -15.0,
+      "share_from_optical_frequency_pct": 100.0,
+      "share_from_radar_frequency_pct": 0.0,
+      "share_from_composite_pct": 0.0,
+      "frequency_min": 0.5,
+      "min_observations": 2
+    },
+    "char_split": "JRC 1984-2021 water history"
   },
   "hotspots_listed": 50,
   "rusle_inputs": {
@@ -42,6 +73,17 @@
     "Land to seasonal water": 42753.8,
     "Permanent water to land": 1122.4,
     "Seasonal water to land": 7170.2
+  },
+  "validation": {
+    "sample_points": 300,
+    "period_baseline": [
+      "2019-10-31",
+      "2020-02-28"
+    ],
+    "period_current": [
+      "2025-10-31",
+      "2026-02-28"
+    ]
   },
   "inputs_report": {
     "rainfall_imd": {
