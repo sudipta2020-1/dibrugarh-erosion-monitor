@@ -39,8 +39,8 @@ jobs:
         uses: actions/cache/restore@v4
         with:
           path: outputs/dibrugarh_district/raw
-          key: raw-${{ github.run_id }}-${{ github.run_attempt }}
-          restore-keys: raw-
+          key: raw-v2-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: raw-v2-
 
       - name: Run monitoring pipeline
         working-directory: .
@@ -58,7 +58,7 @@ jobs:
         uses: actions/cache/save@v4
         with:
           path: outputs/dibrugarh_district/raw
-          key: raw-${{ github.run_id }}-${{ github.run_attempt }}
+          key: raw-v2-${{ github.run_id }}-${{ github.run_attempt }}
 
       - name: Commit dashboard data
         run: |
