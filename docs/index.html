@@ -33,6 +33,7 @@
           <input id="opacity" type="range" min="0" max="100" value="80">
         </label>
         <label class="check"><input id="showHot" type="checkbox" checked> Hotspots</label>
+        <label class="check"><input id="showSensors" type="checkbox" checked> Sensors</label>
       </div>
     </div>
     <div id="map"></div>
@@ -64,6 +65,29 @@
     </table>
   </div>
   <p class="note">Click a row to see the site on the map; the recommended measure and the lead agency are in the map pop-up and in the CSV download. Measures are a first screening and are decided in the field.</p>
+</section>
+
+<section class="card" id="sensorSection">
+  <div class="card-head">
+    <h2>Live sensor stations (pilot)</h2>
+    <div class="note" id="sensorStamp" style="margin:0"></div>
+  </div>
+  <div id="sensorBanner" class="banner" hidden>Demonstration: these readings are <b>simulated</b>. They show how the panel and the alerts work. Real readings appear once stations are installed and their ThingSpeak channels are entered in <code>data/sensors/stations.json</code>.</div>
+  <p class="note" id="sensorNote" style="margin:0 0 10px"></p>
+  <div class="sensor-grid">
+    <div>
+      <div id="sensorList" class="st-list"></div>
+      <h3 class="sub">Active alerts</h3>
+      <ul id="sensorAlerts" class="alerts"></ul>
+    </div>
+    <div>
+      <h3 class="sub" id="sensorTitle"></h3>
+      <div class="chart-box" style="height:200px"><canvas id="chLevel"></canvas></div>
+      <div class="chart-box" style="height:170px;margin-top:10px"><canvas id="chTilt"></canvas></div>
+      <div class="chart-box" style="height:150px;margin-top:10px"><canvas id="chSoil"></canvas></div>
+      <p class="note">Each station has a river level sensor, a rain gauge, soil moisture probes at 30, 60 and 100 cm, and tilt nodes on stakes 5, 10, 20 and 40 m back from the bank edge. A node that tilts and then stops reporting usually means the bank edge has reached it. Nodes send data by LoRa to a solar-powered gateway with a mobile data link.</p>
+    </div>
+  </div>
 </section>
 
 <section class="card method">
@@ -114,6 +138,7 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="assets/sensors.js"></script>
 <script src="assets/app.js"></script>
 </body>
 </html>
