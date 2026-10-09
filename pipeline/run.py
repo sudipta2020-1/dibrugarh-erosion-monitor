@@ -17,6 +17,8 @@ import yaml
 
 import analysis as an
 import exposure as exm
+import field
+import interventions
 import ml_model
 import validation as va
 from acquire import acquire_all, get_aoi, save
@@ -107,6 +109,8 @@ def analyse(cfg, layers, aoi_gdf):
     if not chg_gdf.empty:
         chg_gdf["confidence_score"] = np.round(an.zonal_mean(chg_gdf, chg_conf), 3)
     risk_gdf = an.patches(risk.where(risk >= 4, 0).rio.write_crs(crs), an.RISK_LABELS, mp, res, extra=A)
+    if not risk_gdf.empty:
+        risk_gdf["mean_slope_deg"] = np.round(an.zonal_mean(risk_gdf, ru["slope_deg"].rio.write_crs(crs)), 1)
 
     # Machine-learning bank-erosion susceptibility (RF + XGBoost), compared with RUSLE
     print("== Machine-learning model")
@@ -139,6 +143,17 @@ def analyse(cfg, layers, aoi_gdf):
     print("  exposure layers available:", exm.available(ex) or "none")
     hot = an.rank_hotspots(chg_gdf, risk_gdf, ai_gdf, exposure=ex, cfg=cfg, top_n=50)
 
+    # Recommended measures, and results of field visits sent back from the survey form
+    field_summary, field_pts = None, None
+    if hot is not None:
+        hot = interventions.apply(hot, cfg)
+        fc = cfg.get("field", {})
+        hot, field_summary, field_pts = field.ingest(fc.get("records", "data/field_records.csv"), hot,
+                                                     cfg["period_current"][1], crs, fc.get("match_m", 300))
+        hot["site_id"] = [field.site_id(cfg["period_current"][1], k) for k in hot["rank"]]
+        if field_summary:
+            print(f"  field records: {field_summary}")
+
     px_ha = res * res / 1e4
     stats = {
         "district_area_ha": round(float(inside.sum()) * px_ha, 1),
@@ -156,6 +171,8 @@ def analyse(cfg, layers, aoi_gdf):
         "water_detection": {**water_info, "char_split": "JRC 1984-2021 water history" if jrc is not None
                             else "not applied (JRC layer missing)"},
         "hotspots_listed": 0 if hot is None else int(len(hot)),
+        "sites_by_urgency": interventions.summary(hot),
+        "field": field_summary or {"records": 0},
         "rusle_inputs": {
             "rainfall": "IMD gridded mean annual rainfall" if ru.attrs["rainfall_from_file"]
                         else f"uniform {cfg['rusle']['annual_rainfall_mm']} mm (placeholder)",
@@ -187,7 +204,8 @@ def analyse(cfg, layers, aoi_gdf):
     return {"inside": inside, "state": state, "A": A, "risk": risk, "change": chg,
             "acc_map": acc_map, "retreat": retreat, "change_conf": chg_conf, "ml": ml,
             "dNDVI": dndvi.where(inside).rio.write_crs(crs), "chg_gdf": chg_gdf,
-            "risk_gdf": risk_gdf, "hotspots": hot, "stats": stats, "history": hist}
+            "risk_gdf": risk_gdf, "hotspots": hot, "stats": stats, "history": hist,
+            "field_points": field_pts}
 
 
 def validate(cfg, r, layers):
