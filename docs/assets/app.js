@@ -8,6 +8,10 @@ const CLASS_COLOR = {
   "Likely bank erosion (AI prediction)": "#7b3294",
 };
 const CONF_COLOR = { "High": "#1a7f37", "Medium": "#b7791f", "Low": "#c53030", "Not assessed": "#8a8a80", "Not validated": "#8a8a80" };
+const URG_STYLE = { "Immediate": "background:#c53030;color:#fff", "Before monsoon": "background:#f6ad55;color:#3b2200",
+  "Routine": "background:#e2e8f0;color:#2d3748", "Monitor": "background:#edf2f7;color:#718096" };
+const FIELD_COLOR = { "Confirmed": "#1a7f37", "Not confirmed": "#c53030", "Unsure": "#b7791f" };
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 const HIST_COLOR = { "Land to permanent water": "#7a0177", "Land to seasonal water": "#dd3497",
   "Permanent water to land": "#225ea8", "Seasonal water to land": "#41b6c4" };
 const RAMPS = {
@@ -41,7 +45,7 @@ async function main() {
   ]);
   const history = histTxt ? parseCSV(histTxt) : [];
   header(summary); kpis(summary); inputsNote(summary); accuracy(summary); mlCard(summary); mapView(layers, aoi, hot); riskChart(summary); trendChart(history);
-  table(hot); downloads(summary);
+  table(hot); downloads(summary); fieldCard(summary);
 }
 
 function header(s) {
@@ -121,6 +125,7 @@ function kpis(s) {
   const ch = k => c[Object.keys(c).find(x => x.startsWith(k))] || 0;
   const items = [
     ["District area", fmt(s.district_area_ha / 100), "km²", "#9a9a90"],
+    ...(s.sites_by_urgency && s.sites_by_urgency["Immediate"] != null ? [["Sites for immediate action", fmt(s.sites_by_urgency["Immediate"]), `of ${fmt(s.hotspots_listed)} priority sites; ${fmt(s.sites_by_urgency["Before monsoon"])} more before the monsoon`, "#c53030"]] : []),
     ["High + very high risk", fmt(hi), `ha · ${fmt(100 * hi / total, 1)}% of land`, "#d73027"],
     ["Bank erosion", fmt(ch("Bank erosion")), "ha of stable land lost to water", "#d7191c"],
     ["Accretion", fmt(ch("Accretion")), "ha of new land", "#2c7bb6"],
@@ -191,6 +196,8 @@ function popup(p) {
     (p.confidence ? `<br>Confidence: <b>${p.confidence}</b>` : "") +
     (p.population != null && !isNaN(p.population) ? `<br>Within 500 m: ${fmt(p.population)} people, ${fmt(p.built_ha, 1)} ha built-up, ${fmt(p.crop_ha, 1)} ha cropland, ${fmt(p.road_km, 1)} km road, ${fmt(p.facilities)} schools/health facilities` : "") +
     (p.nearest_place ? `<br>Nearest place: ${p.nearest_place} (${fmt(p.nearest_place_km, 1)} km)` : "") +
+    (p.recommended_action ? `<div class="popup-action"><b>${esc(p.urgency)}</b> · ${esc(p.lead_agency)}<br>${esc(p.recommended_action)}</div>` : "") +
+    (p.field_status ? `<br>Field check: <b>${esc(p.field_status)}</b> (${esc(p.field_date)})` : (p.site_id ? `<br>Site ID for the field form: <b>${esc(p.site_id)}</b>` : "")) +
     `<br>${p.lat}, ${p.lon}<br><a target="_blank" rel="noopener" href="https://www.google.com/maps/dir/?api=1&destination=${p.lat},${p.lon}">Directions</a>`;
 }
 
@@ -242,16 +249,18 @@ function trendChart(h) {
 
 function table(hot) {
   const tb = document.querySelector("#hotTable tbody");
-  if (!hot.features.length) { tb.innerHTML = `<tr><td colspan="9">No priority sites in this run.</td></tr>`; return; }
+  if (!hot.features.length) { tb.innerHTML = `<tr><td colspan="11">No priority sites in this run.</td></tr>`; return; }
   tb.innerHTML = hot.features.map(f => f.properties).sort((a, b) => a.rank - b.rank).map(p => `
     <tr data-lat="${p.lat}" data-lon="${p.lon}">
       <td>${p.rank}</td>
       <td><span class="tag"><i style="background:${CLASS_COLOR[p.class] || "#333"}"></i>${shortName(p.class)}</span></td>
       <td><span class="tag"><i style="background:${CONF_COLOR[p.confidence] || "#8a8a80"}"></i>${p.confidence || "–"}</span></td>
+      <td>${p.urgency ? `<span class="urg" style="${URG_STYLE[p.urgency] || ""}" title="${esc(p.lead_agency)}: ${esc(p.recommended_action)}">${esc(p.urgency)}</span>` : "–"}</td>
       <td class="num">${fmt(p.area_ha, 2)}</td>
       <td class="num">${p.retreat_m_per_yr != null && !isNaN(p.retreat_m_per_yr) ? fmt(p.retreat_m_per_yr, 1) : "–"}</td>
       <td class="num">${p.population != null && !isNaN(p.population) ? fmt(p.population) : "–"}</td>
       <td>${p.nearest_place ? `${p.nearest_place} (${fmt(p.nearest_place_km, 1)} km)` : "–"}</td>
+      <td>${p.field_status ? `<span class="tag"><i style="background:${FIELD_COLOR[p.field_status] || "#8a8a80"}"></i>${esc(p.field_status)}</span>` : `<span class="note" style="margin:0">${esc(p.site_id || "–")}</span>`}</td>
       <td class="num">${fmt(p.priority_score, 2)}</td>
       <td><a target="_blank" rel="noopener" href="https://www.google.com/maps?q=${p.lat},${p.lon}" onclick="event.stopPropagation()">${p.lat}, ${p.lon}</a></td>
     </tr>`).join("");
@@ -259,6 +268,33 @@ function table(hot) {
     MAP.flyTo([+tr.dataset.lat, +tr.dataset.lon], 14, { duration: 0.8 });
     document.getElementById("map").scrollIntoView({ behavior: "smooth", block: "center" });
   });
+}
+
+function fieldCard(s) {
+  const links = [["field/erosion_field_survey.xlsx", "Survey form (XLSForm)"], ["field/priority_sites.csv", "Site list for the form"]]
+    .map(([f, n]) => `<a href="${DATA}${f}" download>${n}</a>`);
+  document.getElementById("fieldLinks").innerHTML = links.join("");
+  const el = document.getElementById("fieldBody");
+  const f = s.field || {};
+  const u = s.sites_by_urgency || {};
+  const urg = Object.keys(URG_STYLE).map(k => `<dt><span class="urg" style="${URG_STYLE[k]}">${k}</span></dt><dd>${fmt(u[k] || 0)}</dd>`).join("");
+  if (!f.records) {
+    el.innerHTML = `<p class="note" style="margin:0 0 8px">Priority sites by recommended urgency</p><dl class="stat-list">${urg}</dl>
+      <p class="note">No field records yet. When records are added, this panel shows how many visited sites were confirmed, which is the test of how useful the ranking is.</p>`;
+    return;
+  }
+  const pct = x => x == null ? "–" : `${fmt(100 * x)}%`;
+  const byType = Object.entries(f.by_type || {}).map(([t, v]) => `<dt>${esc(shortName(t))}</dt><dd>${v.confirmed} of ${v.visited}</dd>`).join("");
+  el.innerHTML = `<dl class="stat-list">
+      <dt>Field records</dt><dd>${fmt(f.records)}</dd>
+      <dt>Priority sites visited</dt><dd>${fmt(f.sites_visited)}</dd>
+      <dt>Confirmed in the field</dt><dd>${fmt(f.sites_confirmed)}</dd>
+      <dt>Not confirmed (false alarms)</dt><dd>${fmt(f.sites_not_confirmed)}</dd>
+      <dt>Confirmation rate</dt><dd>${pct(f.confirmation_rate)}</dd>
+      <dt>Officer says map matches</dt><dd>${pct(f.map_agreement_rate)}</dd>
+      <dt>New sites reported</dt><dd>${fmt(f.new_sites_reported)}</dd></dl>
+    ${byType ? `<p class="note" style="margin:10px 0 4px">Confirmed by site type</p><dl class="stat-list">${byType}</dl>` : ""}
+    <p class="note" style="margin:10px 0 4px">Priority sites by recommended urgency</p><dl class="stat-list">${urg}</dl>`;
 }
 
 function downloads(s) {
