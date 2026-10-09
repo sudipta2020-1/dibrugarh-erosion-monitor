@@ -25,8 +25,22 @@ def indices(s2):
     return xr.Dataset({"NDVI": ndvi, "MNDWI": mndwi, "BSI": bsi})
 
 
-def slope_deg(elev, res):
-    dzdy, dzdx = np.gradient(elev.values.astype("float64"), res, res)
+def slope_deg(elev, res, smooth_m=0):
+    """
+    Slope in degrees. The Copernicus DEM is a surface model, so tree lines, tea-garden
+    shade trees and buildings create false slopes on flat land. A moving-average filter
+    of `smooth_m` metres removes this canopy noise before the slope is computed.
+    """
+    z = elev.values.astype("float64")
+    if smooth_m and smooth_m > res:
+        from scipy.ndimage import uniform_filter
+        size = int(round(smooth_m / res)) | 1
+        valid = np.isfinite(z)
+        zf = np.where(valid, z, 0.0)
+        num = uniform_filter(zf, size=size, mode="nearest")
+        den = uniform_filter(valid.astype("float64"), size=size, mode="nearest")
+        z = np.where(valid, num / np.maximum(den, 1e-6), np.nan)
+    dzdy, dzdx = np.gradient(z, res, res)
     slope = np.degrees(np.arctan(np.hypot(dzdx, dzdy)))
     return elev.copy(data=slope.astype("float32")).rename("slope_deg")
 
@@ -53,32 +67,44 @@ def c_factor(ndvi, alpha=2.0, beta=1.0):
     return c.clip(0, 1).rename("C")
 
 
-def r_factor(template, annual_rainfall_mm, rainfall_raster=None):
-    if rainfall_raster:
+def _raster_on(template, path, fill):
+    """Read a raster, resample it onto the analysis grid, fill gaps with `fill`.
+    Returns (DataArray, used_file: bool). Falls back to the constant if the file is absent."""
+    from pathlib import Path
+    from rasterio.enums import Resampling
+    if path and Path(path).exists():
         import rioxarray
-        p = rioxarray.open_rasterio(rainfall_raster).squeeze().rio.reproject_match(template)
-    else:
-        p = xr.full_like(template, annual_rainfall_mm, dtype="float32")
-    return (79 + 0.363 * p).rename("R")
+        da = rioxarray.open_rasterio(path, masked=True).squeeze("band", drop=True)
+        da = da.rio.reproject_match(template, resampling=Resampling.bilinear)
+        da = da.assign_coords(x=template.x, y=template.y)
+        return da.fillna(float(da.mean(skipna=True)) if np.isfinite(da).any() else fill), True
+    return xr.full_like(template, fill, dtype="float32"), False
+
+
+def r_factor(template, annual_rainfall_mm, rainfall_raster=None):
+    """Rainfall erosivity from mean annual rainfall P (mm): R = 79 + 0.363 P
+    (Singh et al., 1981, for Indian conditions)."""
+    p, used = _raster_on(template, rainfall_raster, annual_rainfall_mm)
+    return (79 + 0.363 * p).astype("float32").rename("R"), used, p
 
 
 def k_factor(template, value, raster=None):
-    if raster:
-        import rioxarray
-        return rioxarray.open_rasterio(raster).squeeze().rio.reproject_match(template).rename("K")
-    return xr.full_like(template, value, dtype="float32").rename("K")
+    k, used = _raster_on(template, raster, value)
+    return k.astype("float32").rename("K"), used
 
 
 def rusle(ind, elev, cfg, res, water_mask):
     rc = cfg["rusle"]
-    slope = slope_deg(elev, res)
+    slope = slope_deg(elev, res, rc.get("dem_smooth_m", 0))
     LS = ls_factor(slope, res)
     C = c_factor(ind["NDVI"])
-    R = r_factor(elev, rc["annual_rainfall_mm"], rc.get("rainfall_raster"))
-    K = k_factor(elev, rc["k_factor"], rc.get("k_raster"))
+    R, r_used, P = r_factor(elev, rc["annual_rainfall_mm"], rc.get("rainfall_raster"))
+    K, k_used = k_factor(elev, rc["k_factor"], rc.get("k_raster"))
     A = (R * K * LS * C * rc["p_factor"]).where(~water_mask)
-    return xr.Dataset({"slope_deg": slope, "LS": LS, "C": C, "R": R, "K": K,
-                       "soil_loss_t_ha_yr": A.astype("float32")})
+    ds = xr.Dataset({"slope_deg": slope, "LS": LS, "C": C, "R": R, "K": K, "P_mm": P,
+                     "soil_loss_t_ha_yr": A.astype("float32")})
+    ds.attrs.update(rainfall_from_file=int(r_used), k_from_file=int(k_used))
+    return ds
 
 
 def classify(soil_loss, thresholds):
@@ -87,6 +113,29 @@ def classify(soil_loss, thresholds):
     for i in range(5):
         cls = xr.where((soil_loss > edges[i]) & (soil_loss <= edges[i + 1]), i + 1, cls)
     return cls.where(np.isfinite(soil_loss)).rename("risk_class")
+
+
+# JRC Global Surface Water transitions 1984-2021, regrouped for the dashboard
+HISTORY_LABELS = {1: "Land to permanent water", 2: "Land to seasonal water",
+                  3: "Permanent water to land", 4: "Seasonal water to land"}
+_JRC_TO_HISTORY = {2: 1, 5: 2, 3: 3, 6: 4}
+
+
+def history_layer(template, path):
+    """Load JRC transitions onto the analysis grid (nearest) and regroup the classes.
+    Returns None if the file has not been prepared yet."""
+    from pathlib import Path
+    from rasterio.enums import Resampling
+    if not path or not Path(path).exists():
+        return None
+    import rioxarray
+    da = rioxarray.open_rasterio(path).squeeze("band", drop=True)
+    da = da.rio.reproject_match(template, resampling=Resampling.nearest)
+    v = da.values
+    out = np.zeros(v.shape, dtype="uint8")
+    for jrc, cls in _JRC_TO_HISTORY.items():
+        out[v == jrc] = cls
+    return template.copy(data=out).astype("uint8").rename("history_class")
 
 
 RISK_LABELS = {1: "Very low", 2: "Low", 3: "Moderate", 4: "High", 5: "Very high"}
