@@ -68,10 +68,17 @@
 <section class="card method">
   <h2>Method in brief</h2>
   <p>Each run builds cloud-free Sentinel-2 composites and Sentinel-1 radar composites for the most recent monitoring window and for the same calendar dates in the baseline year. Comparing the same months limits false change caused by seasonal river level and crop cycles. Water is mapped from the MNDWI index, with radar backscatter used where clouds hide the optical image. Land that turned into water is reported as bank erosion, and water that turned into land as accretion. Annual soil loss is estimated with RUSLE (A = R × K × LS × C × P), where the cover factor C is derived from NDVI and the slope factor LS from the Copernicus 30 m DEM. Patches are ranked by type and area to give a field verification list.</p>
-  <p class="note">Rainfall erosivity (R) and soil erodibility (K) currently use uniform district values, so soil loss should be read as relative risk. All results need field confirmation before conservation works are planned.</p>
+  <p class="note" id="inputsNote">RUSLE input details appear here after a run.</p>
 </section>
 
-<footer>Data: Copernicus Sentinel-1 and Sentinel-2, Copernicus DEM GLO-30 (via Microsoft Planetary Computer), district boundary from geoBoundaries. Updated automatically every month.</footer>
+<section class="card method">
+  <h2>Context and data still needed</h2>
+  <p>The historical layer uses the JRC Global Surface Water record (Landsat, 1984–2021, 30 m). Land that became permanent or seasonal water is a satellite record of bank erosion, and water that became land records accretion; part of this change is sandbars (chars) within the braided channel rather than loss of mainland. The monthly Sentinel-2 comparison extends the record to the present.</p>
+  <p>For scale, the Water Resources Department reports about 4.27 lakh hectares eroded in Assam since 1954, roughly 8,000 hectares per year, with 2,534 villages and about 1.25 lakh families affected (<a href="https://onlineasdma.assam.gov.in/download/workshop_riverbank_erosion/Ppt_by_RK_Goswami_WRD_Deptt.pdf" target="_blank" rel="noopener">WRD presentation, ASDMA workshop</a>). District-level figures are not published. Recent events, such as the loss of about 70 m of bank in a few hours at Mohanaghat, Dibrugarh, in July 2026 (<a href="https://eastmojo.com/assam/2026/07/09/brahmaputra-devours-70-metres-of-dibrugarh-riverbank-in-five-hours/" target="_blank" rel="noopener">EastMojo</a>), are useful test cases for the change maps.</p>
+  <p class="note">Field-verified records (surveyed erosion sites, gully and sheet-erosion locations, embankment breaches and protection works) are held by the Soil Conservation Department, the Water Resources Department, ASDMA, the Brahmaputra Board and ASSAC/NESAC. They are needed to validate the risk map and to train the planned machine-learning model. Soil data from NBSS&amp;LUP will replace SoilGrids when shared.</p>
+</section>
+
+<footer>Data: Copernicus Sentinel-1 and Sentinel-2 and Copernicus DEM GLO-30 (via Microsoft Planetary Computer); IMD 0.25° gridded rainfall; CHIRPS v2.0; SoilGrids 2.0 (ISRIC); JRC Global Surface Water v1.4; district boundary from geoBoundaries. Updated automatically every month.</footer>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
