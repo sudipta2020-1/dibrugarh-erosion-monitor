@@ -74,5 +74,28 @@ validation:
   sample_per_stratum: {1: 50, 5: 50, 2: 50, 6: 30, 10: 75, 11: 75}
   labels: data/validation_labels.csv
 
+# Machine-learning bank-erosion susceptibility (Random Forest + XGBoost).
+# Trained on baseline conditions -> bank loss observed by the current window,
+# checked by spatial block cross-validation, compared with RUSLE.
+ml:
+  enabled: true
+  seed: 42
+  sample_size: 150000      # training pixels drawn at random from the study zone
+  max_distance_m: 3000     # zone: land within this distance of a river channel
+  cv_blocks: 6             # blocks along the river for spatial cross-validation
+  site_tile_m: 1000        # AI high-susceptibility zones are listed as tiles of this size
+
+# Exposure of people and assets around each priority site (layers built by
+# "Prepare static inputs" with the exposure step). priority = hazard x
+# (floor + (1 - floor) x exposure index).
+exposure:
+  buffer_m: 500
+  floor: 0.3
+  saturation: {population: 2000, built_ha: 10, crop_ha: 40, road_km: 3, embankment_km: 1, facilities: 2}
+  weights: {population: 0.35, built_ha: 0.15, crop_ha: 0.15, road_km: 0.1, embankment_km: 0.1, facilities: 0.15}
+
+# Places in the 50-site priority list kept for each kind of evidence
+site_quota: {change: 30, ai: 15, risk: 5}
+
 output_dir: outputs        # working files (not committed)
 publish_dir: docs/data     # files served by GitHub Pages
