@@ -2,7 +2,7 @@
 const DATA = "data/";
 const CLASS_COLOR = {
   "Bank erosion (stable land to water)": "#d7191c", "Char or sandbar lost (within river belt)": "#f59ec0",
-  "Accretion (water to land)": "#2c7bb6",
+  "Accretion (water to land)": "#2c7bb6", "New inland water (pond or flooding)": "#66c2a5",
   "Vegetation loss": "#fdae61", "New bare soil": "#8c510a",
   "Very high": "#d73027", "High": "#fc8d59",
 };
