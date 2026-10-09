@@ -8,6 +8,7 @@ Scheduled soil erosion monitoring job for Dibrugarh district.
 import argparse
 import datetime as dt
 import json
+import shutil
 from pathlib import Path
 
 import numpy as np
@@ -102,6 +103,11 @@ def main():
 
     work = Path(cfg["output_dir"]) / cfg["project_name"]
     raw = work / "raw" / run_id
+    # Keep only this run's composites in the cached raw folder.
+    if raw.parent.exists():
+        for old in raw.parent.iterdir():
+            if old.is_dir() and old.name != run_id:
+                shutil.rmtree(old, ignore_errors=True)
     maps = work / "maps"
     maps.mkdir(parents=True, exist_ok=True)
 
