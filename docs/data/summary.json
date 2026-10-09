@@ -1,5 +1,5 @@
 {
-  "run_date": "2026-10-09 13:28 UTC",
+  "run_date": "2026-10-09 16:15 UTC",
   "district": "Dibrugarh",
   "period_baseline": [
     "2019-10-31",
@@ -31,6 +31,11 @@
     "New inland water (pond or flooding)": 626.4
   },
   "years_between_periods": 6.0,
+  "confidence_summary": {
+    "mean_change_confidence": 0.951,
+    "change_area_high_confidence_ha": 22987.0,
+    "method": "Beta posterior of per-date water observations; change confidence = product of the baseline and current label confidences"
+  },
   "water_detection": {
     "baseline": {
       "mndwi_threshold_otsu": 0.164,
@@ -68,6 +73,135 @@
     "mean_R": 874.7,
     "mean_K": 0.0163,
     "dem_smoothing_m": 100
+  },
+  "ml_model": {
+    "target": "Bank loss (stable land or chars) between the baseline and current windows",
+    "predictors_from": "baseline window conditions; predictions use current conditions",
+    "training_pixels": 150000,
+    "positive_share": 0.076,
+    "domain_pixels": 3492111,
+    "max_distance_m": 3000.0,
+    "cv": "spatial block cross-validation, 6 blocks along the river",
+    "metrics": {
+      "Random Forest": {
+        "roc_auc": 0.824,
+        "pr_auc": 0.208,
+        "captured_top10pct": 0.292,
+        "captured_top20pct": 0.526,
+        "brier": 0.0648
+      },
+      "XGBoost": {
+        "roc_auc": 0.824,
+        "pr_auc": 0.209,
+        "captured_top10pct": 0.281,
+        "captured_top20pct": 0.519,
+        "brier": 0.067
+      },
+      "Ensemble (RF + XGBoost)": {
+        "roc_auc": 0.825,
+        "pr_auc": 0.211,
+        "captured_top10pct": 0.288,
+        "captured_top20pct": 0.524,
+        "brier": 0.0653
+      },
+      "RUSLE soil loss (baseline)": {
+        "roc_auc": 0.61,
+        "pr_auc": 0.096,
+        "captured_top10pct": 0.12,
+        "captured_top20pct": 0.21
+      },
+      "Distance to river only": {
+        "roc_auc": 0.778,
+        "pr_auc": 0.181,
+        "captured_top10pct": 0.27,
+        "captured_top20pct": 0.481
+      }
+    },
+    "feature_importance": [
+      [
+        "Water at any time 1984-2021",
+        0.2954
+      ],
+      [
+        "River water within 3 km",
+        0.1557
+      ],
+      [
+        "Past bank loss within 1 km",
+        0.1204
+      ],
+      [
+        "NDVI within 300 m",
+        0.0777
+      ],
+      [
+        "Soil erodibility K",
+        0.0596
+      ],
+      [
+        "River water within 1 km",
+        0.0466
+      ],
+      [
+        "Distance to channel",
+        0.0462
+      ],
+      [
+        "NDVI",
+        0.0427
+      ],
+      [
+        "MNDWI",
+        0.0383
+      ],
+      [
+        "Height above low ground",
+        0.0335
+      ],
+      [
+        "Bare soil index",
+        0.0282
+      ],
+      [
+        "River water within 300 m",
+        0.0231
+      ],
+      [
+        "Slope",
+        0.022
+      ],
+      [
+        "Water frequency",
+        0.0106
+      ]
+    ],
+    "susceptibility_area_ha": {
+      "Very low": 88430.8,
+      "Low": 23607.4,
+      "Moderate": 21885.0,
+      "High": 7901.2,
+      "Very high": 2428.0
+    },
+    "thresholds": [
+      0.05,
+      0.15,
+      0.3,
+      0.5
+    ]
+  },
+  "exposure": {
+    "layers": [
+      "population",
+      "built",
+      "crop",
+      "roads",
+      "embankments",
+      "facilities",
+      "places"
+    ],
+    "buffer_m": 500,
+    "people_near_bank_erosion": 97573,
+    "people_near_high_ai_susceptibility": 112074
   },
   "history_area_ha": {
     "Land to permanent water": 6762.2,
@@ -142,6 +276,29 @@
       "imd_mm": 2195.714,
       "chirps_mm": 2561.233,
       "difference_pct": 16.6
+    },
+    "exposure": {
+      "osm_roads": {
+        "features": 31915
+      },
+      "osm_embankments": {
+        "features": 242
+      },
+      "osm_facilities": {
+        "features": 250
+      },
+      "osm_places": {
+        "features": 160
+      },
+      "worldcover": {
+        "source": "ESA WorldCover 2021 v200, 10 m, aggregated to 100 m shares",
+        "items": 1
+      },
+      "population": {
+        "source": "WorldPop 2020, 100 m, ind_ppp_2020_UNadj_constrained.tif",
+        "people_in_window": 2731728
+      },
+      "prepared": "2026-10-09"
     }
   }
 }

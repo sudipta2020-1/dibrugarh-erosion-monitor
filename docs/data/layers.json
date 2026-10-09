@@ -121,6 +121,86 @@
    ]
   ]
  },
+ "ai": {
+  "title": "AI bank-erosion susceptibility (next period)",
+  "file": "layers/ai.png",
+  "bounds": [
+   [
+    27.072442,
+    94.53491
+   ],
+   [
+    27.676144,
+    95.53369
+   ]
+  ],
+  "legend": [
+   [
+    "Very low",
+    "#ffffcc"
+   ],
+   [
+    "Low",
+    "#c2e699"
+   ],
+   [
+    "Moderate",
+    "#fecc5c"
+   ],
+   [
+    "High",
+    "#fd8d3c"
+   ],
+   [
+    "Very high",
+    "#bd0026"
+   ]
+  ]
+ },
+ "agreement": {
+  "title": "AI model agreement (RF vs XGBoost)",
+  "file": "layers/agreement.png",
+  "bounds": [
+   [
+    27.072442,
+    94.53491
+   ],
+   [
+    27.676144,
+    95.53369
+   ]
+  ],
+  "ramp": {
+   "cmap": "viridis",
+   "labels": [
+    "0.5 low",
+    "0.75",
+    "1.0 high"
+   ]
+  }
+ },
+ "confidence": {
+  "title": "Confidence of detected change",
+  "file": "layers/confidence.png",
+  "bounds": [
+   [
+    27.072442,
+    94.53491
+   ],
+   [
+    27.676144,
+    95.53369
+   ]
+  ],
+  "ramp": {
+   "cmap": "viridis",
+   "labels": [
+    "0.5 low",
+    "0.75",
+    "1.0 high"
+   ]
+  }
+ },
  "soilloss": {
   "title": "Soil loss (t/ha/yr)",
   "file": "layers/soilloss.png",
