@@ -33,14 +33,32 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
+      # Reuse satellite composites already built by an earlier (possibly failed)
+      # attempt, so a rerun continues instead of downloading everything again.
+      - name: Restore cached satellite composites
+        uses: actions/cache/restore@v4
+        with:
+          path: outputs/dibrugarh_district/raw
+          key: raw-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: raw-
+
       - name: Run monitoring pipeline
         working-directory: .
+        env:
+          PYTHONUNBUFFERED: "1"
         run: |
           if [ -n "${{ github.event.inputs.end_date }}" ]; then
             python pipeline/run.py --end-date "${{ github.event.inputs.end_date }}"
           else
             python pipeline/run.py
           fi
+
+      - name: Save satellite composites for later attempts
+        if: always() && hashFiles('outputs/dibrugarh_district/raw/**') != ''
+        uses: actions/cache/save@v4
+        with:
+          path: outputs/dibrugarh_district/raw
+          key: raw-${{ github.run_id }}-${{ github.run_attempt }}
 
       - name: Commit dashboard data
         run: |
