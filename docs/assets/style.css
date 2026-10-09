@@ -70,7 +70,11 @@ tbody tr:hover { background: #faf6ee; }
 footer { font-size: 12px; color: var(--muted); padding: 4px 2px 10px; }
 .empty { padding: 40px; text-align: center; color: var(--muted); }
 
+.ml-grid { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+.ml-grid p { margin: 0 0 8px; }
+
 @media (max-width: 900px) {
+  .ml-grid { grid-template-columns: 1fr; }
   .grid { grid-template-columns: 1fr; }
   #map { height: 400px; }
   .meta { text-align: left; }
