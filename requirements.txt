@@ -18,3 +18,4 @@ scipy
 imdlib
 scikit-learn
 xgboost
+openpyxl
