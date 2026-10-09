@@ -59,15 +59,26 @@
   </div>
   <div class="table-wrap">
     <table id="hotTable">
-      <thead><tr><th>Rank</th><th>Type</th><th class="num">Area (ha)</th><th class="num">Soil loss (t/ha/yr)</th><th class="num">Bank retreat (m/yr)</th><th class="num">Score</th><th>Location</th></tr></thead>
+      <thead><tr><th>Rank</th><th>Type</th><th>Confidence</th><th class="num">Area (ha)</th><th class="num">Bank retreat (m/yr)</th><th class="num">People within 500 m</th><th>Nearest place</th><th class="num">Priority</th><th>Location</th></tr></thead>
       <tbody></tbody>
     </table>
   </div>
 </section>
 
+<section class="card">
+  <div class="card-head"><h2>AI bank-erosion model compared with RUSLE</h2></div>
+  <div class="ml-grid">
+    <div id="mlBody"><p class="note">Loading…</p></div>
+    <div><p class="note" style="margin:0 0 6px">What the model relies on most</p><div class="chart-box" style="height:260px"><canvas id="impChart"></canvas></div></div>
+  </div>
+</section>
+
 <section class="card method">
   <h2>Method in brief</h2>
-  <p>Each run builds cloud-free Sentinel-2 composites and Sentinel-1 radar composites for the most recent monitoring window and for the same calendar dates in the baseline year. Comparing the same months limits false change caused by seasonal river level and crop cycles. Water is mapped from every clear Sentinel-2 date in each window: a pixel counts as water only if it was water on at least half of its clear dates, which removes errors from single flooded or hazy scenes. The water thresholds are set for each run by edge-based Otsu (Donchyts et al., 2016) rather than fixed values. Radar is used only where optical dates are lacking, because dry sand on the chars looks like water on radar. Land that turned into water is split, using the JRC record since 1984, into bank erosion of stable land and loss of chars inside the river belt; water that turned into land is accretion. Land that turned into water but does not touch a river channel of at least 50 ha (new ponds, beels or flooded fields) is reported as new inland water and is not counted as bank erosion. For each erosion patch the bank retreat is measured as the largest distance from the baseline water edge, and divided by the years between the two windows. Annual soil loss is estimated with RUSLE (A = R × K × LS × C × P), where the cover factor C is derived from NDVI and the slope factor LS from the Copernicus 30 m DEM. Patches are ranked by type and area to give a field verification list.</p>
+  <p>Each run builds cloud-free Sentinel-2 composites and Sentinel-1 radar composites for the most recent monitoring window and for the same calendar dates in the baseline year. Comparing the same months limits false change caused by seasonal river level and crop cycles. Water is mapped from every clear Sentinel-2 date in each window: a pixel counts as water only if it was water on at least half of its clear dates, which removes errors from single flooded or hazy scenes. The water thresholds are set for each run by edge-based Otsu (Donchyts et al., 2016) rather than fixed values. Radar is used only where optical dates are lacking, because dry sand on the chars looks like water on radar. Land that turned into water is split, using the JRC record since 1984, into bank erosion of stable land and loss of chars inside the river belt; water that turned into land is accretion. Land that turned into water but does not touch a river channel of at least 50 ha (new ponds, beels or flooded fields) is reported as new inland water and is not counted as bank erosion. For each erosion patch the bank retreat is measured as the largest distance from the baseline water edge, and divided by the years between the two windows. Annual soil loss is estimated with RUSLE (A = R × K × LS × C × P), where the cover factor C is derived from NDVI and the slope factor LS from the Copernicus 30 m DEM. Patches are ranked to give a field verification list.</p>
+  <p><b>AI prediction.</b> Random Forest and XGBoost models learn where bank loss happened between the baseline and current windows from conditions at the start: distance to the channel, the amount of river water nearby, height above nearby low ground, slope, vegetation, bare soil, soil erodibility and the 1984–2021 history of river movement. They are tested by spatial block cross-validation along the river and compared with RUSLE and with distance to the river alone. The averaged model is then applied to current conditions to map where bank loss is most likely over a period of similar length.</p>
+  <p><b>Priority.</b> Each site gets a hazard score (type, area and the strength of the evidence) and an exposure index from the people (WorldPop 2020), built-up land and cropland (ESA WorldCover 2021), roads, embankments, schools and health facilities (OpenStreetMap) within 500 m. Priority = hazard × (0.3 + 0.7 × exposure), so sites that threaten homes, roads and farms come first. AI-predicted sites are weighted by the model's tested skill.</p>
+  <p><b>Confidence.</b> For each pixel, the number of clear dates that showed water or land gives the probability that the water label is right (a Beta posterior); the confidence of a change is the product of the two periods. Sites are marked High (at least 0.9), Medium (0.75–0.9) or Low. AI sites are marked by how closely the two models agree. RUSLE risk sites are marked "not validated" until field data are available.</p>
   <p class="note" id="inputsNote">RUSLE input details appear here after a run.</p>
 </section>
 
