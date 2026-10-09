@@ -124,6 +124,40 @@ Monitor), a lead agency and a recommended measure, from the rules in
 `pipeline/interventions.py`. The thresholds are in `config.yaml` under
 `interventions`. The rules are a first screening; the field visit decides.
 
+## 4c. IoT sensor stations (pilot)
+
+The dashboard has a "Live sensor stations" panel for a small number of stations
+at the highest-priority bank erosion sites. Until hardware is installed it shows
+clearly labelled simulated readings, so the panel and the alert rules can be
+demonstrated. Stations and thresholds are set in `docs/data/sensors/stations.json`.
+
+**Each station**
+- River level: ultrasonic or radar level sensor on a bridge or pole.
+- Rain gauge: tipping bucket.
+- Soil moisture at 30, 60 and 100 cm in the bank.
+- Tilt nodes: MEMS accelerometer nodes on stakes 5, 10, 20 and 40 m back from the
+  bank edge. A node that tilts and then stops reporting usually means the edge has
+  reached it; these nodes are expendable.
+- LoRa radios on the nodes, and one solar-powered gateway with a 4G (or NB-IoT)
+  link, mounted above the highest flood level.
+
+**Connecting real stations (ThingSpeak)**
+1. Create two ThingSpeak channels per station: a main channel with
+   field1 = river level (m), field2 = rain (mm in the interval), field3-field5 =
+   soil moisture (%) at 30, 60 and 100 cm, field6 = battery (V); and a tilt
+   channel with field1-field4 = tilt (degrees) of the nodes at 5, 10, 20 and 40 m.
+2. Have the gateway post readings every 15 minutes (ThingSpeak HTTP or MQTT API).
+3. In `stations.json`, set `"mode": "thingspeak"` and fill in each station's
+   channel IDs and read API keys (leave the keys empty for public channels).
+
+The panel refreshes every minute and evaluates these rules: river level falling
+faster than 0.5 m in 6 h (rapid drawdown, when banks most often fail), rising
+faster than 1 m in 6 h, above the station's warning level, rain of 64.5 mm or
+more in 24 h (IMD "heavy rain"), bank soil at or above 45% moisture, a tilt
+increase of 3 degrees or more in 24 h, a tilt of 10 degrees or more, a tilted node
+that stops reporting (possible bank failure), and low battery. SMS or WhatsApp
+alerts need a small server-side job and are a later step.
+
 ## 5. Notes and limits
 
 - GitHub disables scheduled workflows in repositories with no activity for 60 days. Each run commits new results, which counts as activity, so the schedule stays active as long as the runs succeed.
