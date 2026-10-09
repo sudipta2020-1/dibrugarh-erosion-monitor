@@ -94,6 +94,36 @@ areas with 95% confidence intervals (Olofsson et al., 2014; Stehman, 2014). The
 same labels can be used to compare later versions of the method on that window.
 To draw a new sample, delete `docs/data/validation/`.
 
+## 4b. Field verification and recommended measures
+
+Every run writes a mobile survey form and the month's priority sites to
+`docs/data/field/` (also linked on the dashboard under "Field verification"):
+
+- `erosion_field_survey.xlsx`: the form in XLSForm format. It works offline on
+  Android with KoboCollect or ODK Collect, and in any phone browser through the
+  KoboToolbox web form. It records GPS, erosion type and severity, what happened
+  since the baseline year, assets and households at risk, existing and
+  recommended measures, urgency, and up to three photographs.
+- `priority_sites.csv`: the site list the form reads (site ID, location, type,
+  urgency and suggested action).
+
+Setup in KoboToolbox (free account at kf.kobotoolbox.org, or the humanitarian
+server at eu.kobotoolbox.org):
+1. New project, "Upload an XLSForm", choose `erosion_field_survey.xlsx`.
+2. Settings, Media: upload `priority_sites.csv` (keep this exact file name). Deploy.
+3. Share the form with field staff (KoboCollect app or the web link).
+4. Each month, replace the media file with the new `priority_sites.csv`.
+5. Download the data as CSV and upload it to the repository as
+   `data/field_records.csv`. The next run matches each record to a site (by its
+   site ID, or by GPS within 300 m), marks the site as confirmed or not, and
+   reports the confirmation rate (the share of visited sites where erosion was
+   found), false alarms and new sites on the dashboard.
+
+Each priority site also gets an urgency (Immediate, Before monsoon, Routine,
+Monitor), a lead agency and a recommended measure, from the rules in
+`pipeline/interventions.py`. The thresholds are in `config.yaml` under
+`interventions`. The rules are a first screening; the field visit decides.
+
 ## 5. Notes and limits
 
 - GitHub disables scheduled workflows in repositories with no activity for 60 days. Each run commits new results, which counts as activity, so the schedule stays active as long as the runs succeed.
