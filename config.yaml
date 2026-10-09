@@ -33,12 +33,18 @@ max_scenes_per_tile: 15
 # district (monsoon months) are published but flagged as low confidence.
 min_clear_coverage_pct: 60
 
+# RUSLE inputs. The rasters are built once by the "Prepare static inputs"
+# workflow (pipeline/prepare_inputs.py). Until they exist, the constants are used.
 rusle:
-  annual_rainfall_mm: 2500
-  rainfall_raster: null
-  k_factor: 0.25
-  k_raster: null
+  rainfall_raster: data/rainfall_imd_mean_annual.tif   # IMD 0.25 deg, mean annual (mm)
+  annual_rainfall_mm: 2500                              # fallback only
+  k_raster: data/k_factor_soilgrids.tif                 # SoilGrids + Williams EPIC
+  k_factor: 0.025                                       # fallback only (t ha h / ha MJ mm)
   p_factor: 1.0
+  dem_smooth_m: 100        # removes canopy and building noise from the surface DEM
+
+# Historical bank erosion, JRC Global Surface Water transitions 1984-2021
+history_raster: data/jrc_gsw_transitions.tif
 
 risk_thresholds: [5, 10, 20, 40]
 
