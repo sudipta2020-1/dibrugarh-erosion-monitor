@@ -49,10 +49,26 @@ history_raster: data/jrc_gsw_transitions.tif
 risk_thresholds: [5, 10, 20, 40]
 
 change:
+  # Water mapping. The two values below are only first guesses: the thresholds
+  # actually used are found by edge-based Otsu within the given bounds.
   mndwi_water: 0.0
+  mndwi_bounds: [-0.3, 0.3]
   sar_water_db: -16.0
+  sar_bounds: [-22.0, -13.0]
+  # A pixel is water if it was water on at least this share of its clear dates
+  water_frequency_min: 0.5
+  min_observations: 2
   ndvi_loss: -0.15
   min_patch_pixels: 10
+
+# Accuracy assessment. A stratified random sample is drawn once and written to
+# docs/data/validation/. Label the points on docs/validate.html, save the CSV as
+# data/validation_labels.csv, and rerun with the sample's end date.
+validation:
+  enabled: true
+  seed: 42
+  sample_per_stratum: {1: 50, 5: 50, 2: 50, 10: 75, 11: 75}
+  labels: data/validation_labels.csv
 
 output_dir: outputs        # working files (not committed)
 publish_dir: docs/data     # files served by GitHub Pages
