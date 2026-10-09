@@ -1,5 +1,5 @@
 {
-  "run_date": "2026-10-09 16:15 UTC",
+  "run_date": "2026-10-09 16:47 UTC",
   "district": "Dibrugarh",
   "period_baseline": [
     "2019-10-31",
@@ -66,6 +66,15 @@
     "char_split": "JRC 1984-2021 water history"
   },
   "hotspots_listed": 50,
+  "sites_by_urgency": {
+    "Immediate": 8,
+    "Before monsoon": 15,
+    "Routine": 22,
+    "Monitor": 5
+  },
+  "field": {
+    "records": 0
+  },
   "rusle_inputs": {
     "rainfall": "IMD gridded mean annual rainfall",
     "soil_k": "SoilGrids topsoil texture, Williams EPIC equation",
