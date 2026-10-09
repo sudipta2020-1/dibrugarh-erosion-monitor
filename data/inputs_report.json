@@ -1,0 +1,58 @@
+{
+  "rainfall_imd": {
+    "file": "data/rainfall_imd_mean_annual.tif",
+    "source": "IMD 0.25 deg gridded daily rainfall (Pai et al., 2014) via imdlib",
+    "years": [
+      2000,
+      2025
+    ],
+    "n_years": 26,
+    "district_mean_mm": 2195.714,
+    "prepared": "2026-10-09"
+  },
+  "rainfall_chirps": {
+    "file": "data/rainfall_chirps_mean_annual.tif",
+    "source": "CHIRPS v2.0 0.05 deg annual (Funk et al., 2015)",
+    "years": [
+      2000,
+      2024
+    ],
+    "n_years": 25,
+    "district_mean_mm": 2561.233,
+    "prepared": "2026-10-09"
+  },
+  "k_factor": {
+    "file": "data/k_factor_soilgrids.tif",
+    "source": "SoilGrids 2.0, 250 m (Poggio et al., 2021); topsoil 0-30 cm; K by Williams (1995) EPIC equation",
+    "district_mean_K": 0.016,
+    "district_mean_sand_pct": 41.104,
+    "district_mean_clay_pct": 29.23,
+    "district_mean_oc_pct": 2.389,
+    "prepared": "2026-10-09"
+  },
+  "history_jrc": {
+    "file": "data/jrc_gsw_transitions.tif",
+    "source": "JRC Global Surface Water v1.4 (Pekel et al., 2016), transitions 1984-2021, 30 m",
+    "tile": "90E_30N",
+    "area_ha": {
+      "Permanent water": 2512.3,
+      "New permanent water": 6749.6,
+      "Lost permanent water": 1117.6,
+      "Seasonal water": 7755.4,
+      "New seasonal water": 42771.8,
+      "Lost seasonal water": 7176.1,
+      "Seasonal to permanent": 504.3,
+      "Permanent to seasonal": 6517.1,
+      "Ephemeral permanent": 486.0,
+      "Ephemeral seasonal": 10530.5
+    },
+    "land_to_water_ha": 49521.4,
+    "water_to_land_ha": 8293.7,
+    "prepared": "2026-10-09"
+  },
+  "rainfall_crosscheck": {
+    "imd_mm": 2195.714,
+    "chirps_mm": 2561.233,
+    "difference_pct": 16.6
+  }
+}
