@@ -10,9 +10,18 @@ needed) and builds cloud-free composites on a common grid for the AOI:
 
 Each composite is saved as a GeoTIFF in outputs/<project>/raw/.
 """
+import os
 from pathlib import Path
 
+# Network robustness for reading cloud-optimised GeoTIFFs: retry transient
+# HTTP failures instead of aborting the whole composite.
+os.environ.setdefault("GDAL_HTTP_MAX_RETRY", "6")
+os.environ.setdefault("GDAL_HTTP_RETRY_DELAY", "3")
+os.environ.setdefault("GDAL_DISABLE_READDIR_ON_OPEN", "EMPTY_DIR")
+os.environ.setdefault("CPL_VSIL_CURL_ALLOWED_EXTENSIONS", ".tif,.tiff,.TIF")
+
 import numpy as np
+import odc.geo.xr  # noqa: F401  (registers the .odc accessor)
 import planetary_computer
 import pystac_client
 import rioxarray  # noqa: F401  (registers the .rio accessor)
@@ -93,11 +102,12 @@ def sentinel2_composite(bbox, period, crs, res, max_cloud):
     if len(set(offs)) == 1:
         # One processing baseline: merge same-day tiles to reduce the stack.
         ds = stac_load(items, bands=S2_BANDS + ["SCL"], bbox=bbox, crs=crs,
-                       resolution=res, chunks=CHUNKS, groupby="solar_day")
+                       resolution=res, chunks=CHUNKS, groupby="solar_day",
+                       fail_on_error=False)
         offsets = offs[0]
     else:
         ds = stac_load(items, bands=S2_BANDS + ["SCL"], bbox=bbox, crs=crs,
-                       resolution=res, chunks=CHUNKS)
+                       resolution=res, chunks=CHUNKS, fail_on_error=False)
         offsets = xr.DataArray(offs, dims="time")
     clear = ds["SCL"].isin(S2_CLEAR_SCL)
     bands = []
@@ -111,25 +121,28 @@ def sentinel2_composite(bbox, period, crs, res, max_cloud):
     return out
 
 
-def sentinel1_composite(bbox, period, crs, res):
+def sentinel1_composite(bbox, period, geobox):
+    """Radar composite loaded directly onto the Sentinel-2 grid (no reprojection step)."""
     items = _search("sentinel-1-rtc", bbox, period)
     if len(items) == 0:
         print("  No Sentinel-1 scenes found; radar layers will be skipped.")
         return None
-    ds = stac_load(items, bands=["vv", "vh"], bbox=bbox, crs=crs,
-                   resolution=res, chunks=CHUNKS, groupby="solar_day")
+    ds = stac_load(items, bands=["vv", "vh"], geobox=geobox,
+                   chunks=CHUNKS, groupby="solar_day", fail_on_error=False)
     out = xr.Dataset()
     for b in ["vv", "vh"]:
         lin = ds[b].where(ds[b] > 0).median("time", skipna=True)
         out[b.upper() + "_dB"] = 10 * np.log10(lin)
-    return out.compute().rio.write_crs(crs)
+    return out.compute().rio.write_crs(str(geobox.crs))
 
 
-def dem(bbox, crs, res):
+def dem(bbox, geobox):
+    """Copernicus DEM resampled directly onto the Sentinel-2 grid."""
     items = _catalog().search(collections=["cop-dem-glo-30"], bbox=bbox).item_collection()
-    ds = stac_load(items, bands=["data"], bbox=bbox, crs=crs, resolution=res,
-                   resampling="bilinear", chunks=CHUNKS)
-    return ds["data"].max("time").astype("float32").rename("elevation").compute().rio.write_crs(crs)
+    ds = stac_load(items, bands=["data"], geobox=geobox, resampling="bilinear",
+                   chunks=CHUNKS, fail_on_error=False)
+    return (ds["data"].max("time").astype("float32").rename("elevation")
+            .compute().rio.write_crs(str(geobox.crs)))
 
 
 def save(da_or_ds, path):
@@ -167,9 +180,8 @@ def acquire_all(cfg, raw_dir, bbox):
         if f1.exists():
             s1 = open_multiband(f1, S1_BANDS)
         else:
-            s1 = sentinel1_composite(bbox, period, crs, res)
+            s1 = sentinel1_composite(bbox, period, s2["B04"].odc.geobox)
             if s1 is not None:
-                s1 = s1.rio.reproject_match(s2["B04"])
                 save(s1, f1)
         layers[tag] = {"s2": s2, "s1": s1}
     fd = raw_dir / "dem.tif"
@@ -177,7 +189,7 @@ def acquire_all(cfg, raw_dir, bbox):
         elev = rioxarray.open_rasterio(fd, masked=True).squeeze("band", drop=True)
     else:
         print("\n[terrain] Copernicus DEM GLO-30")
-        elev = dem(bbox, crs, res).rio.reproject_match(layers["current"]["s2"]["B04"])
+        elev = dem(bbox, layers["current"]["s2"]["B04"].odc.geobox)
         save(elev, fd)
     layers["dem"] = elev
     return layers
