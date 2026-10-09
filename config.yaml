@@ -99,3 +99,16 @@ site_quota: {change: 30, ai: 15, risk: 5}
 
 output_dir: outputs        # working files (not committed)
 publish_dir: docs/data     # files served by GitHub Pages
+
+# Recommended measures for each priority site (see pipeline/interventions.py)
+interventions:
+  people_high: 500            # people within 500 m that make bank erosion urgent
+  retreat_fast_m_per_yr: 50
+  exposure_high: 0.4
+  slope_steep_deg: 8
+
+# Field verification: export the KoboToolbox / ODK records as CSV and save them
+# as data/field_records.csv; each run matches them to the priority sites.
+field:
+  records: data/field_records.csv
+  match_m: 300
