@@ -37,10 +37,12 @@ CLASSES = {
     2: "Accretion",
     10: "Stable land",
     11: "Stable water",
+    6: "New inland water",
 }
 REF_CODES = {"erosion_mainland": 1, "erosion_char": 5, "accretion": 2,
-             "stable_land": 10, "stable_water": 11}
-DEFAULT_N = {1: 50, 5: 50, 2: 50, 10: 75, 11: 75}
+             "stable_land": 10, "stable_water": 11, "new_inland_water": 6}
+DEFAULT_N = {1: 50, 5: 50, 2: 50, 10: 75, 11: 75, 6: 30}
+SAMPLE_VERSION = 2          # raise when the class scheme changes
 
 
 def map_classes(change, base_water, curr_water, inside):
@@ -53,6 +55,7 @@ def map_classes(change, base_water, curr_water, inside):
     out[c == 1] = 1
     out[c == 5] = 5
     out[c == 2] = 2
+    out[c == 6] = 6
     out[~np.asarray(inside, bool)] = 0
     return out
 
@@ -125,7 +128,8 @@ def create(vdir, strata, template, s2_base, s2_curr, cfg_v, periods, res):
     df[["id", "lat", "lon"]].to_csv(vdir / "sample.csv", index=False)
     df[["id", "stratum"]].to_csv(vdir / "strata.csv", index=False)
     write_chips(df, s2_base, s2_curr, vdir / "chips")
-    meta = {"period_baseline": periods[0], "period_current": periods[1],
+    meta = {"sample_version": SAMPLE_VERSION,
+            "period_baseline": periods[0], "period_current": periods[1],
             "resolution_m": res, "seed": cfg_v.get("seed", 42),
             "classes": {str(k): v for k, v in CLASSES.items()},
             "stratum_pixels": {str(k): v for k, v in sizes.items()},
