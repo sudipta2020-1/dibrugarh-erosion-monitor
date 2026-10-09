@@ -59,9 +59,25 @@
   </div>
   <div class="table-wrap">
     <table id="hotTable">
-      <thead><tr><th>Rank</th><th>Type</th><th>Confidence</th><th class="num">Area (ha)</th><th class="num">Bank retreat (m/yr)</th><th class="num">People within 500 m</th><th>Nearest place</th><th class="num">Priority</th><th>Location</th></tr></thead>
+      <thead><tr><th>Rank</th><th>Type</th><th>Confidence</th><th>Action</th><th class="num">Area (ha)</th><th class="num">Bank retreat (m/yr)</th><th class="num">People within 500 m</th><th>Nearest place</th><th>Field check</th><th class="num">Priority</th><th>Location</th></tr></thead>
       <tbody></tbody>
     </table>
+  </div>
+  <p class="note">Click a row to see the site on the map; the recommended measure and the lead agency are in the map pop-up and in the CSV download. Measures are a first screening and are decided in the field.</p>
+</section>
+
+<section class="card method">
+  <div class="card-head"><h2>Field verification</h2><div class="links" id="fieldLinks"></div></div>
+  <div class="ml-grid">
+    <div>
+      <p>Officers check the priority sites with a mobile form that works offline on Android (KoboCollect or ODK Collect) or in any phone browser. The form shows this month's site list with the mapped location and suggested action, and records GPS, erosion type and severity, what happened since 2020, assets and households at risk, existing and recommended measures, urgency, and up to three photographs.</p>
+      <ol class="steps">
+        <li>In KoboToolbox (free), create a project from the <b>survey form</b> file and add the <b>site list</b> file under Settings &rarr; Media. Deploy, and share the form with field staff.</li>
+        <li>Each month, replace the site list with the new one from this page; the form itself does not change.</li>
+        <li>Export the data as CSV and upload it to the repository as <code>data/field_records.csv</code>. The next run marks each site as confirmed or not and reports the results here.</li>
+      </ol>
+    </div>
+    <div id="fieldBody"><p class="note">Loading…</p></div>
   </div>
 </section>
 
