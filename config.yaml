@@ -2,10 +2,11 @@
 
 project_name: dibrugarh_district
 
-# Study area. The district polygon is downloaded from geoBoundaries (India, ADM2).
-# Set aoi_geojson to a file in this repository to use the department's own boundary.
+# Study area. A copy of the Dibrugarh district polygon (geoBoundaries, India ADM2)
+# is stored in this repository, so runs do not depend on an online download.
+# Replace the file with the department's own boundary if preferred.
 aoi_district: Dibrugarh
-aoi_geojson: null
+aoi_geojson: data/dibrugarh_boundary.geojson
 aoi_bbox: [94.55, 27.05, 95.45, 27.75]   # fallback only
 
 crs: "EPSG:32646"     # UTM zone 46N
