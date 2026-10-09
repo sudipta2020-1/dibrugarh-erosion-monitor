@@ -14,6 +14,10 @@ on:
         description: "Last rainfall year"
         required: false
         default: "2025"
+      steps:
+        description: "Which inputs to build (any of: imd chirps soil jrc exposure)"
+        required: false
+        default: "imd chirps soil jrc exposure"
 
 permissions:
   contents: write
@@ -43,13 +47,13 @@ jobs:
           GDAL_HTTP_MAX_RETRY: "6"
           GDAL_HTTP_RETRY_DELAY: "3"
           GDAL_DISABLE_READDIR_ON_OPEN: "EMPTY_DIR"
-        run: python pipeline/prepare_inputs.py --start ${{ github.event.inputs.start_year }} --end ${{ github.event.inputs.end_year }}
+        run: python pipeline/prepare_inputs.py --start ${{ github.event.inputs.start_year }} --end ${{ github.event.inputs.end_year }} --only ${{ github.event.inputs.steps }}
 
       - name: Commit input layers
         run: |
           git config user.name  "erosion-monitor-bot"
           git config user.email "erosion-monitor-bot@users.noreply.github.com"
           git pull --rebase
-          git add data/*.tif data/inputs_report.json || true
+          git add data/*.tif data/*.geojson data/inputs_report.json || true
           git commit -m "Prepare static inputs (rainfall, soil K, JRC history)" || echo "No changes"
           git push
