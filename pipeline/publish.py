@@ -30,6 +30,7 @@ import analysis as an
 RISK_COLORS = {1: "#1a9850", 2: "#91cf60", 3: "#fee08b", 4: "#fc8d59", 5: "#d73027"}
 CHANGE_COLORS = {1: "#d7191c", 5: "#f59ec0", 6: "#66c2a5", 2: "#2c7bb6", 3: "#fdae61", 4: "#8c510a"}
 HISTORY_COLORS = {1: "#7a0177", 2: "#dd3497", 3: "#225ea8", 4: "#41b6c4"}
+SUSC_COLORS = {1: "#ffffcc", 2: "#c2e699", 3: "#fecc5c", 4: "#fd8d3c", 5: "#bd0026"}
 MAX_WIDTH = 1800
 
 
@@ -115,6 +116,20 @@ def publish(cfg, r, layers, aoi_gdf, bbox, pub, maps_dir):
         lay["history"] = {"title": "Historical change 1984-2021 (JRC)", "file": "layers/history.png",
                           "bounds": categorical_png(r["history"], HISTORY_COLORS, pub / "layers/history.png"),
                           "legend": [[an.HISTORY_LABELS[k], c] for k, c in HISTORY_COLORS.items()]}
+    ml = r.get("ml")
+    if ml is not None:
+        import ml_model
+        lay["ai"] = {"title": "AI bank-erosion susceptibility (next period)", "file": "layers/ai.png",
+                     "bounds": categorical_png(ml["susceptibility_class"], SUSC_COLORS, pub / "layers/ai.png"),
+                     "legend": [[ml_model.SUSC_LABELS[k], c] for k, c in SUSC_COLORS.items()]}
+        lay["agreement"] = {"title": "AI model agreement (RF vs XGBoost)", "file": "layers/agreement.png",
+                            "bounds": continuous_png(ml["agreement"], "viridis", 0.5, 1.0, pub / "layers/agreement.png"),
+                            "ramp": {"cmap": "viridis", "labels": ["0.5 low", "0.75", "1.0 high"]}}
+    if r.get("change_conf") is not None:
+        lay["confidence"] = {"title": "Confidence of detected change", "file": "layers/confidence.png",
+                             "bounds": continuous_png(r["change_conf"], "viridis", 0.5, 1.0,
+                                                      pub / "layers/confidence.png"),
+                             "ramp": {"cmap": "viridis", "labels": ["0.5 low", "0.75", "1.0 high"]}}
     lay["soilloss"] = {"title": "Soil loss (t/ha/yr)", "file": "layers/soilloss.png",
                        "bounds": continuous_png(r["A"], "YlOrRd", 0.1, 100, pub / "layers/soilloss.png", log=True),
                        "ramp": {"cmap": "YlOrRd", "labels": ["0.1", "1", "10", "100"]}}
@@ -134,7 +149,10 @@ def publish(cfg, r, layers, aoi_gdf, bbox, pub, maps_dir):
     hot = r["hotspots"]
     if hot is not None:
         keep = [c for c in ["rank", "class", "source", "area_ha", "mean_soil_loss_t_ha_yr",
-                            "max_retreat_m", "retreat_m_per_yr", "priority_score", "lat", "lon"]
+                            "max_retreat_m", "retreat_m_per_yr", "mean_probability", "model_agreement",
+                            "confidence", "confidence_score", "population", "built_ha", "crop_ha",
+                            "road_km", "embankment_km", "facilities", "nearest_place", "nearest_place_km",
+                            "exposure_index", "hazard_score", "priority_score", "lat", "lon"]
                 if c in hot.columns]
         h = hot.copy()
         h["geometry"] = h.geometry.simplify(cfg["resolution_m"])
@@ -175,6 +193,11 @@ def publish(cfg, r, layers, aoi_gdf, bbox, pub, maps_dir):
         if f is not None:
             f.astype("float32").rio.write_crs(r["change"].rio.crs).rio.to_raster(
                 rel / f"water_frequency_{tag}.tif", compress="deflate")
+    if ml is not None:
+        ml["probability"].astype("float32").rio.to_raster(rel / "ai_bank_erosion_probability.tif", compress="deflate")
+        ml["agreement"].astype("float32").rio.to_raster(rel / "ai_model_agreement.tif", compress="deflate")
+    if r.get("change_conf") is not None:
+        r["change_conf"].astype("float32").rio.to_raster(rel / "change_confidence.tif", compress="deflate")
     if r.get("retreat") is not None:
         r["retreat"].astype("float32").rio.to_raster(rel / "bank_retreat_m.tif", compress="deflate")
     r["A"].astype("float32").rio.to_raster(rel / "soil_loss_t_ha_yr.tif", compress="deflate")
