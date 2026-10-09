@@ -161,19 +161,29 @@ def people_near(class_mask_da, ex, buf_m=500):
 
 # ------------------------------------------------------------------ preparation
 OVERPASS = ["https://overpass-api.de/api/interpreter",
+            "https://overpass.private.coffee/api/interpreter",
+            "https://maps.mail.ru/osm/tools/overpass/api/interpreter",
             "https://overpass.kumi.systems/api/interpreter"]
 
 
-def _overpass(query):
+def _overpass(query, rounds=4):
+    """POST a query to the Overpass mirrors. Shared CI runners are often rate
+    limited (HTTP 429), so each round tries every mirror and then waits longer."""
+    import time
     import requests
     last = None
-    for url in OVERPASS:
-        try:
-            r = requests.post(url, data={"data": query}, timeout=300)
-            r.raise_for_status()
-            return r.json()
-        except Exception as e:  # try the next mirror
-            last = e
+    for k in range(rounds):
+        for url in OVERPASS:
+            try:
+                r = requests.post(url, data={"data": query}, timeout=300,
+                                  headers={"User-Agent": "dibrugarh-erosion-monitor/1.0 (research prototype)"})
+                r.raise_for_status()
+                return r.json()
+            except Exception as e:  # try the next mirror
+                last = f"{url.split('/')[2]}: {e}"
+        wait = 30 * (k + 1)
+        print(f"    Overpass busy ({last}); retrying in {wait} s")
+        time.sleep(wait)
     raise RuntimeError(f"Overpass not reachable ({last})")
 
 
@@ -224,6 +234,8 @@ def prepare(bbox, gdf):
             g.to_file(DATA / f"{name}.geojson", driver="GeoJSON")
             rep[name] = {"features": int(len(g))}
             print(f"  {name}: {len(g)} features")
+            import time
+            time.sleep(10)                      # be polite to the shared Overpass servers
         except Exception as ex:
             rep[name] = {"error": str(ex)}
             print(f"  {name} FAILED: {ex}")
@@ -250,30 +262,65 @@ def prepare(bbox, gdf):
         rep["worldcover"] = {"error": str(ex)}
         print("  WorldCover FAILED:", ex)
 
-    # WorldPop 2020 population (100 m constrained, else 1 km)
-    urls = ["https://data.worldpop.org/GIS/Population/Global_2000_2020_Constrained/2020/maxar_v1/IND/"
-            "ind_ppp_2020_constrained.tif",
-            "https://data.worldpop.org/GIS/Population/Global_2000_2020/2020/IND/ind_ppp_2020.tif",
-            "https://data.worldpop.org/GIS/Population/Global_2000_2020_1km_UNadj/2020/IND/"
-            "ind_ppp_2020_1km_Aggregated_UNadj.tif"]
-    for url in urls:
-        try:
-            from rasterio.windows import from_bounds
-            with rasterio.open("/vsicurl/" + url) as src:
-                win = from_bounds(w, s, e, n, src.transform).round_offsets().round_lengths()
-                a = src.read(1, window=win, masked=True).filled(0).astype("float32")
-                a[a < 0] = 0
-                prof = src.profile.copy()
-                prof.update(height=a.shape[0], width=a.shape[1], transform=src.window_transform(win),
-                            driver="GTiff", compress="deflate", dtype="float32", nodata=-1, count=1)
-                prof.pop("blockxsize", None); prof.pop("blockysize", None); prof.pop("tiled", None)
-            with rasterio.open(DATA / "population_worldpop.tif", "w", **prof) as dst:
-                dst.write(a, 1)
-            total = float(a.sum())
-            rep["population"] = {"source": url.split("/Population/")[1], "people_in_window": round(total)}
-            print(f"  WorldPop: {round(total)} people in the district window from {url.split('/')[-1]}")
+    # WorldPop 2020 population, 100 m, constrained to settled areas, UN-adjusted
+    names = ["GIS/Population/Global_2000_2020_Constrained/2020/BSGM/IND/ind_ppp_2020_UNadj_constrained.tif",
+             "GIS/Population/Global_2000_2020_Constrained/2020/BSGM/IND/ind_ppp_2020_constrained.tif"]
+    hosts = ["https://data.worldpop.org/", "https://worldpop-public-data.soton.ac.uk/"]
+    rep["population"] = {"error": "not attempted"}
+    for name in names:
+        for host in hosts:
+            url = host + name
+            try:
+                total = _worldpop_window(url, (w, s, e, n))
+                rep["population"] = {"source": "WorldPop 2020, 100 m, " + name.split("/")[-1],
+                                     "people_in_window": round(total)}
+                print(f"  WorldPop: {round(total)} people in the district window ({name.split('/')[-1]})")
+                break
+            except Exception as ex:
+                rep["population"] = {"error": str(ex)}
+                print("  WorldPop source failed:", url, ex)
+        if "source" in rep["population"]:
             break
-        except Exception as ex:
-            rep["population"] = {"error": str(ex)}
-            print("  WorldPop source failed:", url.split('/')[-1], ex)
     return rep
+
+
+def _worldpop_window(url, bounds):
+    """Cut the district window out of a national WorldPop GeoTIFF. Reads only the
+    window over HTTP when the server allows range requests; otherwise downloads
+    the whole file once to a temporary folder and deletes it afterwards."""
+    import shutil
+    import tempfile
+    import rasterio
+    import requests
+    from rasterio.windows import from_bounds
+
+    def cut(src_path):
+        with rasterio.open(src_path) as src:
+            win = from_bounds(*bounds, src.transform).round_offsets().round_lengths()
+            a = src.read(1, window=win, masked=True).filled(0).astype("float32")
+            a[a < 0] = 0
+            prof = src.profile.copy()
+            prof.update(height=a.shape[0], width=a.shape[1], transform=src.window_transform(win),
+                        driver="GTiff", compress="deflate", dtype="float32", nodata=-1, count=1)
+            for k in ("blockxsize", "blockysize", "tiled"):
+                prof.pop(k, None)
+        with rasterio.open(DATA / "population_worldpop.tif", "w", **prof) as dst:
+            dst.write(a, 1)
+        return float(a.sum())
+
+    try:
+        return cut("/vsicurl/" + url)
+    except Exception as e:
+        print(f"    range read not possible ({e}); downloading the whole file")
+    tmp = Path(tempfile.mkdtemp())
+    try:
+        f = tmp / url.split("/")[-1]
+        with requests.get(url, stream=True, timeout=600) as r:
+            r.raise_for_status()
+            with open(f, "wb") as out:
+                for chunk in r.iter_content(chunk_size=1 << 22):
+                    out.write(chunk)
+        print(f"    downloaded {f.stat().st_size / 1e6:.0f} MB")
+        return cut(f)
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
