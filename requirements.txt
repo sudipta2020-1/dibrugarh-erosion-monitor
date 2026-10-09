@@ -1,0 +1,16 @@
+numpy
+xarray
+rioxarray
+rasterio
+dask
+odc-stac
+pystac-client
+planetary-computer
+geopandas
+shapely
+pyproj
+requests
+matplotlib
+pillow
+pandas
+pyyaml
