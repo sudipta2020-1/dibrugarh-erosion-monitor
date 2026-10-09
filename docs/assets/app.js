@@ -5,6 +5,8 @@ const CLASS_COLOR = {
   "Vegetation loss": "#fdae61", "New bare soil": "#8c510a",
   "Very high": "#d73027", "High": "#fc8d59",
 };
+const HIST_COLOR = { "Land to permanent water": "#7a0177", "Land to seasonal water": "#dd3497",
+  "Permanent water to land": "#225ea8", "Seasonal water to land": "#41b6c4" };
 const RAMPS = {
   YlOrRd: "linear-gradient(90deg,#ffffcc,#fed976,#fd8d3c,#e31a1c,#800026)",
   RdYlGn: "linear-gradient(90deg,#a50026,#f46d43,#fee08b,#a6d96a,#006837)",
@@ -34,7 +36,7 @@ async function main() {
     getText("history.csv").catch(() => ""),
   ]);
   const history = histTxt ? parseCSV(histTxt) : [];
-  header(summary); kpis(summary); mapView(layers, aoi, hot); riskChart(summary); trendChart(history);
+  header(summary); kpis(summary); inputsNote(summary); mapView(layers, aoi, hot); riskChart(summary); trendChart(history);
   table(hot); downloads(summary);
 }
 
@@ -49,6 +51,22 @@ function header(s) {
   }
 }
 
+function inputsNote(s) {
+  const el = document.getElementById("inputsNote");
+  const ri = s.rusle_inputs;
+  if (!el || !ri) return;
+  const rep = s.inputs_report || {};
+  const imd = rep.rainfall_imd, cx = rep.rainfall_crosscheck;
+  let t = `RUSLE inputs in this run: rainfall from ${ri.rainfall}`;
+  if (imd && imd.years) t += ` (${imd.years[0]}–${imd.years[1]})`;
+  t += `, district mean ${fmt(ri.mean_rainfall_mm)} mm/yr, mean R ${fmt(ri.mean_R)}`;
+  if (cx) t += `; CHIRPS cross-check ${fmt(cx.chirps_mm)} mm (${cx.difference_pct > 0 ? "+" : ""}${cx.difference_pct}%)`;
+  t += `. Soil erodibility from ${ri.soil_k}, mean K ${ri.mean_K}. Surface DEM smoothed over ${ri.dem_smoothing_m} m to remove canopy noise.`;
+  if (/placeholder/.test(ri.rainfall + ri.soil_k)) t += " Values marked as placeholder mean the input layer has not been prepared yet, so soil loss is relative only.";
+  t += " All results need field confirmation before conservation works are planned.";
+  el.textContent = t;
+}
+
 function kpis(s) {
   const r = s.risk_class_area_ha, c = s.change_area_ha;
   const total = Object.values(r).reduce((a, b) => a + b, 0) || 1;
@@ -60,8 +78,13 @@ function kpis(s) {
     ["Bank erosion", fmt(ch("Bank erosion")), "ha of land lost to water", "#d7191c"],
     ["Accretion", fmt(ch("Accretion")), "ha of new land", "#2c7bb6"],
     ["Vegetation loss", fmt(ch("Vegetation loss")), "ha", "#fdae61"],
-    ["Mean soil loss", fmt(s.mean_soil_loss_t_ha_yr, 1), "t/ha/yr (relative)", "#8c510a"],
+    ["Mean soil loss", fmt(s.mean_soil_loss_t_ha_yr, 1), "t/ha/yr", "#8c510a"],
   ];
+  if (s.history_area_ha) {
+    const h = s.history_area_ha;
+    const lost = (h["Land to permanent water"] || 0) + (h["Land to seasonal water"] || 0);
+    items.splice(3, 0, ["Land lost to river 1984–2021", fmt(lost), "ha (JRC Landsat record)", "#7a0177"]);
+  }
   document.getElementById("kpis").innerHTML = items.map(([l, v, sub, col]) =>
     `<div class="kpi" style="--c:${col}"><div class="label">${l}</div><div class="value">${v}</div><div class="sub">${sub}</div></div>`).join("");
 }
@@ -79,7 +102,7 @@ function mapView(layers, aoi, hot) {
 
   const sel = document.getElementById("layerSelect"), op = document.getElementById("opacity");
   const overlays = {};
-  const order = ["risk", "change", "soilloss", "ndvi", "truecolour"];
+  const order = ["change", "history", "risk", "soilloss", "ndvi", "truecolour"];
   order.filter(k => layers[k]).forEach(k => {
     overlays[k] = L.imageOverlay(DATA + layers[k].file, layers[k].bounds, { opacity: op.value / 100 });
     sel.add(new Option(layers[k].title, k));
