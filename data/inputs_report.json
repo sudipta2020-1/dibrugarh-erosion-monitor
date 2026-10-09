@@ -54,5 +54,28 @@
     "imd_mm": 2195.714,
     "chirps_mm": 2561.233,
     "difference_pct": 16.6
+  },
+  "exposure": {
+    "osm_roads": {
+      "features": 31915
+    },
+    "osm_embankments": {
+      "features": 242
+    },
+    "osm_facilities": {
+      "features": 250
+    },
+    "osm_places": {
+      "features": 160
+    },
+    "worldcover": {
+      "source": "ESA WorldCover 2021 v200, 10 m, aggregated to 100 m shares",
+      "items": 1
+    },
+    "population": {
+      "source": "WorldPop 2020, 100 m, ind_ppp_2020_UNadj_constrained.tif",
+      "people_in_window": 2731728
+    },
+    "prepared": "2026-10-09"
   }
 }
