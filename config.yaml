@@ -1,0 +1,48 @@
+# Configuration for the Dibrugarh soil erosion monitoring dashboard.
+
+project_name: dibrugarh_district
+
+# Study area. The district polygon is downloaded from geoBoundaries (India, ADM2).
+# Set aoi_geojson to a file in this repository to use the department's own boundary.
+aoi_district: Dibrugarh
+aoi_geojson: null
+aoi_bbox: [94.55, 27.05, 95.45, 27.75]   # fallback only
+
+crs: "EPSG:32646"     # UTM zone 46N
+resolution_m: 20
+
+# Monitoring windows.
+# mode: rolling -> every run compares the most recent `window_days` with the
+#                  same calendar dates in `baseline_year`. Comparing the same
+#                  months keeps seasonal river level and crop differences small.
+# mode: fixed   -> use period_baseline and period_current below.
+monitoring:
+  mode: rolling
+  window_days: 120
+  baseline_year: 2020
+
+period_baseline: ["2019-11-01", "2020-02-28"]
+period_current:  ["2025-11-01", "2026-02-28"]
+
+max_cloud_cover: 40
+# Runs whose current optical composite covers less than this share of the
+# district (monsoon months) are published but flagged as low confidence.
+min_clear_coverage_pct: 60
+
+rusle:
+  annual_rainfall_mm: 2500
+  rainfall_raster: null
+  k_factor: 0.25
+  k_raster: null
+  p_factor: 1.0
+
+risk_thresholds: [5, 10, 20, 40]
+
+change:
+  mndwi_water: 0.0
+  sar_water_db: -16.0
+  ndvi_loss: -0.15
+  min_patch_pixels: 10
+
+output_dir: outputs        # working files (not committed)
+publish_dir: docs/data     # files served by GitHub Pages
