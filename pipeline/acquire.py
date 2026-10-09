@@ -1,0 +1,183 @@
+"""
+Satellite data acquisition.
+
+Searches the Microsoft Planetary Computer STAC catalogue (free, no account
+needed) and builds cloud-free composites on a common grid for the AOI:
+
+  * Sentinel-2 L2A  : surface reflectance (B02, B03, B04, B08, B11, B12)
+  * Sentinel-1 RTC  : radar backscatter VV and VH (works through clouds)
+  * Copernicus DEM  : 30 m elevation, resampled to the analysis grid
+
+Each composite is saved as a GeoTIFF in outputs/<project>/raw/.
+"""
+from pathlib import Path
+
+import numpy as np
+import planetary_computer
+import pystac_client
+import rioxarray  # noqa: F401  (registers the .rio accessor)
+import xarray as xr
+from odc.stac import load as stac_load
+
+STAC_URL = "https://planetarycomputer.microsoft.com/api/stac/v1"
+S2_BANDS = ["B02", "B03", "B04", "B08", "B11", "B12"]
+# Scene classification classes kept as clear: 4 vegetation, 5 bare soil,
+# 6 water, 7 unclassified. Clouds, shadows and cirrus are removed.
+S2_CLEAR_SCL = [4, 5, 6, 7]
+
+
+GEOBOUNDARIES_API = "https://www.geoboundaries.org/api/current/gbOpen/IND/ADM2/"
+CHUNKS = {"x": 512, "y": 512}
+
+
+def get_aoi(cfg):
+    """
+    Returns (polygon_gdf_or_None, bbox). The polygon is in EPSG:4326.
+    Order of preference: local GeoJSON -> geoBoundaries district -> bbox only.
+    """
+    import geopandas as gpd
+    gdf = None
+    if cfg.get("aoi_geojson"):
+        gdf = gpd.read_file(cfg["aoi_geojson"]).to_crs("EPSG:4326")
+        print(f"  AOI from local file {cfg['aoi_geojson']}")
+    elif cfg.get("aoi_district"):
+        try:
+            import requests
+            meta = requests.get(GEOBOUNDARIES_API, timeout=60).json()
+            url = meta.get("simplifiedGeometryGeoJSON") or meta["gjDownloadURL"]
+            allg = gpd.read_file(url)
+            name = cfg["aoi_district"].strip().lower()
+            gdf = allg[allg["shapeName"].str.strip().str.lower() == name].to_crs("EPSG:4326")
+            if gdf.empty:
+                print(f"  District '{cfg['aoi_district']}' not found in geoBoundaries; using bbox.")
+                gdf = None
+            else:
+                print(f"  AOI: {cfg['aoi_district']} district boundary (geoBoundaries ADM2)")
+        except Exception as e:  # network or format problem
+            print(f"  Could not download district boundary ({e}); using bbox.")
+            gdf = None
+    if gdf is not None:
+        gdf = gdf.dissolve()
+        b = gdf.total_bounds
+        bbox = [round(float(v), 5) for v in (b[0], b[1], b[2], b[3])]
+    else:
+        bbox = cfg["aoi_bbox"]
+    print(f"  bbox = {bbox}")
+    return gdf, bbox
+
+
+def _catalog():
+    return pystac_client.Client.open(STAC_URL, modifier=planetary_computer.sign_inplace)
+
+
+def _search(collection, bbox, period, query=None):
+    items = _catalog().search(
+        collections=[collection], bbox=bbox,
+        datetime=f"{period[0]}/{period[1]}", query=query or {},
+    ).item_collection()
+    print(f"  {collection}: {len(items)} scenes found for {period[0]} to {period[1]}")
+    return items
+
+
+def _s2_offset(item):
+    # From processing baseline 04.00 (Jan 2022) ESA adds +1000 to the digital numbers.
+    pb = item.properties.get("s2:processing_baseline", "00.00")
+    return -1000 if pb >= "04.00" else 0
+
+
+def sentinel2_composite(bbox, period, crs, res, max_cloud):
+    items = _search("sentinel-2-l2a", bbox, period, {"eo:cloud_cover": {"lt": max_cloud}})
+    if len(items) == 0:
+        raise RuntimeError("No Sentinel-2 scenes found. Widen the period or raise max_cloud_cover.")
+    offs = [_s2_offset(it) for it in items]
+    if len(set(offs)) == 1:
+        # One processing baseline: merge same-day tiles to reduce the stack.
+        ds = stac_load(items, bands=S2_BANDS + ["SCL"], bbox=bbox, crs=crs,
+                       resolution=res, chunks=CHUNKS, groupby="solar_day")
+        offsets = offs[0]
+    else:
+        ds = stac_load(items, bands=S2_BANDS + ["SCL"], bbox=bbox, crs=crs,
+                       resolution=res, chunks=CHUNKS)
+        offsets = xr.DataArray(offs, dims="time")
+    clear = ds["SCL"].isin(S2_CLEAR_SCL)
+    bands = []
+    for b in S2_BANDS:
+        dn = ds[b].where((ds[b] > 0) & clear)
+        refl = ((dn + offsets) / 10000.0).clip(0, 1)
+        bands.append(refl.median("time", skipna=True).rename(b))
+    out = xr.merge(bands).compute().rio.write_crs(crs)
+    valid = float(np.isfinite(out["B04"]).mean() * 100)
+    print(f"  Sentinel-2 composite: {valid:.1f}% of pixels have a clear observation")
+    return out
+
+
+def sentinel1_composite(bbox, period, crs, res):
+    items = _search("sentinel-1-rtc", bbox, period)
+    if len(items) == 0:
+        print("  No Sentinel-1 scenes found; radar layers will be skipped.")
+        return None
+    ds = stac_load(items, bands=["vv", "vh"], bbox=bbox, crs=crs,
+                   resolution=res, chunks=CHUNKS, groupby="solar_day")
+    out = xr.Dataset()
+    for b in ["vv", "vh"]:
+        lin = ds[b].where(ds[b] > 0).median("time", skipna=True)
+        out[b.upper() + "_dB"] = 10 * np.log10(lin)
+    return out.compute().rio.write_crs(crs)
+
+
+def dem(bbox, crs, res):
+    items = _catalog().search(collections=["cop-dem-glo-30"], bbox=bbox).item_collection()
+    ds = stac_load(items, bands=["data"], bbox=bbox, crs=crs, resolution=res,
+                   resampling="bilinear", chunks=CHUNKS)
+    return ds["data"].max("time").astype("float32").rename("elevation").compute().rio.write_crs(crs)
+
+
+def save(da_or_ds, path):
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    obj = da_or_ds.to_array("band") if isinstance(da_or_ds, xr.Dataset) else da_or_ds
+    obj.astype("float32").rio.to_raster(path, compress="deflate")
+    print(f"  saved {path}")
+
+
+S1_BANDS = ["VV_dB", "VH_dB"]
+
+
+def open_multiband(path, names):
+    da = rioxarray.open_rasterio(path, masked=True)
+    return xr.Dataset({n: da.isel(band=i, drop=True) for i, n in enumerate(names)})
+
+
+def acquire_all(cfg, raw_dir, bbox):
+    """Download what is missing in raw_dir; reuse composites that already exist."""
+    crs, res = cfg["crs"], cfg["resolution_m"]
+    raw_dir = Path(raw_dir)
+    raw_dir.mkdir(parents=True, exist_ok=True)
+    layers = {}
+    for tag in ["baseline", "current"]:
+        period = cfg[f"period_{tag}"]
+        print(f"\n[{tag}] {period[0]} to {period[1]}")
+        f2, f1 = raw_dir / f"s2_{tag}.tif", raw_dir / f"s1_{tag}.tif"
+        if f2.exists():
+            print("  reusing", f2.name)
+            s2 = open_multiband(f2, S2_BANDS)
+        else:
+            s2 = sentinel2_composite(bbox, period, crs, res, cfg["max_cloud_cover"])
+            save(s2, f2)
+        if f1.exists():
+            s1 = open_multiband(f1, S1_BANDS)
+        else:
+            s1 = sentinel1_composite(bbox, period, crs, res)
+            if s1 is not None:
+                s1 = s1.rio.reproject_match(s2["B04"])
+                save(s1, f1)
+        layers[tag] = {"s2": s2, "s1": s1}
+    fd = raw_dir / "dem.tif"
+    if fd.exists():
+        elev = rioxarray.open_rasterio(fd, masked=True).squeeze("band", drop=True)
+    else:
+        print("\n[terrain] Copernicus DEM GLO-30")
+        elev = dem(bbox, crs, res).rio.reproject_match(layers["current"]["s2"]["B04"])
+        save(elev, fd)
+    layers["dem"] = elev
+    return layers
