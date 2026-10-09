@@ -5,12 +5,15 @@ const CLASS_COLOR = {
   "Accretion (water to land)": "#2c7bb6", "New inland water (pond or flooding)": "#66c2a5",
   "Vegetation loss": "#fdae61", "New bare soil": "#8c510a",
   "Very high": "#d73027", "High": "#fc8d59",
+  "Likely bank erosion (AI prediction)": "#7b3294",
 };
+const CONF_COLOR = { "High": "#1a7f37", "Medium": "#b7791f", "Low": "#c53030", "Not assessed": "#8a8a80", "Not validated": "#8a8a80" };
 const HIST_COLOR = { "Land to permanent water": "#7a0177", "Land to seasonal water": "#dd3497",
   "Permanent water to land": "#225ea8", "Seasonal water to land": "#41b6c4" };
 const RAMPS = {
   YlOrRd: "linear-gradient(90deg,#ffffcc,#fed976,#fd8d3c,#e31a1c,#800026)",
   RdYlGn: "linear-gradient(90deg,#a50026,#f46d43,#fee08b,#a6d96a,#006837)",
+  viridis: "linear-gradient(90deg,#440154,#3b528b,#21918c,#5ec962,#fde725)",
 };
 const fmt = (v, d = 0) => (v == null || isNaN(v)) ? "–" : Number(v).toLocaleString("en-IN", { maximumFractionDigits: d, minimumFractionDigits: d });
 const shortName = s => s.replace(/ \(.*\)$/, "");
@@ -37,7 +40,7 @@ async function main() {
     getText("history.csv").catch(() => ""),
   ]);
   const history = histTxt ? parseCSV(histTxt) : [];
-  header(summary); kpis(summary); inputsNote(summary); accuracy(summary); mapView(layers, aoi, hot); riskChart(summary); trendChart(history);
+  header(summary); kpis(summary); inputsNote(summary); accuracy(summary); mlCard(summary); mapView(layers, aoi, hot); riskChart(summary); trendChart(history);
   table(hot); downloads(summary);
 }
 
@@ -89,6 +92,28 @@ function accuracy(s) {
   <div class="table-wrap"><table><thead><tr><th>Class</th><th class="num">User's accuracy</th><th class="num">Producer's accuracy</th><th class="num">Mapped (ha)</th><th class="num">Estimated (ha, 95% CI)</th></tr></thead><tbody>${rows}</tbody></table></div>`;
 }
 
+function mlCard(s) {
+  const el = document.getElementById("mlBody");
+  if (!el) return;
+  const m = s.ml_model;
+  if (!m) { el.innerHTML = `<p class="note">The model is trained by the next monitoring run.</p>`; return; }
+  const pct = x => x == null ? "–" : `${(100 * x).toFixed(0)}%`;
+  const rows = Object.entries(m.metrics).map(([k, r]) => `<tr><td>${k}</td>
+    <td class="num">${r.roc_auc.toFixed(2)}</td><td class="num">${r.pr_auc.toFixed(2)}</td>
+    <td class="num">${pct(r.captured_top10pct)}</td><td class="num">${pct(r.captured_top20pct)}</td></tr>`).join("");
+  el.innerHTML = `<p>The model learns where the river took land between the two windows, from conditions at the start (${fmt(m.training_pixels)} sample pixels, ${pct(m.positive_share)} with bank loss). Scores are out-of-sample: ${m.cv}. ROC AUC of 0.5 means no skill. "Captured" is the share of the land actually lost that falls within the 10% or 20% of land the method ranks highest, which is what matters when field teams can visit only a few sites.</p>
+    <div class="table-wrap"><table><thead><tr><th>Method</th><th class="num">ROC AUC</th><th class="num">PR AUC</th><th class="num">Captured, top 10%</th><th class="num">Captured, top 20%</th></tr></thead><tbody>${rows}</tbody></table></div>
+    <p class="note">RUSLE estimates sheet and rill erosion from rain on slopes; it is included to show that it does not describe riverbank loss, which needs its own model.</p>`;
+  const imp = (m.feature_importance || []).slice(0, 8);
+  if (imp.length) new Chart(document.getElementById("impChart"), {
+    type: "bar",
+    data: { labels: imp.map(x => x[0]), datasets: [{ data: imp.map(x => x[1]), backgroundColor: "#7b3294", borderRadius: 3 }] },
+    options: { indexAxis: "y", maintainAspectRatio: false, plugins: { legend: { display: false },
+      tooltip: { callbacks: { label: c => `${(100 * c.raw).toFixed(1)}% of importance` } } },
+      scales: { x: { title: { display: true, text: "Share of importance (RF and XGBoost mean)" }, grid: { color: "#eee" } }, y: { grid: { display: false } } } },
+  });
+}
+
 function kpis(s) {
   const r = s.risk_class_area_ha, c = s.change_area_ha;
   const total = Object.values(r).reduce((a, b) => a + b, 0) || 1;
@@ -103,6 +128,9 @@ function kpis(s) {
     ["Vegetation loss", fmt(ch("Vegetation loss")), "ha", "#fdae61"],
     ["Mean soil loss", fmt(s.mean_soil_loss_t_ha_yr, 1), "t/ha/yr", "#8c510a"],
   ];
+  const ex = s.exposure || {};
+  if (ex.people_near_bank_erosion != null)
+    items.splice(3, 0, ["People near active bank erosion", fmt(ex.people_near_bank_erosion), `within ${ex.buffer_m || 500} m (WorldPop 2020)`, "#b2182b"]);
   if (s.history_area_ha) {
     const h = s.history_area_ha;
     const lost = (h["Land to permanent water"] || 0) + (h["Land to seasonal water"] || 0);
@@ -125,7 +153,7 @@ function mapView(layers, aoi, hot) {
 
   const sel = document.getElementById("layerSelect"), op = document.getElementById("opacity");
   const overlays = {};
-  const order = ["change", "history", "risk", "soilloss", "ndvi", "truecolour"];
+  const order = ["change", "ai", "confidence", "agreement", "history", "risk", "soilloss", "ndvi", "truecolour"];
   order.filter(k => layers[k]).forEach(k => {
     overlays[k] = L.imageOverlay(DATA + layers[k].file, layers[k].bounds, { opacity: op.value / 100 });
     sel.add(new Option(layers[k].title, k));
@@ -159,6 +187,10 @@ function popup(p) {
   return `<b>Rank ${p.rank}: ${shortName(p.class)}</b><br>${fmt(p.area_ha, 2)} ha` +
     (p.mean_soil_loss_t_ha_yr != null && !isNaN(p.mean_soil_loss_t_ha_yr) ? `<br>Soil loss ${fmt(p.mean_soil_loss_t_ha_yr, 1)} t/ha/yr` : "") +
     (p.max_retreat_m != null && !isNaN(p.max_retreat_m) ? `<br>Bank retreat up to ${fmt(p.max_retreat_m)} m (${fmt(p.retreat_m_per_yr, 1)} m/yr)` : "") +
+    (p.mean_probability != null && !isNaN(p.mean_probability) ? `<br>AI probability ${fmt(100 * p.mean_probability)}%, model agreement ${fmt(100 * p.model_agreement)}%` : "") +
+    (p.confidence ? `<br>Confidence: <b>${p.confidence}</b>` : "") +
+    (p.population != null && !isNaN(p.population) ? `<br>Within 500 m: ${fmt(p.population)} people, ${fmt(p.built_ha, 1)} ha built-up, ${fmt(p.crop_ha, 1)} ha cropland, ${fmt(p.road_km, 1)} km road, ${fmt(p.facilities)} schools/health facilities` : "") +
+    (p.nearest_place ? `<br>Nearest place: ${p.nearest_place} (${fmt(p.nearest_place_km, 1)} km)` : "") +
     `<br>${p.lat}, ${p.lon}<br><a target="_blank" rel="noopener" href="https://www.google.com/maps/dir/?api=1&destination=${p.lat},${p.lon}">Directions</a>`;
 }
 
@@ -210,14 +242,16 @@ function trendChart(h) {
 
 function table(hot) {
   const tb = document.querySelector("#hotTable tbody");
-  if (!hot.features.length) { tb.innerHTML = `<tr><td colspan="7">No priority sites in this run.</td></tr>`; return; }
+  if (!hot.features.length) { tb.innerHTML = `<tr><td colspan="9">No priority sites in this run.</td></tr>`; return; }
   tb.innerHTML = hot.features.map(f => f.properties).sort((a, b) => a.rank - b.rank).map(p => `
     <tr data-lat="${p.lat}" data-lon="${p.lon}">
       <td>${p.rank}</td>
       <td><span class="tag"><i style="background:${CLASS_COLOR[p.class] || "#333"}"></i>${shortName(p.class)}</span></td>
+      <td><span class="tag"><i style="background:${CONF_COLOR[p.confidence] || "#8a8a80"}"></i>${p.confidence || "–"}</span></td>
       <td class="num">${fmt(p.area_ha, 2)}</td>
-      <td class="num">${p.mean_soil_loss_t_ha_yr != null && !isNaN(p.mean_soil_loss_t_ha_yr) ? fmt(p.mean_soil_loss_t_ha_yr, 1) : "–"}</td>
       <td class="num">${p.retreat_m_per_yr != null && !isNaN(p.retreat_m_per_yr) ? fmt(p.retreat_m_per_yr, 1) : "–"}</td>
+      <td class="num">${p.population != null && !isNaN(p.population) ? fmt(p.population) : "–"}</td>
+      <td>${p.nearest_place ? `${p.nearest_place} (${fmt(p.nearest_place_km, 1)} km)` : "–"}</td>
       <td class="num">${fmt(p.priority_score, 2)}</td>
       <td><a target="_blank" rel="noopener" href="https://www.google.com/maps?q=${p.lat},${p.lon}" onclick="event.stopPropagation()">${p.lat}, ${p.lon}</a></td>
     </tr>`).join("");
