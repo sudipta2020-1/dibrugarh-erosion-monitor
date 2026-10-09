@@ -1,0 +1,129 @@
+{
+ "truecolour": {
+  "title": "Satellite image (current)",
+  "file": "layers/truecolour.png",
+  "bounds": [
+   [
+    27.072442,
+    94.53491
+   ],
+   [
+    27.676144,
+    95.53369
+   ]
+  ]
+ },
+ "risk": {
+  "title": "Erosion risk class",
+  "file": "layers/risk.png",
+  "bounds": [
+   [
+    27.072442,
+    94.53491
+   ],
+   [
+    27.676144,
+    95.53369
+   ]
+  ],
+  "legend": [
+   [
+    "Very low",
+    "#1a9850"
+   ],
+   [
+    "Low",
+    "#91cf60"
+   ],
+   [
+    "Moderate",
+    "#fee08b"
+   ],
+   [
+    "High",
+    "#fc8d59"
+   ],
+   [
+    "Very high",
+    "#d73027"
+   ]
+  ]
+ },
+ "change": {
+  "title": "Change since baseline",
+  "file": "layers/change.png",
+  "bounds": [
+   [
+    27.072442,
+    94.53491
+   ],
+   [
+    27.676144,
+    95.53369
+   ]
+  ],
+  "legend": [
+   [
+    "Bank erosion (land to water)",
+    "#d7191c"
+   ],
+   [
+    "Accretion (water to land)",
+    "#2c7bb6"
+   ],
+   [
+    "Vegetation loss",
+    "#fdae61"
+   ],
+   [
+    "New bare soil",
+    "#8c510a"
+   ]
+  ]
+ },
+ "soilloss": {
+  "title": "Soil loss (t/ha/yr)",
+  "file": "layers/soilloss.png",
+  "bounds": [
+   [
+    27.072442,
+    94.53491
+   ],
+   [
+    27.676144,
+    95.53369
+   ]
+  ],
+  "ramp": {
+   "cmap": "YlOrRd",
+   "labels": [
+    "0.1",
+    "1",
+    "10",
+    "100"
+   ]
+  }
+ },
+ "ndvi": {
+  "title": "NDVI (current)",
+  "file": "layers/ndvi.png",
+  "bounds": [
+   [
+    27.072442,
+    94.53491
+   ],
+   [
+    27.676144,
+    95.53369
+   ]
+  ],
+  "ramp": {
+   "cmap": "RdYlGn",
+   "labels": [
+    "-0.2",
+    "0.35",
+    "0.9"
+   ]
+  }
+ }
+}

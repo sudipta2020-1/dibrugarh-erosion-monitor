@@ -1,0 +1,32 @@
+{
+  "run_date": "2026-10-09 10:22 UTC",
+  "district": "Dibrugarh",
+  "period_baseline": [
+    "2019-10-31",
+    "2020-02-28"
+  ],
+  "period_current": [
+    "2025-10-31",
+    "2026-02-28"
+  ],
+  "resolution_m": 20,
+  "confidence": "normal",
+  "repository": "sudipta2020-1/dibrugarh-erosion-monitor",
+  "district_area_ha": 334391.7,
+  "clear_coverage_pct": 100.0,
+  "mean_soil_loss_t_ha_yr": 14.08,
+  "risk_class_area_ha": {
+    "Very low": 130429.6,
+    "Low": 90975.4,
+    "Moderate": 40530.8,
+    "High": 27274.2,
+    "Very high": 26465.2
+  },
+  "change_area_ha": {
+    "Bank erosion (land to water)": 11554.3,
+    "Accretion (water to land)": 16158.3,
+    "Vegetation loss": 20674.8,
+    "New bare soil": 16932.4
+  },
+  "hotspots_listed": 50
+}

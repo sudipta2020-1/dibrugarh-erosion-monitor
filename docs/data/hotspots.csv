@@ -1,0 +1,51 @@
+rank,class,source,area_ha,mean_soil_loss_t_ha_yr,priority_score,lat,lon
+1,Bank erosion (land to water),change,532.48,,6.279,27.459333,94.766486
+2,Bank erosion (land to water),change,526.96,,6.269,27.458762,94.847389
+3,Bank erosion (land to water),change,389.88,,5.968,27.384733,94.738605
+4,Bank erosion (land to water),change,361.24,,5.892,27.625073,95.231454
+5,Bank erosion (land to water),change,301.68,,5.713,27.557914,95.185129
+6,Bank erosion (land to water),change,293.56,,5.685,27.580634,95.229111
+7,Bank erosion (land to water),change,262.28,,5.573,27.323573,94.710051
+8,Bank erosion (land to water),change,247.32,,5.515,27.195103,94.598585
+9,Bank erosion (land to water),change,230.24,,5.443,27.574215,95.118296
+10,Bank erosion (land to water),change,228.72,,5.437,27.416784,94.752596
+11,Bank erosion (land to water),change,215.68,,5.378,27.532466,94.99294
+12,Bank erosion (land to water),change,212.12,,5.362,27.236725,94.566657
+13,Bank erosion (land to water),change,198.92,,5.298,27.322333,94.666235
+14,Bank erosion (land to water),change,198.76,,5.297,27.568638,95.262209
+15,Bank erosion (land to water),change,195.96,,5.283,27.518471,94.955744
+16,Very high,risk,336.36,78.7,5.239,27.48209,94.911213
+17,Bank erosion (land to water),change,161.56,,5.091,27.503263,94.910912
+18,Bank erosion (land to water),change,152.8,,5.036,27.355412,94.740178
+19,Very high,risk,264.4,88.56,5.023,27.606719,95.203768
+20,Bank erosion (land to water),change,142.72,,4.968,27.533577,95.036158
+21,Bank erosion (land to water),change,134.16,,4.906,27.604236,95.056933
+22,Bank erosion (land to water),change,133.2,,4.899,27.300316,94.625897
+23,Very high,risk,208.84,103.83,4.812,27.632704,95.271038
+24,Bank erosion (land to water),change,119.0,,4.787,27.541051,95.065306
+25,Bank erosion (land to water),change,115.0,,4.754,27.277628,94.645773
+26,Bank erosion (land to water),change,104.12,,4.655,27.551417,95.060986
+27,Bank erosion (land to water),change,103.68,,4.651,27.463733,94.798288
+28,Very high,risk,159.96,121.54,4.573,27.563742,95.218125
+29,Bank erosion (land to water),change,91.6,,4.528,27.303442,94.664405
+30,Bank erosion (land to water),change,91.52,,4.527,27.445214,94.803672
+31,Bank erosion (land to water),change,89.28,,4.503,27.571649,95.168592
+32,Bank erosion (land to water),change,89.2,,4.502,27.262535,94.644334
+33,Bank erosion (land to water),change,87.32,,4.481,27.226777,94.594811
+34,Bank erosion (land to water),change,87.0,,4.477,27.274542,94.596363
+35,Bank erosion (land to water),change,85.2,,4.457,27.23861,94.610344
+36,Bank erosion (land to water),change,84.96,,4.454,27.312591,94.624112
+37,Bank erosion (land to water),change,84.4,,4.447,27.221585,94.602994
+38,Bank erosion (land to water),change,84.04,,4.443,27.602122,95.032472
+39,Bank erosion (land to water),change,82.0,,4.419,27.567275,94.905183
+40,Bank erosion (land to water),change,82.0,,4.419,27.558976,95.105702
+41,Bank erosion (land to water),change,79.56,,4.389,27.288751,94.61067
+42,Bank erosion (land to water),change,77.32,,4.361,27.25763,94.624708
+43,Bank erosion (land to water),change,77.16,,4.359,27.540977,95.01602
+44,Bank erosion (land to water),change,75.88,,4.342,27.590489,94.969244
+45,Bank erosion (land to water),change,70.56,,4.271,27.523148,94.984651
+46,Bank erosion (land to water),change,70.16,,4.265,27.356484,94.722414
+47,Bank erosion (land to water),change,68.24,,4.238,27.344389,94.72044
+48,Bank erosion (land to water),change,67.72,,4.23,27.160578,94.597049
+49,Bank erosion (land to water),change,64.04,,4.175,27.599834,95.014314
+50,Bank erosion (land to water),change,61.72,,4.139,27.621275,95.07428

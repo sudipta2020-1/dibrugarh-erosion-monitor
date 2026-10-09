@@ -1,0 +1,2 @@
+run_date,current_start,current_end,baseline_start,baseline_end,clear_coverage_pct,confidence,mean_soil_loss_t_ha_yr,risk_very_low_ha,risk_low_ha,risk_moderate_ha,risk_high_ha,risk_very_high_ha,chg_bank_erosion_ha,chg_accretion_ha,chg_vegetation_loss_ha,chg_new_bare_soil_ha
+2026-10-09,2025-10-31,2026-02-28,2019-10-31,2020-02-28,100.0,normal,14.08,130429.6,90975.4,40530.8,27274.2,26465.2,11554.3,16158.3,20674.8,16932.4
