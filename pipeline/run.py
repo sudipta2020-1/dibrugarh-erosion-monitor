@@ -69,6 +69,11 @@ def analyse(cfg, layers, aoi_gdf):
     chg, dndvi = an.change_detection(state["baseline"], state["current"], cc)
     chg = chg.where(inside, 0).astype("uint8").rio.write_crs(crs)
 
+    # Historical bank erosion 1984-2021 (JRC Global Surface Water), if prepared
+    hist = an.history_layer(tmpl, cfg.get("history_raster"))
+    if hist is not None:
+        hist = hist.where(inside, 0).astype("uint8").rio.write_crs(crs)
+
     mp = cc["min_patch_pixels"]
     chg_gdf = an.patches(chg, an.CHANGE_LABELS, mp, res)
     risk_gdf = an.patches(risk.where(risk >= 4, 0).rio.write_crs(crs), an.RISK_LABELS, mp, res, extra=A)
@@ -82,10 +87,23 @@ def analyse(cfg, layers, aoi_gdf):
         "risk_class_area_ha": {an.RISK_LABELS[k]: round(float((risk == k).sum()) * px_ha, 1) for k in range(1, 6)},
         "change_area_ha": {an.CHANGE_LABELS[k]: round(float((chg == k).sum()) * px_ha, 1) for k in range(1, 5)},
         "hotspots_listed": 0 if hot is None else int(len(hot)),
+        "rusle_inputs": {
+            "rainfall": "IMD gridded mean annual rainfall" if ru.attrs["rainfall_from_file"]
+                        else f"uniform {cfg['rusle']['annual_rainfall_mm']} mm (placeholder)",
+            "soil_k": "SoilGrids topsoil texture, Williams EPIC equation" if ru.attrs["k_from_file"]
+                      else f"uniform K = {cfg['rusle']['k_factor']} (placeholder)",
+            "mean_rainfall_mm": round(float(ru["P_mm"].where(inside).mean()), 0),
+            "mean_R": round(float(ru["R"].where(inside).mean()), 1),
+            "mean_K": round(float(ru["K"].where(inside).mean()), 4),
+            "dem_smoothing_m": cfg["rusle"].get("dem_smooth_m", 0),
+        },
     }
+    if hist is not None:
+        stats["history_area_ha"] = {an.HISTORY_LABELS[k]: round(float((hist == k).sum()) * px_ha, 1)
+                                    for k in an.HISTORY_LABELS}
     return {"inside": inside, "state": state, "A": A, "risk": risk, "change": chg,
             "dNDVI": dndvi.where(inside).rio.write_crs(crs), "chg_gdf": chg_gdf,
-            "risk_gdf": risk_gdf, "hotspots": hot, "stats": stats}
+            "risk_gdf": risk_gdf, "hotspots": hot, "stats": stats, "history": hist}
 
 
 def main():
