@@ -10,6 +10,8 @@ Outputs in data/ (small district windows, committed to the repository):
     k_factor_soilgrids.tif           RUSLE K (t ha h / ha MJ mm) from SoilGrids topsoil,
                                      Williams (1995) EPIC equation, 250 m
     jrc_gsw_transitions.tif          JRC Global Surface Water v1.4 transitions 1984-2021, 30 m
+    worldcover_*_frac.tif, population_worldpop.tif, osm_*.geojson
+                                     exposure layers (see exposure.py)
     inputs_report.json               summary statistics of all inputs
 
 Each part is independent: if one source is unreachable the others are still built,
@@ -226,7 +228,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--start", type=int, default=2000)
     ap.add_argument("--end", type=int, default=2025)
-    ap.add_argument("--only", nargs="*", default=["imd", "chirps", "soil", "jrc"])
+    ap.add_argument("--only", nargs="*", default=["imd", "chirps", "soil", "jrc", "exposure"])
     args = ap.parse_args()
     years = list(range(args.start, args.end + 1))
     gdf, bbox = district()
@@ -237,7 +239,8 @@ def main():
     steps = {"imd": ("rainfall_imd", lambda: imd_rainfall(years, bbox, gdf)),
              "chirps": ("rainfall_chirps", lambda: chirps_rainfall(years, bbox, gdf)),
              "soil": ("k_factor", lambda: soilgrids_k(bbox, gdf)),
-             "jrc": ("history_jrc", lambda: jrc_history(bbox, gdf))}
+             "jrc": ("history_jrc", lambda: jrc_history(bbox, gdf)),
+             "exposure": ("exposure", lambda: __import__("exposure").prepare(bbox, gdf))}
     for key in args.only:
         name, fn = steps[key]
         print(f"\n== {name}")
