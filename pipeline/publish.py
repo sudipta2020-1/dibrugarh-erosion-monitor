@@ -28,7 +28,7 @@ from rasterio.enums import Resampling
 import analysis as an
 
 RISK_COLORS = {1: "#1a9850", 2: "#91cf60", 3: "#fee08b", 4: "#fc8d59", 5: "#d73027"}
-CHANGE_COLORS = {1: "#d7191c", 5: "#f59ec0", 2: "#2c7bb6", 3: "#fdae61", 4: "#8c510a"}
+CHANGE_COLORS = {1: "#d7191c", 5: "#f59ec0", 6: "#66c2a5", 2: "#2c7bb6", 3: "#fdae61", 4: "#8c510a"}
 HISTORY_COLORS = {1: "#7a0177", 2: "#dd3497", 3: "#225ea8", 4: "#41b6c4"}
 MAX_WIDTH = 1800
 
