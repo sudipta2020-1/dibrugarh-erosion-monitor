@@ -1,7 +1,8 @@
 // Dibrugarh soil erosion dashboard. Reads the files written by pipeline/publish.py.
 const DATA = "data/";
 const CLASS_COLOR = {
-  "Bank erosion (land to water)": "#d7191c", "Accretion (water to land)": "#2c7bb6",
+  "Bank erosion (stable land to water)": "#d7191c", "Char or sandbar lost (within river belt)": "#f59ec0",
+  "Accretion (water to land)": "#2c7bb6",
   "Vegetation loss": "#fdae61", "New bare soil": "#8c510a",
   "Very high": "#d73027", "High": "#fc8d59",
 };
@@ -36,7 +37,7 @@ async function main() {
     getText("history.csv").catch(() => ""),
   ]);
   const history = histTxt ? parseCSV(histTxt) : [];
-  header(summary); kpis(summary); inputsNote(summary); mapView(layers, aoi, hot); riskChart(summary); trendChart(history);
+  header(summary); kpis(summary); inputsNote(summary); accuracy(summary); mapView(layers, aoi, hot); riskChart(summary); trendChart(history);
   table(hot); downloads(summary);
 }
 
@@ -67,6 +68,27 @@ function inputsNote(s) {
   el.textContent = t;
 }
 
+function accuracy(s) {
+  const el = document.getElementById("accBody");
+  if (!el) return;
+  const a = s.accuracy, v = s.validation;
+  const per = x => `${x[0]} to ${x[1]}`;
+  if (!a || a.status !== "ok") {
+    if (!v) { el.innerHTML = `<p class="note">The validation sample is drawn by the next monitoring run.</p>`; return; }
+    const lab = a && a.status === "too_few_labels" ? ` ${a.labelled} points labelled so far; at least 20 are needed.` : "";
+    el.innerHTML = `<p>A stratified random sample of <b>${v.sample_points}</b> points was drawn for the window ${per(v.period_current)} (baseline ${per(v.period_baseline)}).${lab} Each point is labelled blind on the <a href="validate.html">labelling page</a>. Once the labels are added to the repository as <code>data/validation_labels.csv</code>, a run with end date <b>${v.period_current[1]}</b> reports map accuracy and corrected areas with 95% confidence intervals here.</p>`;
+    return;
+  }
+  const pct = (x, d = 0) => x == null ? "–" : `${(100 * x).toFixed(d)}%`;
+  const rows = Object.entries(a.per_class).map(([k, r]) => `<tr><td>${k}</td>
+    <td class="num">${pct(r.users_accuracy)} ± ${pct(r.users_ci95)}</td>
+    <td class="num">${pct(r.producers_accuracy)} ± ${pct(r.producers_ci95)}</td>
+    <td class="num">${fmt(r.mapped_area_ha)}</td>
+    <td class="num">${fmt(r.estimated_area_ha)} ± ${fmt(r.estimated_area_ci95_ha)}</td></tr>`).join("");
+  el.innerHTML = `<p>Overall accuracy <b>${pct(a.overall_accuracy, 1)} ± ${pct(a.overall_ci95, 1)}</b> from ${a.labelled} labelled points, for the window ${per(a.period_current)}. User's accuracy is the share of mapped area that is correct; producer's accuracy is the share of the true area that the map found. Estimated areas correct the mapped areas for the errors found in the sample.</p>
+  <div class="table-wrap"><table><thead><tr><th>Class</th><th class="num">User's accuracy</th><th class="num">Producer's accuracy</th><th class="num">Mapped (ha)</th><th class="num">Estimated (ha, 95% CI)</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+}
+
 function kpis(s) {
   const r = s.risk_class_area_ha, c = s.change_area_ha;
   const total = Object.values(r).reduce((a, b) => a + b, 0) || 1;
@@ -75,8 +97,9 @@ function kpis(s) {
   const items = [
     ["District area", fmt(s.district_area_ha / 100), "km²", "#9a9a90"],
     ["High + very high risk", fmt(hi), `ha · ${fmt(100 * hi / total, 1)}% of land`, "#d73027"],
-    ["Bank erosion", fmt(ch("Bank erosion")), "ha of land lost to water", "#d7191c"],
+    ["Bank erosion", fmt(ch("Bank erosion")), "ha of stable land lost to water", "#d7191c"],
     ["Accretion", fmt(ch("Accretion")), "ha of new land", "#2c7bb6"],
+    ...(Object.keys(c).some(x => x.startsWith("Char")) ? [["Char / sandbar loss", fmt(ch("Char")), "ha inside the river belt", "#f59ec0"]] : []),
     ["Vegetation loss", fmt(ch("Vegetation loss")), "ha", "#fdae61"],
     ["Mean soil loss", fmt(s.mean_soil_loss_t_ha_yr, 1), "t/ha/yr", "#8c510a"],
   ];
@@ -135,6 +158,7 @@ function mapView(layers, aoi, hot) {
 function popup(p) {
   return `<b>Rank ${p.rank}: ${shortName(p.class)}</b><br>${fmt(p.area_ha, 2)} ha` +
     (p.mean_soil_loss_t_ha_yr != null && !isNaN(p.mean_soil_loss_t_ha_yr) ? `<br>Soil loss ${fmt(p.mean_soil_loss_t_ha_yr, 1)} t/ha/yr` : "") +
+    (p.max_retreat_m != null && !isNaN(p.max_retreat_m) ? `<br>Bank retreat up to ${fmt(p.max_retreat_m)} m (${fmt(p.retreat_m_per_yr, 1)} m/yr)` : "") +
     `<br>${p.lat}, ${p.lon}<br><a target="_blank" rel="noopener" href="https://www.google.com/maps/dir/?api=1&destination=${p.lat},${p.lon}">Directions</a>`;
 }
 
@@ -164,7 +188,8 @@ function trendChart(h) {
   const note = document.getElementById("trendNote");
   if (!h.length) { note.textContent = "The trend appears after the first run."; return; }
   const series = [
-    ["chg_bank_erosion_ha", "Bank erosion", "#d7191c"], ["chg_accretion_ha", "Accretion", "#2c7bb6"],
+    ["chg_bank_erosion_ha", "Bank erosion", "#d7191c"], ["chg_char_or_sandbar_lost_ha", "Char / sandbar loss", "#f59ec0"],
+    ["chg_accretion_ha", "Accretion", "#2c7bb6"],
     ["chg_vegetation_loss_ha", "Vegetation loss", "#fdae61"], ["risk_very_high_ha", "Very high risk", "#7f0000"],
   ];
   new Chart(document.getElementById("trendChart"), {
@@ -185,13 +210,14 @@ function trendChart(h) {
 
 function table(hot) {
   const tb = document.querySelector("#hotTable tbody");
-  if (!hot.features.length) { tb.innerHTML = `<tr><td colspan="6">No priority sites in this run.</td></tr>`; return; }
+  if (!hot.features.length) { tb.innerHTML = `<tr><td colspan="7">No priority sites in this run.</td></tr>`; return; }
   tb.innerHTML = hot.features.map(f => f.properties).sort((a, b) => a.rank - b.rank).map(p => `
     <tr data-lat="${p.lat}" data-lon="${p.lon}">
       <td>${p.rank}</td>
       <td><span class="tag"><i style="background:${CLASS_COLOR[p.class] || "#333"}"></i>${shortName(p.class)}</span></td>
       <td class="num">${fmt(p.area_ha, 2)}</td>
       <td class="num">${p.mean_soil_loss_t_ha_yr != null && !isNaN(p.mean_soil_loss_t_ha_yr) ? fmt(p.mean_soil_loss_t_ha_yr, 1) : "–"}</td>
+      <td class="num">${p.retreat_m_per_yr != null && !isNaN(p.retreat_m_per_yr) ? fmt(p.retreat_m_per_yr, 1) : "–"}</td>
       <td class="num">${fmt(p.priority_score, 2)}</td>
       <td><a target="_blank" rel="noopener" href="https://www.google.com/maps?q=${p.lat},${p.lon}" onclick="event.stopPropagation()">${p.lat}, ${p.lon}</a></td>
     </tr>`).join("");
@@ -204,6 +230,7 @@ function table(hot) {
 function downloads(s) {
   const links = [["hotspots.csv", "Priority sites (CSV)"], ["hotspots.geojson", "Priority sites (GeoJSON)"], ["history.csv", "Run history (CSV)"]]
     .map(([f, n]) => `<a href="${DATA}${f}" download>${n}</a>`);
+  links.push(`<a href="validate.html">Label validation points</a>`);
   if (s.repository) links.push(`<a target="_blank" rel="noopener" href="https://github.com/${s.repository}/releases/latest">Full-resolution GeoTIFFs</a>`);
   document.getElementById("downloads").innerHTML = links.join("");
 }
