@@ -76,6 +76,24 @@ You can add a second page to the site with the downloads (Insert → Button, lin
 - **Department boundary.** Add the boundary GeoJSON to the repository and set `aoi_geojson`.
 - **Running locally.** `pip install -r requirements.txt` then `python pipeline/run.py --skip-publish`.
 
+## 4a. Accuracy assessment
+
+The first monitoring run with this feature draws a stratified random sample of
+about 300 points (bank erosion of stable land, char loss, accretion, stable land,
+stable water) and publishes it with image chips in `docs/data/validation/`.
+
+1. Open `validate.html` on the dashboard site and label every point. The map
+   class is hidden, so the labels stay independent of the map.
+2. Click **Download labels (CSV)** and upload the file to the repository as
+   `data/validation_labels.csv` (Add file, Upload files).
+3. Run the "Erosion monitoring run" workflow with the end date shown on the
+   dashboard's accuracy card (the end date of the sampled window).
+
+The run then reports overall, user's and producer's accuracy and error-corrected
+areas with 95% confidence intervals (Olofsson et al., 2014; Stehman, 2014). The
+same labels can be used to compare later versions of the method on that window.
+To draw a new sample, delete `docs/data/validation/`.
+
 ## 5. Notes and limits
 
 - GitHub disables scheduled workflows in repositories with no activity for 60 days. Each run commits new results, which counts as activity, so the schedule stays active as long as the runs succeed.
