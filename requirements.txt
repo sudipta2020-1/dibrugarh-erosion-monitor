@@ -14,3 +14,5 @@ matplotlib
 pillow
 pandas
 pyyaml
+scipy
+imdlib
