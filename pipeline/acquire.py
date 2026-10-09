@@ -9,6 +9,12 @@ needed) and builds cloud-free composites on a common grid for the AOI:
   * Copernicus DEM  : 30 m elevation, resampled to the analysis grid
 
 Each composite is saved as a GeoTIFF in outputs/<project>/raw/.
+
+Alongside the median composites, the same pass over the image stack counts,
+for every pixel, how many clear observations it had and how many of them were
+water at a range of candidate thresholds. These counts give a water frequency
+map, which is far less sensitive to one flooded or hazy date than a single
+composite (see analysis.water_from_frequency).
 """
 import os
 from pathlib import Path
@@ -34,6 +40,13 @@ S2_BANDS = ["B02", "B03", "B04", "B08", "B11", "B12"]
 # 6 water, 7 unclassified. Clouds, shadows and cirrus are removed.
 S2_CLEAR_SCL = [4, 5, 6, 7]
 
+
+# Candidate water thresholds. Counts are kept for each one so the threshold can
+# be chosen afterwards (edge-based Otsu) without reading the images again.
+OPT_THRESHOLDS = [round(v, 2) for v in np.arange(-0.30, 0.301, 0.05)]   # MNDWI > t
+SAR_THRESHOLDS = [float(v) for v in range(-24, -11)]                    # VV dB < t
+OPT_COUNT_BANDS = ["n_clear"] + [f"w_{t:+.2f}" for t in OPT_THRESHOLDS]
+SAR_COUNT_BANDS = ["n_obs"] + [f"w_{t:+.0f}" for t in SAR_THRESHOLDS]
 
 GEOBOUNDARIES_API = "https://www.geoboundaries.org/api/current/gbOpen/IND/ADM2/"
 CHUNKS = {"x": 512, "y": 512}
@@ -130,15 +143,26 @@ def sentinel2_composite(bbox, period, crs, res, max_cloud, per_tile=15):
                        resolution=res, chunks=CHUNKS, fail_on_error=False, patch_url=SIGN)
         offsets = xr.DataArray(offs, dims="time")
     clear = ds["SCL"].isin(S2_CLEAR_SCL)
-    bands = []
+    bands, refl = [], {}
     for b in S2_BANDS:
         dn = ds[b].where((ds[b] > 0) & clear)
-        refl = ((dn + offsets) / 10000.0).clip(0, 1)
-        bands.append(refl.median("time", skipna=True).rename(b))
-    out = xr.merge(bands).compute().rio.write_crs(crs)
+        refl[b] = ((dn + offsets) / 10000.0).clip(0, 1)
+        bands.append(refl[b].median("time", skipna=True).rename(b))
+    # Per-date water counts (MNDWI = (green - SWIR1) / (green + SWIR1))
+    g, sw = refl["B03"], refl["B11"]
+    mndwi = (g - sw) / (g + sw)
+    ok = np.isfinite(mndwi)
+    counts = [ok.sum("time").astype("uint8").rename("n_clear")]
+    for t, name in zip(OPT_THRESHOLDS, OPT_COUNT_BANDS[1:]):
+        counts.append((ok & (mndwi > t)).sum("time").astype("uint8").rename(name))
+    # One compute call, so every image is read only once for both products.
+    both = xr.merge(bands + counts).compute()
+    out = both[S2_BANDS].rio.write_crs(crs)
+    cnt = both[OPT_COUNT_BANDS].rio.write_crs(crs)
     valid = float(np.isfinite(out["B04"]).mean() * 100)
-    print(f"  Sentinel-2 composite: {valid:.1f}% of pixels have a clear observation")
-    return out
+    print(f"  Sentinel-2 composite: {valid:.1f}% of pixels have a clear observation; "
+          f"median {float(cnt['n_clear'].median()):.0f} clear dates per pixel")
+    return out, cnt
 
 
 def sentinel1_composite(bbox, period, geobox):
@@ -146,7 +170,7 @@ def sentinel1_composite(bbox, period, geobox):
     items = _search("sentinel-1-rtc", bbox, period)
     if len(items) == 0:
         print("  No Sentinel-1 scenes found; radar layers will be skipped.")
-        return None
+        return None, None
     ds = stac_load(items, bands=["vv", "vh"], geobox=geobox,
                    chunks=CHUNKS, groupby="solar_day", fail_on_error=False,
                    patch_url=SIGN)
@@ -154,7 +178,14 @@ def sentinel1_composite(bbox, period, geobox):
     for b in ["vv", "vh"]:
         lin = ds[b].where(ds[b] > 0).median("time", skipna=True)
         out[b.upper() + "_dB"] = 10 * np.log10(lin)
-    return out.compute().rio.write_crs(str(geobox.crs))
+    vv = 10 * np.log10(ds["vv"].where(ds["vv"] > 0))
+    ok = np.isfinite(vv)
+    out["n_obs"] = ok.sum("time").astype("uint8")
+    for t, name in zip(SAR_THRESHOLDS, SAR_COUNT_BANDS[1:]):
+        out[name] = (ok & (vv < t)).sum("time").astype("uint8")
+    both = out.compute()
+    crs = str(geobox.crs)
+    return both[S1_BANDS].rio.write_crs(crs), both[SAR_COUNT_BANDS].rio.write_crs(crs)
 
 
 def dem(bbox, geobox):
@@ -166,11 +197,11 @@ def dem(bbox, geobox):
             .compute().rio.write_crs(str(geobox.crs)))
 
 
-def save(da_or_ds, path):
+def save(da_or_ds, path, dtype="float32"):
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
     obj = da_or_ds.to_array("band") if isinstance(da_or_ds, xr.Dataset) else da_or_ds
-    obj.astype("float32").rio.to_raster(path, compress="deflate")
+    obj.astype(dtype).rio.to_raster(path, compress="deflate")
     print(f"  saved {path}")
 
 
@@ -178,7 +209,8 @@ S1_BANDS = ["VV_dB", "VH_dB"]
 
 
 def open_multiband(path, names):
-    da = rioxarray.open_rasterio(path, masked=True)
+    masked = not Path(path).name.startswith(("s2count", "s1count"))
+    da = rioxarray.open_rasterio(path, masked=masked)
     return xr.Dataset({n: da.isel(band=i, drop=True) for i, n in enumerate(names)})
 
 
@@ -192,20 +224,23 @@ def acquire_all(cfg, raw_dir, bbox):
         period = cfg[f"period_{tag}"]
         print(f"\n[{tag}] {period[0]} to {period[1]}")
         f2, f1 = raw_dir / f"s2_{tag}.tif", raw_dir / f"s1_{tag}.tif"
-        if f2.exists():
-            print("  reusing", f2.name)
-            s2 = open_multiband(f2, S2_BANDS)
+        c2, c1 = raw_dir / f"s2count_{tag}.tif", raw_dir / f"s1count_{tag}.tif"
+        if f2.exists() and c2.exists():
+            print("  reusing", f2.name, "and", c2.name)
+            s2, s2c = open_multiband(f2, S2_BANDS), open_multiband(c2, OPT_COUNT_BANDS)
         else:
-            s2 = sentinel2_composite(bbox, period, crs, res, cfg["max_cloud_cover"],
-                                     cfg.get("max_scenes_per_tile", 15))
+            s2, s2c = sentinel2_composite(bbox, period, crs, res, cfg["max_cloud_cover"],
+                                          cfg.get("max_scenes_per_tile", 15))
             save(s2, f2)
-        if f1.exists():
-            s1 = open_multiband(f1, S1_BANDS)
+            save(s2c, c2, dtype="uint8")
+        if f1.exists() and c1.exists():
+            s1, s1c = open_multiband(f1, S1_BANDS), open_multiband(c1, SAR_COUNT_BANDS)
         else:
-            s1 = sentinel1_composite(bbox, period, s2["B04"].odc.geobox)
+            s1, s1c = sentinel1_composite(bbox, period, s2["B04"].odc.geobox)
             if s1 is not None:
                 save(s1, f1)
-        layers[tag] = {"s2": s2, "s1": s1}
+                save(s1c, c1, dtype="uint8")
+        layers[tag] = {"s2": s2, "s1": s1, "s2_counts": s2c, "s1_counts": s1c}
     fd = raw_dir / "dem.tif"
     if fd.exists():
         elev = rioxarray.open_rasterio(fd, masked=True).squeeze("band", drop=True)
