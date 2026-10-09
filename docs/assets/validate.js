@@ -7,6 +7,7 @@ const OPTIONS = [
   ["accretion", "3", "Accretion", "Water is now land (sand, grass or crops)"],
   ["stable_land", "4", "Stable land", "Land in both images (crop changes included)"],
   ["stable_water", "5", "Stable water", "Water in both images"],
+  ["new_inland_water", "6", "New inland water", "A new pond, beel or flooded field away from the river bank"],
   ["unsure", "0", "Unsure", "Cloud, shadow or mixed pixel"],
 ];
 const KEY = "dib-erosion-labels-v1";
