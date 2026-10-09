@@ -80,6 +80,8 @@ def analyse(cfg, layers, aoi_gdf):
         hist = hist.where(inside, 0).astype("uint8").rio.write_crs(crs)
 
     chg, dndvi = an.change_detection(state["baseline"], state["current"], cc, jrc)
+    chg = an.split_inland_water(chg, state["baseline"]["water"].values, res,
+                                cc.get("river_min_area_ha", 50), cc.get("bank_touch_px", 2))
     chg = chg.where(inside, 0).astype("uint8").rio.write_crs(crs)
 
     # Bank retreat: distance from the baseline water edge to each eroded pixel
@@ -138,7 +140,12 @@ def validate(cfg, r, layers):
         return
     vdir = Path(cfg["publish_dir"]) / "validation"
     periods = [cfg["period_baseline"], cfg["period_current"]]
-    if not (vdir / "sample_meta.json").exists():
+    labels = Path(v.get("labels", "data/validation_labels.csv"))
+    old = (vdir / "sample_meta.json").exists() and \
+        json.loads((vdir / "sample_meta.json").read_text()).get("sample_version", 1) < va.SAMPLE_VERSION
+    # Draw the sample once. Redraw only when the class scheme has changed and no
+    # labels have been collected yet, so labelled work is never thrown away.
+    if not (vdir / "sample_meta.json").exists() or (old and not labels.exists()):
         va.create(vdir, r["acc_map"].values, r["acc_map"], r["state"]["baseline"]["s2"],
                   r["state"]["current"]["s2"], v, periods, cfg["resolution_m"])
     meta = json.loads((vdir / "sample_meta.json").read_text())
@@ -147,7 +154,7 @@ def validate(cfg, r, layers):
                                 "period_current": meta["period_current"]}
     same = [meta["period_baseline"], meta["period_current"]] == periods
     px_ha = cfg["resolution_m"] ** 2 / 1e4
-    res = va.assess(vdir, v.get("labels", "data/validation_labels.csv"), r["acc_map"], px_ha) if same else None
+    res = va.assess(vdir, labels, r["acc_map"], px_ha) if same else None
     if res is not None:
         (vdir / "accuracy.json").write_text(json.dumps(res, indent=2))
         r["stats"]["accuracy"] = res
