@@ -26,6 +26,7 @@ from pyproj import Transformer
 from rasterio.enums import Resampling
 
 import analysis as an
+import field
 
 RISK_COLORS = {1: "#1a9850", 2: "#91cf60", 3: "#fee08b", 4: "#fc8d59", 5: "#d73027"}
 CHANGE_COLORS = {1: "#d7191c", 5: "#f59ec0", 6: "#66c2a5", 2: "#2c7bb6", 3: "#fdae61", 4: "#8c510a"}
@@ -148,7 +149,9 @@ def publish(cfg, r, layers, aoi_gdf, bbox, pub, maps_dir):
         gpd.GeoDataFrame(geometry=[box(*bbox)], crs="EPSG:4326").to_file(pub / "aoi.geojson", driver="GeoJSON")
     hot = r["hotspots"]
     if hot is not None:
-        keep = [c for c in ["rank", "class", "source", "area_ha", "mean_soil_loss_t_ha_yr",
+        keep = [c for c in ["rank", "site_id", "class", "source", "urgency", "lead_agency",
+                            "recommended_action", "field_status", "field_date", "field_visits",
+                            "area_ha", "mean_soil_loss_t_ha_yr", "mean_slope_deg",
                             "max_retreat_m", "retreat_m_per_yr", "mean_probability", "model_agreement",
                             "confidence", "confidence_score", "population", "built_ha", "crop_ha",
                             "road_km", "embankment_km", "facilities", "nearest_place", "nearest_place_km",
@@ -158,6 +161,16 @@ def publish(cfg, r, layers, aoi_gdf, bbox, pub, maps_dir):
         h["geometry"] = h.geometry.simplify(cfg["resolution_m"])
         h[keep + ["geometry"]].to_crs("EPSG:4326").to_file(pub / "hotspots.geojson", driver="GeoJSON")
         hot[keep].to_csv(pub / "hotspots.csv", index=False)
+        # Field survey form and this month's site list (media file for the form)
+        fdir = pub / "field"
+        field.write_sites(hot, p1[1], fdir)
+        field.write_form(fdir, version=dt.datetime.utcnow().strftime("%Y%m%d%H"))
+        fp = r.get("field_points")
+        if fp is not None and len(fp):
+            cols = [c for c in ["site_id", "today", "erosion_present", "erosion_type", "severity",
+                                "reference_class", "map_agrees", "urgency", "households_at_risk",
+                                "retreat_m", "photo_1"] if c in fp.columns]
+            fp[cols + ["geometry"]].to_file(fdir / "field_records.geojson", driver="GeoJSON")
 
     confident = s["clear_coverage_pct"] >= cfg.get("min_clear_coverage_pct", 60)
     summary = {"run_date": run_date, "district": cfg.get("aoi_district"),
@@ -204,8 +217,8 @@ def publish(cfg, r, layers, aoi_gdf, bbox, pub, maps_dir):
     for g, n in [(r["chg_gdf"], "change_patches"), (r["risk_gdf"], "high_risk_patches")]:
         if g is not None and not g.empty:
             g.to_crs("EPSG:4326").to_file(rel / f"{n}.geojson", driver="GeoJSON")
-    for f in ["hotspots.csv", "summary.json"]:
+    for f in ["hotspots.csv", "summary.json", "field/erosion_field_survey.xlsx", "field/priority_sites.csv"]:
         if (pub / f).exists():
-            shutil.copy(pub / f, rel / f)
+            shutil.copy(pub / f, rel / Path(f).name)
     (rel / "RUN_ID").write_text(p1[1])
     print(f"  published dashboard data to {pub} and release files to {rel}")
