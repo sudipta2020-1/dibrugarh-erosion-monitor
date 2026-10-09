@@ -4,9 +4,12 @@ Erosion analysis on the acquired layers.
 1. Spectral indices  : NDVI, MNDWI, BSI (bare soil index)
 2. RUSLE soil loss   : A = R * K * LS * C * P   (t/ha/yr)
 3. Risk classes      : 1 very low ... 5 very high
-4. Change detection  : riverbank land loss / gain, vegetation loss,
-                       new bare soil between the two periods
-5. Hotspot table     : change and high-risk patches ranked for field visits
+4. Water mapping     : water frequency from every clear date, with thresholds
+                       set by edge-based Otsu (Donchyts et al., 2016)
+5. Change detection  : bank erosion of stable land, loss of chars and sandbars
+                       inside the river belt, accretion, vegetation loss,
+                       new bare soil, and bank retreat distance
+6. Hotspot table     : change and high-risk patches ranked for field visits
 """
 import numpy as np
 import xarray as xr
@@ -121,17 +124,25 @@ HISTORY_LABELS = {1: "Land to permanent water", 2: "Land to seasonal water",
 _JRC_TO_HISTORY = {2: 1, 5: 2, 3: 3, 6: 4}
 
 
-def history_layer(template, path):
-    """Load JRC transitions onto the analysis grid (nearest) and regroup the classes.
-    Returns None if the file has not been prepared yet."""
+def jrc_transitions(template, path):
+    """Raw JRC transition codes on the analysis grid (nearest), or None if absent.
+    0 = never water 1984-2021, 1-10 = water at some time, 255 = no data."""
     from pathlib import Path
     from rasterio.enums import Resampling
     if not path or not Path(path).exists():
         return None
     import rioxarray
     da = rioxarray.open_rasterio(path).squeeze("band", drop=True)
-    da = da.rio.reproject_match(template, resampling=Resampling.nearest)
-    v = da.values
+    da = da.rio.reproject_match(template, resampling=Resampling.nearest, nodata=255)
+    return da.values
+
+
+def history_layer(template, path, raw=None):
+    """Regroup JRC transitions into the four dashboard classes.
+    Returns None if the file has not been prepared yet."""
+    v = jrc_transitions(template, path) if raw is None else raw
+    if v is None:
+        return None
     out = np.zeros(v.shape, dtype="uint8")
     for jrc, cls in _JRC_TO_HISTORY.items():
         out[v == jrc] = cls
@@ -141,8 +152,124 @@ def history_layer(template, path):
 RISK_LABELS = {1: "Very low", 2: "Low", 3: "Moderate", 4: "High", 5: "Very high"}
 
 
+def otsu(values, bins=256):
+    """Otsu (1979) threshold that best separates a two-class histogram."""
+    v = np.asarray(values, dtype="float64")
+    v = v[np.isfinite(v)]
+    hist, edges = np.histogram(v, bins=bins)
+    mids = (edges[:-1] + edges[1:]) / 2
+    w0 = np.cumsum(hist)
+    w1 = w0[-1] - w0
+    m0 = np.cumsum(hist * mids) / np.maximum(w0, 1)
+    m1 = (np.sum(hist * mids) - np.cumsum(hist * mids)) / np.maximum(w1, 1)
+    between = (w0 * w1 * (m0 - m1) ** 2)[:-1]
+    # When classes are well separated the maximum is a plateau; take its centre.
+    best = np.nonzero(between >= between.max() * (1 - 1e-6))[0]
+    return float(mids[int(round(best.mean()))])
+
+
+def edge_otsu(index, first_guess, water_high=True, buffer_px=3, bounds=None, min_px=2000):
+    """
+    Edge-based Otsu threshold (after Donchyts et al., 2016). Over a whole district
+    the land class is far larger than the water class, which biases plain Otsu.
+    The histogram is therefore taken only from a band of pixels on either side of
+    the first-guess water edge, where both classes are present in similar amounts.
+    Returns (threshold, n_pixels_used).
+    """
+    from scipy.ndimage import binary_dilation, binary_erosion
+    a = np.asarray(index, dtype="float64")
+    ok = np.isfinite(a)
+    w = (a > first_guess) if water_high else (a < first_guess)
+    w &= ok
+    zone = binary_dilation(w, iterations=buffer_px) & ~binary_erosion(w, iterations=buffer_px) & ok
+    vals = a[zone]
+    if vals.size < min_px:
+        return float(first_guess), int(vals.size)
+    lo, hi = np.nanpercentile(vals, [1, 99])
+    t = otsu(np.clip(vals, lo, hi))
+    if bounds is not None:
+        t = float(np.clip(t, *bounds))
+    return t, int(vals.size)
+
+
+def _nearest(values, t):
+    i = int(np.argmin([abs(v - t) for v in values]))
+    return i, values[i]
+
+
+def water_from_frequency(ind, s1, opt_counts, sar_counts, cc):
+    """
+    Water map for one period.
+
+    1. Thresholds: edge-based Otsu on the median MNDWI composite (optical) and on
+       the median VV composite (radar), limited to sensible ranges.
+    2. Frequency: for each pixel, the share of its clear dates on which it was
+       water at that threshold. A pixel is water if this share is at least
+       `water_frequency_min` (default 0.5), i.e. it was water on most dates.
+    3. Sensor choice: optical where a pixel has at least `min_observations`
+       clear dates. Radar is used only where optical data are lacking, because
+       dry sand on the chars is dark on radar and can be mistaken for water.
+    Falls back to the composite with the Otsu threshold if counts are absent.
+    Returns (water bool DataArray, frequency DataArray, info dict).
+    """
+    from acquire import OPT_THRESHOLDS, OPT_COUNT_BANDS, SAR_THRESHOLDS, SAR_COUNT_BANDS
+    fmin = float(cc.get("water_frequency_min", 0.5))
+    nmin = int(cc.get("min_observations", 2))
+    mndwi = ind["MNDWI"]
+    t_opt, n_edge = edge_otsu(mndwi.values, cc["mndwi_water"], True,
+                              bounds=cc.get("mndwi_bounds", [-0.3, 0.3]))
+    info = {"mndwi_threshold_otsu": round(t_opt, 3), "edge_pixels_optical": n_edge}
+    freq = xr.full_like(mndwi, np.nan, dtype="float32")
+    water = xr.zeros_like(mndwi, dtype=bool)
+    src = xr.zeros_like(mndwi, dtype="uint8")          # 1 optical, 2 radar, 3 composite
+
+    if opt_counts is not None:
+        i, t_used = _nearest(OPT_THRESHOLDS, t_opt)
+        n = opt_counts["n_clear"].astype("float32")
+        f = opt_counts[OPT_COUNT_BANDS[i + 1]].astype("float32") / n.where(n > 0)
+        use = n >= nmin
+        freq = xr.where(use, f, freq)
+        water = xr.where(use, f >= fmin, water)
+        src = xr.where(use, 1, src)
+        info["mndwi_threshold_used"] = t_used
+    else:
+        use = xr.zeros_like(water)
+
+    have_sar = s1 is not None and "VV_dB" in s1
+    if have_sar:
+        t_sar, n_edge_s = edge_otsu(s1["VV_dB"].values, cc["sar_water_db"], False,
+                                    bounds=cc.get("sar_bounds", [-22.0, -13.0]))
+        info.update(vv_threshold_otsu=round(t_sar, 2), edge_pixels_radar=n_edge_s)
+        if sar_counts is not None:
+            j, ts_used = _nearest(SAR_THRESHOLDS, t_sar)
+            ns = sar_counts["n_obs"].astype("float32")
+            fs = sar_counts[SAR_COUNT_BANDS[j + 1]].astype("float32") / ns.where(ns > 0)
+            use_s = (~use) & (ns >= nmin)
+            freq = xr.where(use_s, fs, freq)
+            water = xr.where(use_s, fs >= fmin, water)
+            src = xr.where(use_s, 2, src)
+            info["vv_threshold_used"] = ts_used
+            use = use | use_s
+
+    # Remaining pixels: single composite with the adaptive thresholds
+    rest = ~use
+    comp = mndwi > t_opt
+    if have_sar:
+        comp = xr.where(np.isfinite(mndwi), comp, s1["VV_dB"] < info["vv_threshold_otsu"])
+    water = xr.where(rest, comp, water)
+    src = xr.where(rest & (np.isfinite(mndwi) | (s1["VV_dB"].notnull() if have_sar else False)), 3, src)
+
+    valid = int((src > 0).sum()) or 1
+    info["share_from_optical_frequency_pct"] = round(100 * int((src == 1).sum()) / valid, 1)
+    info["share_from_radar_frequency_pct"] = round(100 * int((src == 2).sum()) / valid, 1)
+    info["share_from_composite_pct"] = round(100 * int((src == 3).sum()) / valid, 1)
+    info["frequency_min"] = fmin
+    info["min_observations"] = nmin
+    return water.astype(bool), freq.rename("water_frequency"), info
+
+
 def water_mask(ind, s1, cc):
-    """Water from optical MNDWI, filled with radar where optical data are missing."""
+    """Simple water map (composite only). Kept for the notebook version."""
     w = ind["MNDWI"] > cc["mndwi_water"]
     if s1 is not None and "VV_dB" in s1:
         sar_w = s1["VV_dB"] < cc["sar_water_db"]
@@ -150,13 +277,16 @@ def water_mask(ind, s1, cc):
     return w.astype(bool)
 
 
-def change_detection(base, curr, cc):
+def change_detection(base, curr, cc, jrc=None):
     """
     Returns an integer change map:
-      1 = land lost to water (bank erosion)
+      1 = bank erosion of stable land (land to water; the land had not been
+          water at any time 1984-2021 in the JRC record)
       2 = land gained from water (deposition / accretion)
       3 = vegetation loss on land
       4 = new bare soil on land
+      5 = char or sandbar lost (land to water inside the historical river belt)
+    Without the JRC layer, all land-to-water change is class 1.
     """
     wb, wc = base["water"], curr["water"]
     dndvi = curr["ind"]["NDVI"] - base["ind"]["NDVI"]
@@ -166,14 +296,29 @@ def change_detection(base, curr, cc):
     out = xr.where(~wc & ~wb & (dndvi < cc["ndvi_loss"]), 3, out)
     out = xr.where(~wb & wc, 1, out)
     out = xr.where(wb & ~wc, 2, out)
+    if jrc is not None:
+        belt = (jrc >= 1) & (jrc <= 10)          # water at some time since 1984
+        out = xr.where((out == 1) & belt, 5, out)
     return out.astype("uint8").rename("change_class"), dndvi.rename("dNDVI")
 
 
-CHANGE_LABELS = {1: "Bank erosion (land to water)", 2: "Accretion (water to land)",
-                 3: "Vegetation loss", 4: "New bare soil"}
+CHANGE_LABELS = {1: "Bank erosion (stable land to water)", 2: "Accretion (water to land)",
+                 3: "Vegetation loss", 4: "New bare soil",
+                 5: "Char or sandbar lost (within river belt)"}
 
 
-def patches(class_map, labels, min_pixels, res, extra=None):
+def retreat_distance(base_water, res):
+    """Distance (m) from each pixel to the nearest baseline water pixel. For a
+    pixel that has since turned into water, this is how far the bank moved back."""
+    from scipy.ndimage import distance_transform_edt
+    wb = np.asarray(base_water, dtype=bool)
+    if not wb.any():
+        return xr.full_like(base_water, np.nan, dtype="float32")
+    d = distance_transform_edt(~wb) * res
+    return base_water.copy(data=d.astype("float32")).rename("retreat_m")
+
+
+def patches(class_map, labels, min_pixels, res, extra=None, extra_max=None, max_name="max_retreat_m"):
     """Vectorise class patches into a GeoDataFrame with area and centroid."""
     import geopandas as gpd
     from rasterio.features import shapes, sieve
@@ -190,20 +335,28 @@ def patches(class_map, labels, min_pixels, res, extra=None):
         g = shape(geom)
         recs.append({"class_id": val, "class": labels[val], "geometry": g,
                      "area_ha": g.area / 10000.0})
+    if not recs:
+        return gpd.GeoDataFrame({"class_id": [], "class": [], "area_ha": []},
+                                geometry=[], crs=class_map.rio.crs)
     gdf = gpd.GeoDataFrame(recs, geometry="geometry", crs=class_map.rio.crs)
     if gdf.empty:
         return gdf
-    if extra is not None:
+    if extra is not None or extra_max is not None:
+        from scipy.ndimage import labeled_comprehension
         from rasterio.features import rasterize
         ids = rasterize(((g, i + 1) for i, g in enumerate(gdf.geometry)),
                         out_shape=arr.shape, transform=transform, fill=0, dtype="int32")
-        vals = extra.values
-        means = []
-        for i in range(len(gdf)):
-            v = vals[ids == i + 1]
-            v = v[np.isfinite(v)]
-            means.append(float(v.mean()) if v.size else np.nan)
-        gdf["mean_soil_loss_t_ha_yr"] = np.round(means, 2)
+        idx = np.arange(1, len(gdf) + 1)
+
+        def per_patch(values, fn):
+            v = np.asarray(values, dtype="float64")
+            ok = np.isfinite(v) & (ids > 0)
+            return labeled_comprehension(np.where(ok, v, np.nan), np.where(ok, ids, 0), idx,
+                                         lambda a: fn(a) if a.size else np.nan, float, np.nan)
+        if extra is not None:
+            gdf["mean_soil_loss_t_ha_yr"] = np.round(per_patch(extra.values, np.mean), 2)
+        if extra_max is not None:
+            gdf[max_name] = np.round(per_patch(extra_max.values, np.max), 0)
     cent = gdf.geometry.centroid.to_crs("EPSG:4326")
     gdf["lat"], gdf["lon"] = cent.y.round(6), cent.x.round(6)
     return gdf
@@ -215,8 +368,9 @@ def rank_hotspots(change_gdf, risk_gdf, top_n=50):
       bank erosion and very high risk patches score highest, scaled by area.
     """
     import pandas as pd
-    weights = {"Bank erosion (land to water)": 1.0, "Very high": 0.9, "Vegetation loss": 0.6,
-               "New bare soil": 0.6, "High": 0.5, "Accretion (water to land)": 0.3}
+    weights = {CHANGE_LABELS[1]: 1.0, "Very high": 0.9, "Vegetation loss": 0.6,
+               "New bare soil": 0.6, "High": 0.5, CHANGE_LABELS[5]: 0.4,
+               "Accretion (water to land)": 0.3}
     frames = []
     for gdf, src in [(change_gdf, "change"), (risk_gdf, "risk")]:
         if gdf is None or gdf.empty:
