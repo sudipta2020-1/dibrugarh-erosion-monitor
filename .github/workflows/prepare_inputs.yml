@@ -1,0 +1,55 @@
+name: Prepare static inputs
+
+# Run once (and again whenever the input period should be updated). Builds the
+# rainfall (IMD, CHIRPS), soil erodibility (SoilGrids) and historical bank
+# erosion (JRC Global Surface Water) layers and commits them to data/.
+on:
+  workflow_dispatch:
+    inputs:
+      start_year:
+        description: "First rainfall year"
+        required: false
+        default: "2000"
+      end_year:
+        description: "Last rainfall year"
+        required: false
+        default: "2025"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: erosion-monitoring
+  cancel-in-progress: false
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 240
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Build input layers
+        env:
+          PYTHONUNBUFFERED: "1"
+          GDAL_HTTP_MAX_RETRY: "6"
+          GDAL_HTTP_RETRY_DELAY: "3"
+          GDAL_DISABLE_READDIR_ON_OPEN: "EMPTY_DIR"
+        run: python pipeline/prepare_inputs.py --start ${{ github.event.inputs.start_year }} --end ${{ github.event.inputs.end_year }}
+
+      - name: Commit input layers
+        run: |
+          git config user.name  "erosion-monitor-bot"
+          git config user.email "erosion-monitor-bot@users.noreply.github.com"
+          git pull --rebase
+          git add data/*.tif data/inputs_report.json || true
+          git commit -m "Prepare static inputs (rainfall, soil K, JRC history)" || echo "No changes"
+          git push
