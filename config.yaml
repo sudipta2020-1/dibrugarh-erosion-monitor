@@ -58,6 +58,10 @@ change:
   # A pixel is water if it was water on at least this share of its clear dates
   water_frequency_min: 0.5
   min_observations: 2
+  # Land-to-water change counts as bank erosion only if it touches a water body
+  # of at least this size (river channels); other cases are new ponds or flooding.
+  river_min_area_ha: 50
+  bank_touch_px: 2
   ndvi_loss: -0.15
   min_patch_pixels: 10
 
@@ -67,7 +71,7 @@ change:
 validation:
   enabled: true
   seed: 42
-  sample_per_stratum: {1: 50, 5: 50, 2: 50, 10: 75, 11: 75}
+  sample_per_stratum: {1: 50, 5: 50, 2: 50, 6: 30, 10: 75, 11: 75}
   labels: data/validation_labels.csv
 
 output_dir: outputs        # working files (not committed)
