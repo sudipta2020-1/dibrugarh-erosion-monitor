@@ -28,7 +28,7 @@ from rasterio.enums import Resampling
 import analysis as an
 
 RISK_COLORS = {1: "#1a9850", 2: "#91cf60", 3: "#fee08b", 4: "#fc8d59", 5: "#d73027"}
-CHANGE_COLORS = {1: "#d7191c", 2: "#2c7bb6", 3: "#fdae61", 4: "#8c510a"}
+CHANGE_COLORS = {1: "#d7191c", 5: "#f59ec0", 2: "#2c7bb6", 3: "#fdae61", 4: "#8c510a"}
 HISTORY_COLORS = {1: "#7a0177", 2: "#dd3497", 3: "#225ea8", 4: "#41b6c4"}
 MAX_WIDTH = 1800
 
@@ -134,7 +134,8 @@ def publish(cfg, r, layers, aoi_gdf, bbox, pub, maps_dir):
     hot = r["hotspots"]
     if hot is not None:
         keep = [c for c in ["rank", "class", "source", "area_ha", "mean_soil_loss_t_ha_yr",
-                            "priority_score", "lat", "lon"] if c in hot.columns]
+                            "max_retreat_m", "retreat_m_per_yr", "priority_score", "lat", "lon"]
+                if c in hot.columns]
         h = hot.copy()
         h["geometry"] = h.geometry.simplify(cfg["resolution_m"])
         h[keep + ["geometry"]].to_crs("EPSG:4326").to_file(pub / "hotspots.geojson", driver="GeoJSON")
@@ -169,6 +170,13 @@ def publish(cfg, r, layers, aoi_gdf, bbox, pub, maps_dir):
     rel.mkdir(parents=True)
     r["risk"].fillna(0).astype("uint8").rio.write_nodata(0).rio.to_raster(rel / "erosion_risk_class.tif", compress="deflate")
     r["change"].rio.write_nodata(0).rio.to_raster(rel / "change_class.tif", compress="deflate")
+    for tag in ["baseline", "current"]:
+        f = r["state"][tag].get("freq")
+        if f is not None:
+            f.astype("float32").rio.write_crs(r["change"].rio.crs).rio.to_raster(
+                rel / f"water_frequency_{tag}.tif", compress="deflate")
+    if r.get("retreat") is not None:
+        r["retreat"].astype("float32").rio.to_raster(rel / "bank_retreat_m.tif", compress="deflate")
     r["A"].astype("float32").rio.to_raster(rel / "soil_loss_t_ha_yr.tif", compress="deflate")
     for g, n in [(r["chg_gdf"], "change_patches"), (r["risk_gdf"], "high_risk_patches")]:
         if g is not None and not g.empty:
