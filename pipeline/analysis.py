@@ -304,7 +304,35 @@ def change_detection(base, curr, cc, jrc=None):
 
 CHANGE_LABELS = {1: "Bank erosion (stable land to water)", 2: "Accretion (water to land)",
                  3: "Vegetation loss", 4: "New bare soil",
-                 5: "Char or sandbar lost (within river belt)"}
+                 5: "Char or sandbar lost (within river belt)",
+                 6: "New inland water (pond or flooding)"}
+
+
+def split_inland_water(chg, base_water, res, min_river_ha=50.0, touch_px=2):
+    """
+    Bank erosion must happen on a river bank. A patch of land-to-water change
+    (classes 1 and 5) is kept as erosion only if it touches a baseline water body
+    of at least `min_river_ha` (the Brahmaputra, its channels and large
+    tributaries). Patches that do not touch one are new ponds, beels or flooded
+    fields and are moved to class 6.
+    """
+    from scipy.ndimage import binary_dilation, label
+    eight = np.ones((3, 3), dtype=bool)
+    wb = np.asarray(base_water, dtype=bool)
+    lab, n = label(wb, structure=eight)
+    c = np.asarray(chg).copy()
+    if n == 0:
+        return chg
+    sizes = np.bincount(lab.ravel())
+    sizes[0] = 0
+    big = np.nonzero(sizes >= min_river_ha * 1e4 / (res * res))[0]
+    near = binary_dilation(np.isin(lab, big), structure=eight, iterations=int(touch_px))
+    loss = (c == 1) | (c == 5)
+    ll, _ = label(loss, structure=eight)
+    touching = np.unique(ll[near & loss])
+    inland = loss & ~np.isin(ll, touching)
+    c[inland] = 6
+    return chg.copy(data=c.astype("uint8"))
 
 
 def retreat_distance(base_water, res):
