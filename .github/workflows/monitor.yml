@@ -1,0 +1,66 @@
+name: Erosion monitoring run
+
+on:
+  schedule:
+    # 03:10 UTC (08:40 IST) on the 1st of every month
+    - cron: "10 3 1 * *"
+  workflow_dispatch:
+    inputs:
+      end_date:
+        description: "End date of the monitoring window (YYYY-MM-DD). Leave blank for today."
+        required: false
+        default: ""
+
+permissions:
+  contents: write
+
+concurrency:
+  group: erosion-monitoring
+  cancel-in-progress: false
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run monitoring pipeline
+        working-directory: .
+        run: |
+          if [ -n "${{ github.event.inputs.end_date }}" ]; then
+            python pipeline/run.py --end-date "${{ github.event.inputs.end_date }}"
+          else
+            python pipeline/run.py
+          fi
+
+      - name: Commit dashboard data
+        run: |
+          git config user.name  "erosion-monitor-bot"
+          git config user.email "erosion-monitor-bot@users.noreply.github.com"
+          git add docs/data
+          git commit -m "Monitoring update $(cat outputs/dibrugarh_district/release/RUN_ID)" || echo "No changes"
+          git push
+
+      - name: Publish GeoTIFFs as a release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          RUN_ID=$(cat outputs/dibrugarh_district/release/RUN_ID)
+          TAG="run-${RUN_ID}"
+          gh release delete "$TAG" --yes --cleanup-tag 2>/dev/null || true
+          gh release create "$TAG" outputs/dibrugarh_district/release/*.tif \
+            outputs/dibrugarh_district/release/*.geojson \
+            outputs/dibrugarh_district/release/*.csv \
+            outputs/dibrugarh_district/release/summary.json \
+            --title "Monitoring run ending ${RUN_ID}" \
+            --notes "Full-resolution outputs for the monitoring window ending ${RUN_ID}. Open the dashboard for maps and summaries." \
+            --latest
