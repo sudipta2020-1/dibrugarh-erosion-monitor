@@ -209,8 +209,13 @@ def water_from_frequency(ind, s1, opt_counts, sar_counts, cc):
     3. Sensor choice: optical where a pixel has at least `min_observations`
        clear dates. Radar is used only where optical data are lacking, because
        dry sand on the chars is dark on radar and can be mistaken for water.
+    4. Confidence: with k water dates out of n clear dates, the posterior of the
+       true water frequency is Beta(k+1, n-k+1). The confidence of the label is
+       the posterior probability that the frequency lies on the same side of
+       `water_frequency_min` as the label. Pixels mapped from a single composite
+       get a fixed, modest confidence (0.6).
     Falls back to the composite with the Otsu threshold if counts are absent.
-    Returns (water bool DataArray, frequency DataArray, info dict).
+    Returns (water bool DataArray, frequency DataArray, info dict, confidence DataArray).
     """
     from acquire import OPT_THRESHOLDS, OPT_COUNT_BANDS, SAR_THRESHOLDS, SAR_COUNT_BANDS
     fmin = float(cc.get("water_frequency_min", 0.5))
@@ -222,6 +227,7 @@ def water_from_frequency(ind, s1, opt_counts, sar_counts, cc):
     freq = xr.full_like(mndwi, np.nan, dtype="float32")
     water = xr.zeros_like(mndwi, dtype=bool)
     src = xr.zeros_like(mndwi, dtype="uint8")          # 1 optical, 2 radar, 3 composite
+    conf = xr.full_like(mndwi, np.nan, dtype="float32")
 
     if opt_counts is not None:
         i, t_used = _nearest(OPT_THRESHOLDS, t_opt)
@@ -231,6 +237,7 @@ def water_from_frequency(ind, s1, opt_counts, sar_counts, cc):
         freq = xr.where(use, f, freq)
         water = xr.where(use, f >= fmin, water)
         src = xr.where(use, 1, src)
+        conf = xr.where(use, label_confidence(f * n, n, fmin), conf)
         info["mndwi_threshold_used"] = t_used
     else:
         use = xr.zeros_like(water)
@@ -248,6 +255,7 @@ def water_from_frequency(ind, s1, opt_counts, sar_counts, cc):
             freq = xr.where(use_s, fs, freq)
             water = xr.where(use_s, fs >= fmin, water)
             src = xr.where(use_s, 2, src)
+            conf = xr.where(use_s, label_confidence(fs * ns, ns, fmin), conf)
             info["vv_threshold_used"] = ts_used
             use = use | use_s
 
@@ -258,6 +266,7 @@ def water_from_frequency(ind, s1, opt_counts, sar_counts, cc):
         comp = xr.where(np.isfinite(mndwi), comp, s1["VV_dB"] < info["vv_threshold_otsu"])
     water = xr.where(rest, comp, water)
     src = xr.where(rest & (np.isfinite(mndwi) | (s1["VV_dB"].notnull() if have_sar else False)), 3, src)
+    conf = xr.where(src == 3, np.float32(0.6), conf)
 
     valid = int((src > 0).sum()) or 1
     info["share_from_optical_frequency_pct"] = round(100 * int((src == 1).sum()) / valid, 1)
@@ -265,7 +274,24 @@ def water_from_frequency(ind, s1, opt_counts, sar_counts, cc):
     info["share_from_composite_pct"] = round(100 * int((src == 3).sum()) / valid, 1)
     info["frequency_min"] = fmin
     info["min_observations"] = nmin
-    return water.astype(bool), freq.rename("water_frequency"), info
+    return (water.astype(bool), freq.rename("water_frequency"), info,
+            conf.astype("float32").rename("water_confidence"))
+
+
+def label_confidence(k, n, fmin=0.5):
+    """Posterior probability that a pixel's water/land label is right, given k
+    water observations out of n (uniform prior on the water frequency)."""
+    from scipy.special import betainc
+    k = np.asarray(k, dtype="float64")
+    n = np.asarray(n, dtype="float64")
+    with np.errstate(invalid="ignore"):
+        p_below = betainc(k + 1, n - k + 1, fmin)        # P(frequency < fmin)
+    water = (k / np.where(n > 0, n, np.nan)) >= fmin
+    c = np.where(water, 1 - p_below, p_below)
+    c = np.where(n > 0, c, np.nan)
+    if isinstance(n, np.ndarray) and n.ndim == 0:
+        return float(c)
+    return c.astype("float32")
 
 
 def water_mask(ind, s1, cc):
@@ -308,6 +334,20 @@ CHANGE_LABELS = {1: "Bank erosion (stable land to water)", 2: "Accretion (water 
                  6: "New inland water (pond or flooding)"}
 
 
+def river_mask(water, res, min_river_ha=50.0):
+    """Water pixels that belong to a connected water body of at least
+    `min_river_ha`: the river channels and large tributaries."""
+    from scipy.ndimage import label
+    w = np.asarray(water, dtype=bool)
+    lab, n = label(w, structure=np.ones((3, 3), dtype=bool))
+    if n == 0:
+        return np.zeros_like(w)
+    sizes = np.bincount(lab.ravel())
+    sizes[0] = 0
+    big = np.nonzero(sizes >= min_river_ha * 1e4 / (res * res))[0]
+    return np.isin(lab, big)
+
+
 def split_inland_water(chg, base_water, res, min_river_ha=50.0, touch_px=2):
     """
     Bank erosion must happen on a river bank. A patch of land-to-water change
@@ -318,15 +358,11 @@ def split_inland_water(chg, base_water, res, min_river_ha=50.0, touch_px=2):
     """
     from scipy.ndimage import binary_dilation, label
     eight = np.ones((3, 3), dtype=bool)
-    wb = np.asarray(base_water, dtype=bool)
-    lab, n = label(wb, structure=eight)
     c = np.asarray(chg).copy()
-    if n == 0:
+    river = river_mask(base_water, res, min_river_ha)
+    if not river.any():
         return chg
-    sizes = np.bincount(lab.ravel())
-    sizes[0] = 0
-    big = np.nonzero(sizes >= min_river_ha * 1e4 / (res * res))[0]
-    near = binary_dilation(np.isin(lab, big), structure=eight, iterations=int(touch_px))
+    near = binary_dilation(river, structure=eight, iterations=int(touch_px))
     loss = (c == 1) | (c == 5)
     ll, _ = label(loss, structure=eight)
     touching = np.unique(ll[near & loss])
@@ -390,28 +426,93 @@ def patches(class_map, labels, min_pixels, res, extra=None, extra_max=None, max_
     return gdf
 
 
-def rank_hotspots(change_gdf, risk_gdf, top_n=50):
+def zonal_mean(gdf, da):
+    """Mean of a raster inside each polygon of a GeoDataFrame (same CRS and grid)."""
+    from rasterio.features import rasterize
+    from scipy.ndimage import labeled_comprehension
+    if gdf is None or gdf.empty:
+        return np.array([])
+    v = np.asarray(da.values, dtype="float64")
+    ids = rasterize(((g, i + 1) for i, g in enumerate(gdf.geometry)), out_shape=v.shape,
+                    transform=da.rio.transform(), fill=0, dtype="int32")
+    ok = np.isfinite(v) & (ids > 0)
+    return labeled_comprehension(np.where(ok, v, np.nan), np.where(ok, ids, 0),
+                                 np.arange(1, len(gdf) + 1), np.mean, float, np.nan)
+
+
+AI_LABEL = "Likely bank erosion (AI prediction)"
+HAZARD_WEIGHTS = {CHANGE_LABELS[1]: 1.0, "Very high": 0.9, AI_LABEL: 0.8, "Vegetation loss": 0.6,
+                  "New bare soil": 0.6, "High": 0.5, CHANGE_LABELS[5]: 0.4,
+                  CHANGE_LABELS[2]: 0.3}
+
+
+def confidence_label(row):
+    """High / Medium / Low for each site, from the evidence behind it."""
+    if row.get("source") == "change":
+        c = row.get("confidence_score", np.nan)
+        if not np.isfinite(c):
+            return "Not assessed"
+        return "High" if c >= 0.9 else "Medium" if c >= 0.75 else "Low"
+    if row.get("source") == "ai" and np.isfinite(row.get("model_agreement", np.nan)):
+        a, p = row["model_agreement"], row.get("mean_probability", 0)
+        return "High" if (a >= 0.9 and p >= 0.5) else "Medium" if a >= 0.8 else "Low"
+    if row.get("source") == "risk":
+        return "Not validated"
+    return "Unknown"
+
+
+def rank_hotspots(change_gdf, risk_gdf, ai_gdf=None, exposure=None, cfg=None, top_n=50):
     """
-    Priority score for field verification:
-      bank erosion and very high risk patches score highest, scaled by area.
+    Priority for field verification.
+
+    hazard   = class weight x log(1 + area) x evidence factor, where the evidence
+               factor is the mean change confidence (satellite change), or, for an
+               AI prediction, the mean probability scaled to 0.5 times the model's
+               skill, (cross-validated ROC AUC - 0.5) / 0.4, limited to 0-1. A model
+               no better than chance therefore adds no sites to the list.
+    priority = hazard x (a + (1 - a) x exposure index), a = exposure.floor (0.3),
+               when exposure layers are available; otherwise priority = hazard.
     """
     import pandas as pd
-    weights = {CHANGE_LABELS[1]: 1.0, "Very high": 0.9, "Vegetation loss": 0.6,
-               "New bare soil": 0.6, "High": 0.5, CHANGE_LABELS[5]: 0.4,
-               "Accretion (water to land)": 0.3}
+    import exposure as ex_mod
     frames = []
-    for gdf, src in [(change_gdf, "change"), (risk_gdf, "risk")]:
+    for gdf, src in [(change_gdf, "change"), (risk_gdf, "risk"), (ai_gdf, "ai")]:
         if gdf is None or gdf.empty:
             continue
-        g = gdf[gdf["class"].isin(weights)].copy()
+        g = gdf[gdf["class"].isin(HAZARD_WEIGHTS)].copy()
         g["source"] = src
         frames.append(g)
     if not frames:
         return None
     allp = pd.concat(frames, ignore_index=True)
-    allp["priority_score"] = allp["class"].map(weights) * np.log1p(allp["area_ha"])
-    allp = allp.sort_values("priority_score", ascending=False).head(top_n).reset_index(drop=True)
+    evid = np.ones(len(allp))
+    if "confidence_score" in allp:
+        cs = allp["confidence_score"].values.astype(float)
+        evid = np.where((allp["source"] == "change") & np.isfinite(cs), cs, evid)
+    if "mean_probability" in allp:
+        mp = allp["mean_probability"].values.astype(float)
+        skill = allp["model_skill"].values.astype(float) if "model_skill" in allp else np.ones(len(allp))
+        evid = np.where((allp["source"] == "ai") & np.isfinite(mp),
+                        np.clip(mp / 0.5, 0, 1) * np.nan_to_num(skill, nan=0.0), evid)
+    allp["hazard_score"] = allp["class"].map(HAZARD_WEIGHTS) * np.log1p(allp["area_ha"]) * evid
+    allp = allp[allp["hazard_score"] > 0]
+    allp = allp.sort_values("hazard_score", ascending=False).head(max(top_n * 6, 300)).reset_index(drop=True)
+    floor = float((cfg or {}).get("exposure", {}).get("floor", 0.3))
+    if exposure is not None and ex_mod.available(exposure):
+        allp = ex_mod.site_exposure(allp, exposure, cfg or {})
+        allp["priority_score"] = allp["hazard_score"] * (floor + (1 - floor) * allp["exposure_index"].fillna(0))
+    else:
+        allp["priority_score"] = allp["hazard_score"]
+    allp["confidence"] = allp.apply(confidence_label, axis=1)
+    # Keep room for each kind of evidence, then fill free places by priority
+    quota = {"change": 30, "ai": 15, "risk": 5, **(cfg or {}).get("site_quota", {})}
+    allp = allp.sort_values("priority_score", ascending=False)
+    keep = pd.concat([allp[allp["source"] == k].head(int(q)) for k, q in quota.items()])
+    rest = allp.drop(keep.index).head(max(0, top_n - len(keep)))
+    allp = pd.concat([keep, rest]).sort_values("priority_score", ascending=False).head(top_n)
+    allp = allp.reset_index(drop=True)
     allp.insert(0, "rank", allp.index + 1)
-    allp["priority_score"] = allp["priority_score"].round(3)
+    for c in ["priority_score", "hazard_score"]:
+        allp[c] = allp[c].round(3)
     allp["area_ha"] = allp["area_ha"].round(2)
     return allp
