@@ -1,5 +1,5 @@
 {
-  "run_date": "2026-10-09 13:14 UTC",
+  "run_date": "2026-10-09 13:28 UTC",
   "district": "Dibrugarh",
   "period_baseline": [
     "2019-10-31",
@@ -23,11 +23,12 @@
     "Very high": 2.6
   },
   "change_area_ha": {
-    "Bank erosion (stable land to water)": 766.4,
+    "Bank erosion (stable land to water)": 596.8,
     "Accretion (water to land)": 15395.6,
     "Vegetation loss": 21118.4,
     "New bare soil": 17564.6,
-    "Char or sandbar lost (within river belt)": 10405.1
+    "Char or sandbar lost (within river belt)": 9948.3,
+    "New inland water (pond or flooding)": 626.4
   },
   "years_between_periods": 6.0,
   "water_detection": {
@@ -75,7 +76,7 @@
     "Seasonal water to land": 7170.2
   },
   "validation": {
-    "sample_points": 300,
+    "sample_points": 330,
     "period_baseline": [
       "2019-10-31",
       "2020-02-28"

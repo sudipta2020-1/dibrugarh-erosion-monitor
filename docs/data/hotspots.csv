@@ -2,50 +2,50 @@ rank,class,source,area_ha,mean_soil_loss_t_ha_yr,max_retreat_m,retreat_m_per_yr,
 1,Bank erosion (stable land to water),change,71.92,,510.0,85.0,4.289,27.627673,95.231021
 2,Bank erosion (stable land to water),change,63.2,,820.0,136.6,4.162,27.560385,95.190009
 3,Bank erosion (stable land to water),change,57.48,,500.0,83.3,4.069,27.461268,94.862736
-4,Vegetation loss,change,798.8,,1647.0,274.4,4.011,27.6265,95.267401
-5,Vegetation loss,change,516.24,,1226.0,204.3,3.749,27.502179,94.905654
+4,Vegetation loss,change,798.44,,,,4.01,27.626508,95.267405
+5,Vegetation loss,change,516.24,,,,3.749,27.502179,94.905654
 6,Bank erosion (stable land to water),change,25.0,,500.0,83.3,3.258,27.646522,95.248789
 7,Bank erosion (stable land to water),change,23.12,,996.0,166.0,3.183,27.357716,94.769737
 8,Vegetation loss,change,173.12,,402.0,67.0,3.096,27.559685,95.177649
-9,Vegetation loss,change,165.56,,556.0,92.6,3.069,27.603589,95.143427
-10,Vegetation loss,change,132.08,,540.0,90.0,2.935,27.459806,95.115721
+9,Vegetation loss,change,165.56,,,,3.069,27.603589,95.143427
+10,Vegetation loss,change,132.08,,,,2.935,27.459806,95.115721
 11,Vegetation loss,change,128.96,,,,2.92,27.482283,94.863436
-12,Vegetation loss,change,122.16,,286.0,47.7,2.888,27.655452,95.264636
+12,Vegetation loss,change,122.16,,241.0,40.2,2.888,27.655452,95.264636
 13,Bank erosion (stable land to water),change,16.48,,416.0,69.3,2.861,27.576371,95.127513
 14,Vegetation loss,change,108.4,,,,2.817,27.541945,95.202383
 15,Bank erosion (stable land to water),change,15.64,,556.0,92.6,2.812,27.315024,94.625582
 16,Bank erosion (stable land to water),change,15.44,,234.0,39.0,2.8,27.568774,95.240832
-17,Vegetation loss,change,105.12,,696.0,116.0,2.799,27.56322,95.211174
+17,Vegetation loss,change,105.12,,,,2.799,27.56322,95.211174
 18,Bank erosion (stable land to water),change,15.4,,372.0,62.0,2.797,27.272678,94.592443
 19,Vegetation loss,change,97.2,,,,2.752,27.276815,94.674986
 20,Bank erosion (stable land to water),change,14.36,,557.0,92.8,2.732,27.598832,95.221103
-21,Vegetation loss,change,90.24,,161.0,26.8,2.708,27.597438,95.213749
+21,Vegetation loss,change,90.24,,,,2.708,27.597438,95.213749
 22,Vegetation loss,change,89.72,,,,2.705,27.464174,95.156215
 23,Vegetation loss,change,85.0,,,,2.673,27.525215,94.969024
 24,Bank erosion (stable land to water),change,13.4,,975.0,162.5,2.667,27.558435,95.192608
 25,Bank erosion (stable land to water),change,13.2,,243.0,40.5,2.653,27.330821,95.03316
 26,Bank erosion (stable land to water),change,11.92,,1003.0,167.1,2.559,27.554259,95.184844
-27,Vegetation loss,change,66.2,,220.0,36.7,2.525,27.518812,94.994792
-28,Vegetation loss,change,65.48,,791.0,131.8,2.518,27.502474,94.907361
-29,Vegetation loss,change,64.96,,412.0,68.7,2.513,27.475161,94.777663
+27,Vegetation loss,change,66.2,,,,2.525,27.518812,94.994792
+28,Vegetation loss,change,65.48,,,,2.518,27.502474,94.907361
+29,Vegetation loss,change,64.96,,,,2.513,27.475161,94.777663
 30,Bank erosion (stable land to water),change,11.32,,286.0,47.7,2.511,27.308037,94.618101
 31,Char or sandbar lost (within river belt),change,522.04,,1328.0,221.3,2.504,27.459165,94.766363
 32,Vegetation loss,change,63.04,,,,2.496,27.578184,95.112679
 33,Accretion (water to land),change,3831.24,,60.0,10.0,2.475,27.530975,94.912077
-34,Vegetation loss,change,60.04,,305.0,50.8,2.467,27.522633,94.893976
-35,Bank erosion (stable land to water),change,10.76,,922.0,153.6,2.465,27.433364,94.829507
-36,Vegetation loss,change,57.6,,500.0,83.3,2.442,27.577549,95.156589
-37,Vegetation loss,change,55.48,,885.0,147.5,2.42,27.428729,94.821676
-38,Char or sandbar lost (within river belt),change,398.28,,806.0,134.3,2.396,27.456853,94.840774
-39,Bank erosion (stable land to water),change,9.96,,1163.0,193.8,2.394,27.550659,95.176221
-40,Vegetation loss,change,52.8,,525.0,87.5,2.391,27.531027,95.000912
-41,Char or sandbar lost (within river belt),change,392.52,,735.0,122.5,2.39,27.384699,94.738623
-42,Vegetation loss,change,52.68,,100.0,16.7,2.39,27.606987,95.236944
-43,Vegetation loss,change,52.48,,,,2.388,27.516616,94.873673
-44,Bank erosion (stable land to water),change,9.84,,100.0,16.7,2.383,27.343032,95.153691
-45,Vegetation loss,change,49.04,,,,2.348,27.421767,95.036147
-46,Vegetation loss,change,47.8,,671.0,111.8,2.333,27.604869,95.054535
-47,Vegetation loss,change,47.04,,1002.0,167.0,2.323,27.546366,95.179064
-48,Vegetation loss,change,46.32,,190.0,31.7,2.314,27.584542,95.135005
-49,New bare soil,change,45.0,,,,2.297,27.267718,94.758397
-50,Vegetation loss,change,42.6,,179.0,29.8,2.265,27.446918,94.825868
+34,Vegetation loss,change,60.04,,,,2.467,27.522633,94.893976
+35,Vegetation loss,change,57.6,,,,2.442,27.577549,95.156589
+36,Char or sandbar lost (within river belt),change,398.28,,806.0,134.3,2.396,27.456853,94.840774
+37,Bank erosion (stable land to water),change,9.96,,1163.0,193.8,2.394,27.550659,95.176221
+38,Vegetation loss,change,52.8,,,,2.391,27.531027,95.000912
+39,Char or sandbar lost (within river belt),change,392.52,,735.0,122.5,2.39,27.384699,94.738623
+40,Vegetation loss,change,52.48,,,,2.388,27.516616,94.873673
+41,Vegetation loss,change,52.28,,28.0,4.7,2.385,27.606999,95.236967
+42,Bank erosion (stable land to water),change,9.84,,100.0,16.7,2.383,27.343032,95.153691
+43,Vegetation loss,change,49.04,,,,2.348,27.421767,95.036147
+44,Vegetation loss,change,47.8,,335.0,55.8,2.333,27.604869,95.054535
+45,Vegetation loss,change,47.04,,1002.0,167.0,2.323,27.546366,95.179064
+46,Vegetation loss,change,46.32,,190.0,31.7,2.314,27.584542,95.135005
+47,New bare soil,change,45.0,,,,2.297,27.267718,94.758397
+48,Vegetation loss,change,42.92,,,,2.269,27.430094,94.823108
+49,Vegetation loss,change,42.6,,,,2.265,27.446918,94.825868
+50,Char or sandbar lost (within river belt),change,279.84,,791.0,131.8,2.255,27.580414,95.229058

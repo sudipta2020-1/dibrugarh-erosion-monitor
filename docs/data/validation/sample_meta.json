@@ -1,4 +1,5 @@
 {
+  "sample_version": 2,
   "period_baseline": [
     "2019-10-31",
     "2020-02-28"
@@ -14,21 +15,24 @@
     "5": "Char or sandbar lost",
     "2": "Accretion",
     "10": "Stable land",
-    "11": "Stable water"
+    "11": "Stable water",
+    "6": "New inland water"
   },
   "stratum_pixels": {
-    "1": 19160,
-    "5": 260127,
+    "1": 14919,
+    "5": 248707,
     "2": 384891,
     "10": 7547974,
-    "11": 147640
+    "11": 147640,
+    "6": 15661
   },
-  "points": 300,
+  "points": 330,
   "points_per_stratum": {
     "1": 50,
     "5": 50,
     "2": 50,
     "10": 75,
-    "11": 75
+    "11": 75,
+    "6": 30
   }
 }
