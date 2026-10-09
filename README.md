@@ -1,0 +1,84 @@
+# Dibrugarh Soil Erosion Monitoring Dashboard
+
+An automated system that captures satellite imagery of Dibrugarh district every month, maps soil erosion risk and land change, and publishes the results to a web dashboard that is embedded in a Google Site.
+
+## 1. How the system works
+
+```
+GitHub Actions (monthly schedule)
+   └─ pipeline/run.py
+        1. Downloads the district boundary (geoBoundaries)
+        2. Captures Sentinel-2, Sentinel-1 and Copernicus DEM data (Planetary Computer)
+        3. Computes indices, water extent, RUSLE soil loss and change since the baseline
+        4. Ranks priority sites for field verification
+        5. Writes web layers and tables to docs/data/
+   ├─ commits docs/data/  ──►  GitHub Pages hosts the dashboard (docs/index.html)
+   └─ creates a GitHub release with the full-resolution GeoTIFFs and GeoJSON
+                                   │
+Google Site  ◄── Embed (By URL) ───┘
+```
+
+The Google Site does not run any code. It shows the GitHub Pages dashboard inside an embed block, so every monthly run updates the Google Site on its own.
+
+**Monitoring windows.** Each run compares the latest 120 days with the same calendar dates in the baseline year (2020 by default). Comparing the same months limits false change from seasonal river levels and crop cycles. During the monsoon, cloud cover reduces the optical view; such runs are still published but marked as low confidence on the dashboard, and water change is taken from radar.
+
+## 2. One-time setup (about 15 minutes)
+
+You need a free GitHub account and the Google account that owns the Google Site.
+
+**Step 1. Create the repository**
+
+1. Sign in to GitHub and create a new **public** repository, for example `dibrugarh-erosion-monitor`. Public repositories get free GitHub Pages hosting and larger free Actions runners (4 CPU, 16 GB RAM).
+2. Upload all files from this folder, keeping the folder structure (`pipeline/`, `docs/`, `.github/workflows/`). The easiest way is *Add file → Upload files* and dragging the whole folder in. Make sure the hidden `.github` folder is included; if your file browser hides it, upload `monitor.yml` separately into `.github/workflows/` using *Add file → Create new file*.
+
+**Step 2. Allow the workflow to write results**
+
+*Settings → Actions → General → Workflow permissions →* select **Read and write permissions** → *Save*.
+
+**Step 3. Turn on GitHub Pages**
+
+*Settings → Pages → Build and deployment → Source: Deploy from a branch → Branch: `main`, folder `/docs`* → *Save*. After a minute the page address appears, for example `https://<your-username>.github.io/dibrugarh-erosion-monitor/`.
+
+**Step 4. Run the first monitoring job**
+
+*Actions → Erosion monitoring run → Run workflow*. Leave the date blank to use today, or enter an end date such as `2026-02-28` to start with a dry-season window. The first run takes about 30 to 90 minutes. When it finishes, the dashboard fills in.
+
+From then on the job runs by itself at 08:40 IST on the 1st of every month. It can also be started by hand at any time from the Actions tab.
+
+**Step 5. Embed the dashboard in Google Sites**
+
+1. Open your site in Google Sites and go to the page where the dashboard should appear.
+2. In the right panel choose *Insert → Embed → By URL*.
+3. Paste the GitHub Pages address from Step 3 and choose **Whole page**.
+4. Drag the corner of the embed block to make it full width and about 1,600 px tall, so the map, charts and table are visible without inner scrolling.
+5. Click *Publish*.
+
+You can add a second page to the site with the downloads (Insert → Button, linking to `…/data/hotspots.csv` or to the repository's *Releases* page).
+
+## 3. Repository contents
+
+| Path | Purpose |
+|---|---|
+| `config.yaml` | Study area, grid, monitoring windows, RUSLE inputs and thresholds |
+| `pipeline/acquire.py` | Satellite data search, cloud masking and compositing |
+| `pipeline/analysis.py` | Indices, water mask, RUSLE, change detection, hotspot ranking |
+| `pipeline/publish.py` | Web map layers, summary, history and release files |
+| `pipeline/run.py` | Entry point used by the scheduled job |
+| `.github/workflows/monitor.yml` | Monthly schedule and publishing steps |
+| `docs/index.html`, `docs/assets/` | Dashboard page |
+| `docs/data/` | Results written by each run (do not edit by hand) |
+
+## 4. Changing the system
+
+- **Schedule.** Edit the `cron` line in `.github/workflows/monitor.yml`. For example `10 3 1,15 * *` runs on the 1st and 15th. Times are in UTC.
+- **Window length or baseline year.** Edit `monitoring` in `config.yaml`.
+- **Rainfall and soil data.** Add a rainfall raster (IMD or CHIRPS, annual mm) and a K-factor raster to the repository and set `rainfall_raster` and `k_raster` in `config.yaml`. Until then soil loss values show relative risk only.
+- **Department boundary.** Add the boundary GeoJSON to the repository and set `aoi_geojson`.
+- **Running locally.** `pip install -r requirements.txt` then `python pipeline/run.py --skip-publish`.
+
+## 5. Notes and limits
+
+- GitHub disables scheduled workflows in repositories with no activity for 60 days. Each run commits new results, which counts as activity, so the schedule stays active as long as the runs succeed.
+- If a run fails (for example a temporary outage of the satellite catalogue), GitHub emails the repository owner. The dashboard keeps showing the last successful run. Start the workflow again by hand.
+- The dashboard map layers are reduced to about 1,800 pixels across for fast loading. Full-resolution GeoTIFFs for GIS work are attached to each release.
+- All results, especially vegetation loss and new bare soil, should be confirmed in the field before conservation works are planned. Tea garden pruning and paddy harvest can look like vegetation loss.
