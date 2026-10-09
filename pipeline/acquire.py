@@ -75,8 +75,27 @@ def get_aoi(cfg):
     return gdf, bbox
 
 
+# Planetary Computer access tokens expire after about 45 minutes. Instead of
+# signing every URL once at search time, each file is signed at the moment it
+# is read (patch_url), so long composites keep working with fresh tokens.
+SIGN = planetary_computer.sign
+
+
 def _catalog():
-    return pystac_client.Client.open(STAC_URL, modifier=planetary_computer.sign_inplace)
+    return pystac_client.Client.open(STAC_URL)
+
+
+def _clearest(items, per_tile):
+    """Keep the `per_tile` least cloudy scenes for each Sentinel-2 tile."""
+    groups = {}
+    for it in items:
+        groups.setdefault(it.properties.get("s2:mgrs_tile", "all"), []).append(it)
+    keep = []
+    for tile, its in sorted(groups.items()):
+        its.sort(key=lambda i: i.properties.get("eo:cloud_cover", 100))
+        keep += its[:per_tile]
+    print(f"  using the {len(keep)} clearest scenes ({per_tile} per tile, {len(groups)} tiles)")
+    return keep
 
 
 def _search(collection, bbox, period, query=None):
@@ -94,20 +113,21 @@ def _s2_offset(item):
     return -1000 if pb >= "04.00" else 0
 
 
-def sentinel2_composite(bbox, period, crs, res, max_cloud):
+def sentinel2_composite(bbox, period, crs, res, max_cloud, per_tile=15):
     items = _search("sentinel-2-l2a", bbox, period, {"eo:cloud_cover": {"lt": max_cloud}})
     if len(items) == 0:
         raise RuntimeError("No Sentinel-2 scenes found. Widen the period or raise max_cloud_cover.")
+    items = _clearest(list(items), per_tile)
     offs = [_s2_offset(it) for it in items]
     if len(set(offs)) == 1:
         # One processing baseline: merge same-day tiles to reduce the stack.
         ds = stac_load(items, bands=S2_BANDS + ["SCL"], bbox=bbox, crs=crs,
                        resolution=res, chunks=CHUNKS, groupby="solar_day",
-                       fail_on_error=False)
+                       fail_on_error=False, patch_url=SIGN)
         offsets = offs[0]
     else:
         ds = stac_load(items, bands=S2_BANDS + ["SCL"], bbox=bbox, crs=crs,
-                       resolution=res, chunks=CHUNKS, fail_on_error=False)
+                       resolution=res, chunks=CHUNKS, fail_on_error=False, patch_url=SIGN)
         offsets = xr.DataArray(offs, dims="time")
     clear = ds["SCL"].isin(S2_CLEAR_SCL)
     bands = []
@@ -128,7 +148,8 @@ def sentinel1_composite(bbox, period, geobox):
         print("  No Sentinel-1 scenes found; radar layers will be skipped.")
         return None
     ds = stac_load(items, bands=["vv", "vh"], geobox=geobox,
-                   chunks=CHUNKS, groupby="solar_day", fail_on_error=False)
+                   chunks=CHUNKS, groupby="solar_day", fail_on_error=False,
+                   patch_url=SIGN)
     out = xr.Dataset()
     for b in ["vv", "vh"]:
         lin = ds[b].where(ds[b] > 0).median("time", skipna=True)
@@ -140,7 +161,7 @@ def dem(bbox, geobox):
     """Copernicus DEM resampled directly onto the Sentinel-2 grid."""
     items = _catalog().search(collections=["cop-dem-glo-30"], bbox=bbox).item_collection()
     ds = stac_load(items, bands=["data"], geobox=geobox, resampling="bilinear",
-                   chunks=CHUNKS, fail_on_error=False)
+                   chunks=CHUNKS, fail_on_error=False, patch_url=SIGN)
     return (ds["data"].max("time").astype("float32").rename("elevation")
             .compute().rio.write_crs(str(geobox.crs)))
 
@@ -175,7 +196,8 @@ def acquire_all(cfg, raw_dir, bbox):
             print("  reusing", f2.name)
             s2 = open_multiband(f2, S2_BANDS)
         else:
-            s2 = sentinel2_composite(bbox, period, crs, res, cfg["max_cloud_cover"])
+            s2 = sentinel2_composite(bbox, period, crs, res, cfg["max_cloud_cover"],
+                                     cfg.get("max_scenes_per_tile", 15))
             save(s2, f2)
         if f1.exists():
             s1 = open_multiband(f1, S1_BANDS)
