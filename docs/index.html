@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dibrugarh Soil Erosion Monitor</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700&family=Source+Serif+4:opsz,wght@8..60,600&display=swap">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<header class="top">
+  <div>
+    <p class="eyebrow">Soil Conservation Department, Government of Assam</p>
+    <h1>Soil Erosion Risk Monitor <span class="muted">· Dibrugarh District</span></h1>
+  </div>
+  <div class="meta" id="meta">Loading latest run…</div>
+</header>
+
+<div id="banner" class="banner" hidden></div>
+
+<section class="kpis" id="kpis"></section>
+
+<section class="grid">
+  <div class="card map-card">
+    <div class="card-head">
+      <h2>Map</h2>
+      <div class="controls">
+        <label>Layer
+          <select id="layerSelect"></select>
+        </label>
+        <label>Opacity
+          <input id="opacity" type="range" min="0" max="100" value="80">
+        </label>
+        <label class="check"><input id="showHot" type="checkbox" checked> Hotspots</label>
+      </div>
+    </div>
+    <div id="map"></div>
+    <div id="legend" class="legend"></div>
+  </div>
+
+  <div class="side">
+    <div class="card">
+      <div class="card-head"><h2>Area by erosion risk class</h2></div>
+      <div class="chart-box"><canvas id="riskChart"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-head"><h2>Change over successive runs</h2></div>
+      <div class="chart-box"><canvas id="trendChart"></canvas></div>
+      <p class="note" id="trendNote"></p>
+    </div>
+  </div>
+</section>
+
+<section class="card">
+  <div class="card-head">
+    <h2>Priority sites for field verification</h2>
+    <div class="links" id="downloads"></div>
+  </div>
+  <div class="table-wrap">
+    <table id="hotTable">
+      <thead><tr><th>Rank</th><th>Type</th><th class="num">Area (ha)</th><th class="num">Soil loss (t/ha/yr)</th><th class="num">Score</th><th>Location</th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </div>
+</section>
+
+<section class="card method">
+  <h2>Method in brief</h2>
+  <p>Each run builds cloud-free Sentinel-2 composites and Sentinel-1 radar composites for the most recent monitoring window and for the same calendar dates in the baseline year. Comparing the same months limits false change caused by seasonal river level and crop cycles. Water is mapped from the MNDWI index, with radar backscatter used where clouds hide the optical image. Land that turned into water is reported as bank erosion, and water that turned into land as accretion. Annual soil loss is estimated with RUSLE (A = R × K × LS × C × P), where the cover factor C is derived from NDVI and the slope factor LS from the Copernicus 30 m DEM. Patches are ranked by type and area to give a field verification list.</p>
+  <p class="note">Rainfall erosivity (R) and soil erodibility (K) currently use uniform district values, so soil loss should be read as relative risk. All results need field confirmation before conservation works are planned.</p>
+</section>
+
+<footer>Data: Copernicus Sentinel-1 and Sentinel-2, Copernicus DEM GLO-30 (via Microsoft Planetary Computer), district boundary from geoBoundaries. Updated automatically every month.</footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="assets/app.js"></script>
+</body>
+</html>
