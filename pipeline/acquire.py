@@ -126,6 +126,40 @@ def _s2_offset(item):
     return -1000 if pb >= "04.00" else 0
 
 
+def _s2_products(ds, offsets):
+    """Lazy median composite and per-date water counts from a Sentinel-2 stack."""
+    clear = ds["SCL"].isin(S2_CLEAR_SCL)
+    bands, refl = [], {}
+    for b in S2_BANDS:
+        dn = ds[b].astype("float32").where((ds[b] > 0) & clear)
+        refl[b] = ((dn + np.float32(offsets) if np.isscalar(offsets) else dn + offsets.astype("float32"))
+                   / np.float32(10000.0)).clip(0, 1)
+        bands.append(refl[b].median("time", skipna=True).rename(b))
+    # Per-date water counts (MNDWI = (green - SWIR1) / (green + SWIR1))
+    g, sw = refl["B03"], refl["B11"]
+    mndwi = (g - sw) / (g + sw)
+    ok = np.isfinite(mndwi)
+    counts = [ok.sum("time").astype("uint8").rename("n_clear")]
+    for t, name in zip(OPT_THRESHOLDS, OPT_COUNT_BANDS[1:]):
+        counts.append((ok & (mndwi > t)).sum("time").astype("uint8").rename(name))
+    return xr.merge(bands + counts)
+
+
+def _compute_in_strips(lazy, label, rows=None):
+    """
+    Compute a lazy dataset one strip of chunk rows at a time. Each strip reads
+    every image once for all products, and memory stays bounded by the strip
+    size instead of the whole district.
+    """
+    rows = rows or CHUNKS["y"]
+    H = lazy.sizes["y"]
+    parts = []
+    for i in range(0, H, rows):
+        parts.append(lazy.isel(y=slice(i, i + rows)).compute())
+        print(f"  {label}: rows {min(i + rows, H)} of {H} done", flush=True)
+    return xr.concat(parts, dim="y")
+
+
 def sentinel2_composite(bbox, period, crs, res, max_cloud, per_tile=15):
     items = _search("sentinel-2-l2a", bbox, period, {"eo:cloud_cover": {"lt": max_cloud}})
     if len(items) == 0:
@@ -142,21 +176,7 @@ def sentinel2_composite(bbox, period, crs, res, max_cloud, per_tile=15):
         ds = stac_load(items, bands=S2_BANDS + ["SCL"], bbox=bbox, crs=crs,
                        resolution=res, chunks=CHUNKS, fail_on_error=False, patch_url=SIGN)
         offsets = xr.DataArray(offs, dims="time")
-    clear = ds["SCL"].isin(S2_CLEAR_SCL)
-    bands, refl = [], {}
-    for b in S2_BANDS:
-        dn = ds[b].where((ds[b] > 0) & clear)
-        refl[b] = ((dn + offsets) / 10000.0).clip(0, 1)
-        bands.append(refl[b].median("time", skipna=True).rename(b))
-    # Per-date water counts (MNDWI = (green - SWIR1) / (green + SWIR1))
-    g, sw = refl["B03"], refl["B11"]
-    mndwi = (g - sw) / (g + sw)
-    ok = np.isfinite(mndwi)
-    counts = [ok.sum("time").astype("uint8").rename("n_clear")]
-    for t, name in zip(OPT_THRESHOLDS, OPT_COUNT_BANDS[1:]):
-        counts.append((ok & (mndwi > t)).sum("time").astype("uint8").rename(name))
-    # One compute call, so every image is read only once for both products.
-    both = xr.merge(bands + counts).compute()
+    both = _compute_in_strips(_s2_products(ds, offsets), "Sentinel-2")
     out = both[S2_BANDS].rio.write_crs(crs)
     cnt = both[OPT_COUNT_BANDS].rio.write_crs(crs)
     valid = float(np.isfinite(out["B04"]).mean() * 100)
@@ -176,14 +196,14 @@ def sentinel1_composite(bbox, period, geobox):
                    patch_url=SIGN)
     out = xr.Dataset()
     for b in ["vv", "vh"]:
-        lin = ds[b].where(ds[b] > 0).median("time", skipna=True)
+        lin = ds[b].astype("float32").where(ds[b] > 0).median("time", skipna=True)
         out[b.upper() + "_dB"] = 10 * np.log10(lin)
-    vv = 10 * np.log10(ds["vv"].where(ds["vv"] > 0))
+    vv = 10 * np.log10(ds["vv"].astype("float32").where(ds["vv"] > 0))
     ok = np.isfinite(vv)
     out["n_obs"] = ok.sum("time").astype("uint8")
     for t, name in zip(SAR_THRESHOLDS, SAR_COUNT_BANDS[1:]):
         out[name] = (ok & (vv < t)).sum("time").astype("uint8")
-    both = out.compute()
+    both = _compute_in_strips(out, "Sentinel-1")
     crs = str(geobox.crs)
     return both[S1_BANDS].rio.write_crs(crs), both[SAR_COUNT_BANDS].rio.write_crs(crs)
 
