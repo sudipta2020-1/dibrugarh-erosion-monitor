@@ -29,6 +29,7 @@ import analysis as an
 
 RISK_COLORS = {1: "#1a9850", 2: "#91cf60", 3: "#fee08b", 4: "#fc8d59", 5: "#d73027"}
 CHANGE_COLORS = {1: "#d7191c", 2: "#2c7bb6", 3: "#fdae61", 4: "#8c510a"}
+HISTORY_COLORS = {1: "#7a0177", 2: "#dd3497", 3: "#225ea8", 4: "#41b6c4"}
 MAX_WIDTH = 1800
 
 
@@ -110,6 +111,10 @@ def publish(cfg, r, layers, aoi_gdf, bbox, pub, maps_dir):
     lay["change"] = {"title": "Change since baseline", "file": "layers/change.png",
                      "bounds": categorical_png(r["change"], CHANGE_COLORS, pub / "layers/change.png"),
                      "legend": [[an.CHANGE_LABELS[k], c] for k, c in CHANGE_COLORS.items()]}
+    if r.get("history") is not None:
+        lay["history"] = {"title": "Historical change 1984-2021 (JRC)", "file": "layers/history.png",
+                          "bounds": categorical_png(r["history"], HISTORY_COLORS, pub / "layers/history.png"),
+                          "legend": [[an.HISTORY_LABELS[k], c] for k, c in HISTORY_COLORS.items()]}
     lay["soilloss"] = {"title": "Soil loss (t/ha/yr)", "file": "layers/soilloss.png",
                        "bounds": continuous_png(r["A"], "YlOrRd", 0.1, 100, pub / "layers/soilloss.png", log=True),
                        "ramp": {"cmap": "YlOrRd", "labels": ["0.1", "1", "10", "100"]}}
@@ -140,6 +145,9 @@ def publish(cfg, r, layers, aoi_gdf, bbox, pub, maps_dir):
                "period_baseline": p0, "period_current": p1,
                "resolution_m": cfg["resolution_m"], "confidence": "normal" if confident else "low",
                "repository": os.environ.get("GITHUB_REPOSITORY", ""), **s}
+    rep = Path("data/inputs_report.json")
+    if rep.exists():
+        summary["inputs_report"] = json.loads(rep.read_text())
     (pub / "summary.json").write_text(json.dumps(summary, indent=2))
 
     row = {"run_date": run_date[:10], "current_start": p1[0], "current_end": p1[1],
