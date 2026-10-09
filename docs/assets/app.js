@@ -44,7 +44,7 @@ async function main() {
     getText("history.csv").catch(() => ""),
   ]);
   const history = histTxt ? parseCSV(histTxt) : [];
-  header(summary); kpis(summary); inputsNote(summary); accuracy(summary); mlCard(summary); mapView(layers, aoi, hot); riskChart(summary); trendChart(history);
+  header(summary); kpis(summary); inputsNote(summary); accuracy(summary); mlCard(summary); mapView(layers, aoi, hot); if (window.initSensors) initSensors(); riskChart(summary); trendChart(history);
   table(hot); downloads(summary); fieldCard(summary);
 }
 
