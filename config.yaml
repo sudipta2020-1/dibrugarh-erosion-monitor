@@ -26,6 +26,9 @@ period_baseline: ["2019-11-01", "2020-02-28"]
 period_current:  ["2025-11-01", "2026-02-28"]
 
 max_cloud_cover: 40
+# Only the clearest scenes of each Sentinel-2 tile are used for a composite.
+# This keeps a run well within the satellite archive's access-token lifetime.
+max_scenes_per_tile: 15
 # Runs whose current optical composite covers less than this share of the
 # district (monsoon months) are published but flagged as low confidence.
 min_clear_coverage_pct: 60
