@@ -16,6 +16,8 @@ import xarray as xr
 import yaml
 
 import analysis as an
+import exposure as exm
+import ml_model
 import validation as va
 from acquire import acquire_all, get_aoi, save
 from publish import publish
@@ -62,8 +64,9 @@ def analyse(cfg, layers, aoi_gdf):
         c2 = al(L["s2_counts"]) if L.get("s2_counts") is not None else None
         c1 = al(L["s1_counts"]) if L.get("s1_counts") is not None else None
         ind = an.indices(s2).where(inside)
-        w, freq, info = an.water_from_frequency(ind, s1, c2, c1, cc)
-        state[tag] = {"ind": ind, "water": w & inside, "freq": freq.where(inside), "s2": s2}
+        w, freq, info, conf = an.water_from_frequency(ind, s1, c2, c1, cc)
+        state[tag] = {"ind": ind, "water": w & inside, "freq": freq.where(inside), "s2": s2,
+                      "conf": conf.where(inside)}
         water_info[tag] = info
         print(f"  water {tag}: {info}")
 
@@ -72,6 +75,9 @@ def analyse(cfg, layers, aoi_gdf):
     elev = al(layers["dem"]).where(inside)
     ru = an.rusle(state["current"]["ind"], elev, cfg, res, state["current"]["water"])
     A = ru["soil_loss_t_ha_yr"].where(inside).rio.write_crs(crs)
+    # RUSLE with baseline vegetation, used as a baseline score for the ML comparison
+    A0 = an.rusle(state["baseline"]["ind"], elev, cfg, res, state["baseline"]["water"])["soil_loss_t_ha_yr"]
+    A0 = A0.where(inside).rio.write_crs(crs)
     risk = an.classify(A, cfg["risk_thresholds"]).rio.write_crs(crs)
     # Historical record 1984-2021 (JRC Global Surface Water), if prepared
     jrc = an.jrc_transitions(tmpl, cfg.get("history_raster"))
@@ -90,12 +96,48 @@ def analyse(cfg, layers, aoi_gdf):
     years = max((dt.date.fromisoformat(cfg["period_current"][1]) -
                  dt.date.fromisoformat(cfg["period_baseline"][1])).days / 365.25, 1e-6)
 
+    # Confidence of each water-change pixel: both period labels must be right
+    chg_conf = (state["baseline"]["conf"] * state["current"]["conf"]).astype("float32")
+    chg_conf = chg_conf.where(np.isin(chg.values, [1, 2, 5, 6])).rio.write_crs(crs).rename("change_confidence")
+
     mp = cc["min_patch_pixels"]
     chg_gdf = an.patches(chg, an.CHANGE_LABELS, mp, res, extra_max=retreat)
     if not chg_gdf.empty and "max_retreat_m" in chg_gdf:
         chg_gdf["retreat_m_per_yr"] = (chg_gdf["max_retreat_m"] / years).round(1)
+    if not chg_gdf.empty:
+        chg_gdf["confidence_score"] = np.round(an.zonal_mean(chg_gdf, chg_conf), 3)
     risk_gdf = an.patches(risk.where(risk >= 4, 0).rio.write_crs(crs), an.RISK_LABELS, mp, res, extra=A)
-    hot = an.rank_hotspots(chg_gdf, risk_gdf, top_n=50)
+
+    # Machine-learning bank-erosion susceptibility (RF + XGBoost), compared with RUSLE
+    print("== Machine-learning model")
+    ml_in = {"inside": inside, "state": state, "change": chg, "K": ru["K"].where(inside),
+             "A_baseline": A0, "jrc": jrc}
+    try:
+        ml = ml_model.run(cfg, ml_in, {"dem_aligned": elev.values}, res)
+    except Exception as e:                       # the monitoring run must not fail because of the model
+        print(f"  ML model skipped: {e}")
+        ml = None
+    ai_gdf = None
+    if ml is not None:
+        for k in ["probability", "agreement", "susceptibility_class"]:
+            ml[k] = ml[k].rio.write_crs(crs)
+        # High and very high zones, cut into 1 km tiles so each site is a visitable unit
+        hi = ml["susceptibility_class"].values >= 4
+        k = max(1, int(round(cfg.get("ml", {}).get("site_tile_m", 1000) / res)))
+        rr_, cc_ = np.indices(hi.shape)
+        tiles = np.where(hi, (rr_ // k) * (hi.shape[1] // k + 1) + cc_ // k + 1, 0).astype("int32")
+        ai_gdf = an.patches(tmpl.copy(data=tiles).rio.write_crs(crs),
+                            {int(t): an.AI_LABEL for t in np.unique(tiles) if t > 0}, mp, res)
+        if not ai_gdf.empty:
+            ai_gdf["mean_probability"] = np.round(an.zonal_mean(ai_gdf, ml["probability"]), 3)
+            ai_gdf["model_agreement"] = np.round(an.zonal_mean(ai_gdf, ml["agreement"]), 3)
+            auc = ml["summary"]["metrics"]["Ensemble (RF + XGBoost)"]["roc_auc"]
+            ai_gdf["model_skill"] = round(float(np.clip((auc - 0.5) / 0.4, 0, 1)), 3)
+
+    # Exposure of people and assets, and the final priority list
+    ex = exm.load(crs)
+    print("  exposure layers available:", exm.available(ex) or "none")
+    hot = an.rank_hotspots(chg_gdf, risk_gdf, ai_gdf, exposure=ex, cfg=cfg, top_n=50)
 
     px_ha = res * res / 1e4
     stats = {
@@ -105,6 +147,12 @@ def analyse(cfg, layers, aoi_gdf):
         "risk_class_area_ha": {an.RISK_LABELS[k]: round(float((risk == k).sum()) * px_ha, 1) for k in range(1, 6)},
         "change_area_ha": {an.CHANGE_LABELS[k]: round(float((chg == k).sum()) * px_ha, 1) for k in an.CHANGE_LABELS},
         "years_between_periods": round(years, 2),
+        "confidence_summary": {
+            "mean_change_confidence": round(float(np.nanmean(chg_conf.values)), 3)
+            if np.isfinite(chg_conf.values).any() else None,
+            "change_area_high_confidence_ha": round(float((chg_conf.values >= 0.9).sum()) * res * res / 1e4, 1),
+            "method": "Beta posterior of per-date water observations; change confidence = product of "
+                      "the baseline and current label confidences"},
         "water_detection": {**water_info, "char_split": "JRC 1984-2021 water history" if jrc is not None
                             else "not applied (JRC layer missing)"},
         "hotspots_listed": 0 if hot is None else int(len(hot)),
@@ -119,6 +167,16 @@ def analyse(cfg, layers, aoi_gdf):
             "dem_smoothing_m": cfg["rusle"].get("dem_smooth_m", 0),
         },
     }
+    if ml is not None:
+        stats["ml_model"] = ml["summary"]
+    exp_avail = exm.available(ex)
+    stats["exposure"] = {"layers": exp_avail, "buffer_m": cfg.get("exposure", {}).get("buffer_m", 500)}
+    if "population" in exp_avail:
+        b = cfg.get("exposure", {}).get("buffer_m", 500)
+        stats["exposure"]["people_near_bank_erosion"] = exm.people_near((chg == 1).astype("uint8"), ex, b)
+        if ml is not None:
+            stats["exposure"]["people_near_high_ai_susceptibility"] = exm.people_near(
+                (ml["susceptibility_class"] >= 5).astype("uint8"), ex, b)
     if hist is not None:
         stats["history_area_ha"] = {an.HISTORY_LABELS[k]: round(float((hist == k).sum()) * px_ha, 1)
                                     for k in an.HISTORY_LABELS}
@@ -127,7 +185,7 @@ def analyse(cfg, layers, aoi_gdf):
                                             state["current"]["water"].values, inside.values))
     acc_map = acc_map.astype("uint8").rio.write_crs(crs)
     return {"inside": inside, "state": state, "A": A, "risk": risk, "change": chg,
-            "acc_map": acc_map, "retreat": retreat,
+            "acc_map": acc_map, "retreat": retreat, "change_conf": chg_conf, "ml": ml,
             "dNDVI": dndvi.where(inside).rio.write_crs(crs), "chg_gdf": chg_gdf,
             "risk_gdf": risk_gdf, "hotspots": hot, "stats": stats, "history": hist}
 
