@@ -81,6 +81,38 @@
    ]
   ]
  },
+ "history": {
+  "title": "Historical change 1984-2021 (JRC)",
+  "file": "layers/history.png",
+  "bounds": [
+   [
+    27.072442,
+    94.53491
+   ],
+   [
+    27.676144,
+    95.53369
+   ]
+  ],
+  "legend": [
+   [
+    "Land to permanent water",
+    "#7a0177"
+   ],
+   [
+    "Land to seasonal water",
+    "#dd3497"
+   ],
+   [
+    "Permanent water to land",
+    "#225ea8"
+   ],
+   [
+    "Seasonal water to land",
+    "#41b6c4"
+   ]
+  ]
+ },
  "soilloss": {
   "title": "Soil loss (t/ha/yr)",
   "file": "layers/soilloss.png",
