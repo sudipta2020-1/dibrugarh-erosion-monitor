@@ -16,3 +16,5 @@ pandas
 pyyaml
 scipy
 imdlib
+scikit-learn
+xgboost
