@@ -140,3 +140,52 @@
     refs.parentNode.insertBefore(d, refs); d.appendChild(refs);
   }
 })();
+
+// 5. Full-screen option. Google Sites embeds do not allow true full screen, so
+//    inside the site the button opens the page in its own tab, where a second
+//    click makes it full screen. The dashboard map can also be expanded.
+(function () {
+  var embedded = window.self !== window.top;
+  var canFS = !!(document.fullscreenEnabled || document.webkitFullscreenEnabled);
+  var isFS = function () { return !!(document.fullscreenElement || document.webkitFullscreenElement); };
+  function enter(el) { (el.requestFullscreen || el.webkitRequestFullscreen).call(el); }
+  function exit() { (document.exitFullscreen || document.webkitExitFullscreen).call(document); }
+
+  var btn = document.createElement("button");
+  btn.type = "button"; btn.className = "fx-fs";
+  function label() {
+    btn.innerHTML = isFS() ? "✕ Exit full screen" : (embedded || !canFS) ? "⛶ Open full screen ↗" : "⛶ Full screen";
+    btn.title = embedded ? "Opens this page in its own tab; click again there for full screen" : "";
+  }
+  btn.addEventListener("click", function () {
+    if (isFS()) { exit(); return; }
+    if (embedded || !canFS) { window.open(location.href.split("#")[0].split("?")[0] + "?fs=1", "_blank", "noopener"); return; }
+    enter(document.documentElement);
+  });
+  document.addEventListener("fullscreenchange", label);
+  document.addEventListener("webkitfullscreenchange", label);
+  label();
+  var h1 = document.querySelector("header.top h1");
+  var host = (h1 && h1.parentNode) || document.querySelector(".hero-text");
+  if (host) host.appendChild(btn); else { btn.classList.add("fx-fs-float"); document.body.appendChild(btn); }
+  if (/[?&]fs=1/.test(location.search) && canFS) btn.classList.add("fx-fs-hint");
+
+  // Expand the dashboard map to fill the screen
+  var card = document.querySelector(".map-card"), ctr = card && card.querySelector(".controls");
+  if (ctr) {
+    var mb = document.createElement("button");
+    mb.type = "button"; mb.className = "fx-mapmax"; mb.textContent = "⛶ Expand map";
+    var resize = function () { setTimeout(function () { if (window.MAP && MAP.invalidateSize) MAP.invalidateSize(); }, 250); };
+    var toggle = function (on) {
+      card.classList.toggle("fx-max", on);
+      document.documentElement.classList.toggle("fx-noscroll", on);
+      mb.textContent = on ? "✕ Close map" : "⛶ Expand map";
+      if (!embedded && canFS) { if (on && !isFS()) { try { enter(card); } catch (e) {} } else if (!on && isFS()) exit(); }
+      resize();
+    };
+    mb.addEventListener("click", function () { toggle(!card.classList.contains("fx-max")); });
+    document.addEventListener("keydown", function (e) { if (e.key === "Escape" && card.classList.contains("fx-max")) toggle(false); });
+    document.addEventListener("fullscreenchange", function () { if (!isFS() && card.classList.contains("fx-max")) toggle(false); });
+    ctr.appendChild(mb);
+  }
+})();
