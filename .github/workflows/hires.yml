@@ -50,7 +50,7 @@ jobs:
         run: python pipeline/hires.py --only ${{ matrix.period }}
 
       - name: Save 10 m composite in the cache
-        if: always() && hashFiles('outputs/dibrugarh_district/hires/*.nc') != ''
+        if: always() && hashFiles('outputs/dibrugarh_district/hires/*.npz') != ''
         uses: actions/cache/save@v4
         with:
           path: outputs/dibrugarh_district/hires
@@ -59,7 +59,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: nc-${{ matrix.period }}
-          path: outputs/dibrugarh_district/hires/s2_10m_${{ matrix.period }}_*.nc
+          path: outputs/dibrugarh_district/hires/s2_10m_${{ matrix.period }}_*.npz
           retention-days: 3
           compression-level: 1
 
