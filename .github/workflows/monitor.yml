@@ -2,8 +2,8 @@ name: Erosion monitoring run
 
 on:
   schedule:
-    # 03:10 UTC (08:40 IST) on the 1st of every month
-    - cron: "10 3 1 * *"
+    # Every Monday at 03:10 UTC (08:40 IST)
+    - cron: "10 3 * * 1"
   workflow_dispatch:
     inputs:
       end_date:
