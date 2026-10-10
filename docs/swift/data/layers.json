@@ -1,0 +1,249 @@
+{
+ "truecolour": {
+  "title": "Satellite image (current)",
+  "file": "layers/truecolour.png",
+  "bounds": [
+   [
+    27.072442,
+    94.53491
+   ],
+   [
+    27.676144,
+    95.53369
+   ]
+  ]
+ },
+ "risk": {
+  "title": "Erosion risk class",
+  "file": "layers/risk.png",
+  "bounds": [
+   [
+    27.072442,
+    94.53491
+   ],
+   [
+    27.676144,
+    95.53369
+   ]
+  ],
+  "legend": [
+   [
+    "Very low",
+    "#1a9850"
+   ],
+   [
+    "Low",
+    "#91cf60"
+   ],
+   [
+    "Moderate",
+    "#fee08b"
+   ],
+   [
+    "High",
+    "#fc8d59"
+   ],
+   [
+    "Very high",
+    "#d73027"
+   ]
+  ]
+ },
+ "change": {
+  "title": "Change since baseline (SWiFT-Bank in the river corridor)",
+  "file": "layers/change.png",
+  "bounds": [
+   [
+    27.072442,
+    94.53491
+   ],
+   [
+    27.676144,
+    95.53369
+   ]
+  ],
+  "legend": [
+   [
+    "Bank erosion (stable land to water)",
+    "#d7191c"
+   ],
+   [
+    "Char or sandbar lost (within river belt)",
+    "#f59ec0"
+   ],
+   [
+    "New inland water (pond or flooding)",
+    "#66c2a5"
+   ],
+   [
+    "Accretion (water to land)",
+    "#2c7bb6"
+   ],
+   [
+    "Vegetation loss",
+    "#fdae61"
+   ],
+   [
+    "New bare soil",
+    "#8c510a"
+   ]
+  ]
+ },
+ "history": {
+  "title": "Historical change 1984-2021 (JRC)",
+  "file": "layers/history.png",
+  "bounds": [
+   [
+    27.072442,
+    94.53491
+   ],
+   [
+    27.676144,
+    95.53369
+   ]
+  ],
+  "legend": [
+   [
+    "Land to permanent water",
+    "#7a0177"
+   ],
+   [
+    "Land to seasonal water",
+    "#dd3497"
+   ],
+   [
+    "Permanent water to land",
+    "#225ea8"
+   ],
+   [
+    "Seasonal water to land",
+    "#41b6c4"
+   ]
+  ]
+ },
+ "ai": {
+  "title": "AI bank-erosion susceptibility (next period)",
+  "file": "layers/ai.png",
+  "bounds": [
+   [
+    27.072442,
+    94.53491
+   ],
+   [
+    27.676144,
+    95.53369
+   ]
+  ],
+  "legend": [
+   [
+    "Very low",
+    "#ffffcc"
+   ],
+   [
+    "Low",
+    "#c2e699"
+   ],
+   [
+    "Moderate",
+    "#fecc5c"
+   ],
+   [
+    "High",
+    "#fd8d3c"
+   ],
+   [
+    "Very high",
+    "#bd0026"
+   ]
+  ]
+ },
+ "agreement": {
+  "title": "AI model agreement (RF vs XGBoost)",
+  "file": "layers/agreement.png",
+  "bounds": [
+   [
+    27.072442,
+    94.53491
+   ],
+   [
+    27.676144,
+    95.53369
+   ]
+  ],
+  "ramp": {
+   "cmap": "viridis",
+   "labels": [
+    "0.5 low",
+    "0.75",
+    "1.0 high"
+   ]
+  }
+ },
+ "confidence": {
+  "title": "Confidence of detected change (SWiFT test)",
+  "file": "layers/confidence.png",
+  "bounds": [
+   [
+    27.072442,
+    94.53491
+   ],
+   [
+    27.676144,
+    95.53369
+   ]
+  ],
+  "ramp": {
+   "cmap": "viridis",
+   "labels": [
+    "0.5 low",
+    "0.75",
+    "1.0 high"
+   ]
+  }
+ },
+ "soilloss": {
+  "title": "Soil loss (t/ha/yr)",
+  "file": "layers/soilloss.png",
+  "bounds": [
+   [
+    27.072442,
+    94.53491
+   ],
+   [
+    27.676144,
+    95.53369
+   ]
+  ],
+  "ramp": {
+   "cmap": "YlOrRd",
+   "labels": [
+    "0.1",
+    "1",
+    "10",
+    "100"
+   ]
+  }
+ },
+ "ndvi": {
+  "title": "NDVI (current)",
+  "file": "layers/ndvi.png",
+  "bounds": [
+   [
+    27.072442,
+    94.53491
+   ],
+   [
+    27.676144,
+    95.53369
+   ]
+  ],
+  "ramp": {
+   "cmap": "RdYlGn",
+   "labels": [
+    "-0.2",
+    "0.35",
+    "0.9"
+   ]
+  }
+ }
+}
