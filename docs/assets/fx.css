@@ -1,0 +1,73 @@
+/* Colour and motion layer for the erosion monitor pages (dashboards and method page). */
+:root{--fx1:#0f6e8c;--fx2:#1f9d8a;--fx3:#e3a33b;--fx4:#d9573b;--fx5:#5b5fc7;--fx6:#3f8f3f}
+body{position:relative}
+body::before{content:"";position:fixed;inset:-20%;z-index:-1;pointer-events:none;
+  background:radial-gradient(38% 30% at 15% 20%,rgba(31,157,138,.16),transparent 70%),
+    radial-gradient(30% 28% at 85% 15%,rgba(227,163,59,.16),transparent 70%),
+    radial-gradient(36% 32% at 70% 85%,rgba(91,95,199,.12),transparent 70%),
+    radial-gradient(30% 30% at 20% 80%,rgba(217,87,59,.10),transparent 70%);
+  animation:fxDrift 30s ease-in-out infinite alternate}
+@keyframes fxDrift{to{transform:translate(4%,-3%) rotate(3deg)}}
+
+/* Dashboard header becomes an animated band */
+.top{position:relative;overflow:hidden;border:0 !important;border-radius:14px;padding:22px 24px 58px !important;color:#fff;
+  background:linear-gradient(120deg,#0b4f6c,#167f8f,#2a8f5c,#b8742a,#0b4f6c);background-size:400% 400%;animation:fxGrad 22s ease infinite;
+  box-shadow:0 10px 30px -18px rgba(11,79,108,.8)}
+@keyframes fxGrad{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
+.top>*{position:relative;z-index:2}
+.top .eyebrow{color:#ffe2a8 !important}
+.top h1,.top h1 .muted{color:#fff !important}
+.top h1 .muted{opacity:.85}
+.top .meta,.top .meta b{color:#e8f6f4 !important}
+.fx-waves{position:absolute;left:0;right:0;bottom:0;height:56px;z-index:1;pointer-events:none}
+.fx-waves svg{position:absolute;bottom:0;width:200%;height:100%}
+.fx-waves .w1{animation:fxWave 14s linear infinite;opacity:.35}
+.fx-waves .w2{animation:fxWave 9s linear infinite reverse;opacity:.25;bottom:-6px}
+@keyframes fxWave{to{transform:translateX(-50%)}}
+.fx-sat{position:absolute;top:10px;left:-60px;z-index:1;width:46px;height:16px;animation:fxSat 16s linear infinite;opacity:.9}
+@keyframes fxSat{0%{left:-60px}60%,100%{left:105%}}
+.fx-tag{display:inline-block;margin-top:8px;padding:3px 10px;border-radius:999px;background:rgba(255,255,255,.18);font-size:12.5px;color:#fff;backdrop-filter:blur(2px)}
+.fx-tag i{display:inline-block;width:8px;height:8px;border-radius:50%;background:#7fe0a8;margin-right:6px;animation:fxPulse 1.6s ease-in-out infinite}
+@keyframes fxPulse{50%{transform:scale(1.6);opacity:.4}}
+
+/* KPI cards */
+.kpi{background:linear-gradient(180deg,color-mix(in srgb,var(--c,#1f9d8a) 13%,#fff),#fff 70%) !important;transition:transform .25s,box-shadow .25s}
+.kpi:hover{transform:translateY(-3px);box-shadow:0 10px 22px -14px color-mix(in srgb,var(--c,#1f9d8a) 80%,#000)}
+.kpi .value{color:color-mix(in srgb,var(--c,#23231f) 55%,#1d1d1a)}
+
+/* Cards and headings */
+.card{transition:box-shadow .3s,transform .3s}
+.card:hover{box-shadow:0 12px 28px -20px rgba(15,110,140,.55)}
+.card-head h2,.card:not(.district)>h2{position:relative;display:inline-block;padding-bottom:4px}
+.card-head h2::after,.card:not(.district)>h2::after{content:"";position:absolute;left:0;bottom:0;height:3px;width:42px;border-radius:2px;
+  background:linear-gradient(90deg,var(--fx1),var(--fx2),var(--fx3));background-size:200% 100%;animation:fxBar 6s linear infinite}
+@keyframes fxBar{to{background-position:200% 0}}
+th{background:color-mix(in srgb,var(--fx1) 9%,transparent)}
+tbody tr{transition:background .2s}
+tbody tr:hover{background:color-mix(in srgb,var(--fx3) 10%,transparent)}
+
+/* Method page */
+.district{border-top:4px solid var(--fx1)}
+.district+.district{border-top-color:var(--fx3)}
+.district .btn{background:linear-gradient(90deg,var(--fx1),var(--fx2));transition:transform .2s,box-shadow .2s}
+.district+.district .btn{background:linear-gradient(90deg,#c27c2c,var(--fx4))}
+.district .btn:hover{transform:translateY(-2px);box-shadow:0 8px 18px -10px rgba(0,0,0,.5)}
+.kv div:nth-child(6n+1){border-top-color:var(--fx1)}.kv div:nth-child(6n+2){border-top-color:var(--fx4)}
+.kv div:nth-child(6n+3){border-top-color:var(--fx3)}.kv div:nth-child(6n+4){border-top-color:#c0392b}
+.kv div:nth-child(6n+5){border-top-color:#e58fb0}.kv div:nth-child(6n+6){border-top-color:var(--fx5)}
+.step:nth-of-type(6n+1){--sc:#0f7c99}.step:nth-of-type(6n+2){--sc:#2f8a4e}.step:nth-of-type(6n+3){--sc:#b5761a}
+.step:nth-of-type(6n+4){--sc:#c2462b}.step:nth-of-type(6n+5){--sc:#5054c0}.step:nth-of-type(6n+6){--sc:#a63a78}
+.step .num{background:color-mix(in srgb,var(--sc) 18%,var(--card,#fff));color:var(--sc);box-shadow:0 0 0 3px color-mix(in srgb,var(--sc) 10%,transparent);transition:transform .3s}
+.step:hover .num{transform:scale(1.12) rotate(-6deg)}
+.step h3{color:var(--sc)}
+.step .live{background:color-mix(in srgb,var(--sc) 10%,var(--card,#fff));border-left:3px solid var(--sc)}
+.step .eq{border-left-color:var(--sc) !important;background:color-mix(in srgb,var(--sc) 6%,var(--code,#f6f3ec))}
+.step th{color:var(--sc)}
+/* Scroll reveal (only when the script has run) */
+.fx-on .fx-r{opacity:0;transform:translateY(18px);transition:opacity .7s ease,transform .7s ease}
+.fx-on .fx-r.fx-in{opacity:1;transform:none}
+
+@media (prefers-reduced-motion: reduce){
+  body::before,.top,.fx-waves *,.fx-sat,.fx-tag i,.card-head h2::after,.card:not(.district)>h2::after{animation:none !important}
+  .fx-on .fx-r{opacity:1;transform:none;transition:none}
+}
