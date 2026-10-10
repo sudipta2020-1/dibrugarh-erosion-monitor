@@ -97,6 +97,24 @@ body{max-width:1900px}
   .top{padding:18px 16px 54px !important}
 }
 html,body{overflow-x:hidden}
+/* Method page: compact step tiles and the calculation pop-up */
+.step .fx-full{display:none}
+.fx-tile h3{margin:6px 0 4px}
+.fx-tile p{margin:0 0 8px;color:var(--muted,#6b675f);font-size:15px}
+.fx-more{font:600 13px "Source Sans 3",sans-serif;color:var(--sc,#0f6e8c);background:color-mix(in srgb,var(--sc,#0f6e8c) 10%,transparent);border:1px solid color-mix(in srgb,var(--sc,#0f6e8c) 35%,transparent);border-radius:999px;padding:4px 12px;cursor:pointer;transition:background .2s}
+.fx-more:hover{background:color-mix(in srgb,var(--sc,#0f6e8c) 20%,transparent)}
+section.card:has(>.step) .step{padding:14px 0}
+.fx-modal{position:absolute;top:0;left:0;width:100%;min-height:100%;z-index:3000;background:rgba(10,25,35,.55);display:flex;align-items:flex-start;justify-content:center;padding:0 16px}
+.fx-modal[hidden]{display:none}
+.fx-modal-box{position:relative;align-self:flex-start;background:var(--card,#fff);color:var(--ink,#1f1d1a);border-radius:14px;max-width:880px;width:100%;padding:22px 24px;box-shadow:0 30px 60px -20px rgba(0,0,0,.5);animation:fxIn .25s ease}
+@keyframes fxIn{from{transform:translateY(14px);opacity:0}}
+.fx-x{position:absolute;top:10px;right:12px;width:34px;height:34px;border-radius:50%;border:1px solid var(--line,#ddd);background:var(--card,#fff);color:inherit;font-size:20px;line-height:1;cursor:pointer}
+.fx-mhead{display:flex;align-items:center;gap:12px;margin-bottom:6px}
+.fx-mhead .num{flex:none;background:color-mix(in srgb,var(--sc) 18%,var(--card,#fff));color:var(--sc)}
+.fx-mhead h3{margin:0;color:var(--sc);font-size:19px}
+.fx-modal-body .eq{border-left-color:var(--sc) !important}
+.fx-modal-body .live{background:color-mix(in srgb,var(--sc) 10%,var(--card,#fff));border-left:3px solid var(--sc)}
+.fx-refs summary{cursor:pointer;font-weight:600;color:var(--accent,#7a4a1c)}
 @media (prefers-reduced-motion: reduce){
   body::before,.top,.fx-waves *,.fx-sat,.fx-tag i,.card-head h2::after,.card:not(.district)>h2::after{animation:none !important}
   .fx-on .fx-r{opacity:1;transform:none;transition:none}
