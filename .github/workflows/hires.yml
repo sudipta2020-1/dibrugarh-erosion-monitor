@@ -61,7 +61,7 @@ jobs:
           name: nc-${{ matrix.period }}
           path: outputs/dibrugarh_district/hires/s2_10m_${{ matrix.period }}_*.nc
           retention-days: 3
-          compression-level: 0
+          compression-level: 1
 
   compare:
     needs: composite
