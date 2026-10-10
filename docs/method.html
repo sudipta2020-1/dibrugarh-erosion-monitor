@@ -193,7 +193,7 @@ footer{margin-top:26px;font-size:13px;color:var(--muted)}
       <li><b>6 Alert and act</b>field check, sensors</li>
     </ol>
   </header>
-  <p class="lead">This system maps river bank erosion, land change and soil erosion risk for Dibrugarh and Majuli districts. It updates itself every week from free satellite data. Bank erosion is mapped with <b>SWiFT-Bank</b>, the method proposed in this work: the share of water in every 10 m pixel is estimated on every clear date, and the change between the two monitoring windows is tested statistically, so that land losses smaller than one pixel are found and each comes with a p-value. A standard 20 m method is kept as a baseline for comparison. This page describes how each step is calculated. Open a step to see its formulas and the values computed for each district in the most recent run. District results are on the tabs above.</p>
+  <p class="lead">This system maps river bank erosion, land change and soil erosion risk for Dibrugarh and Majuli districts. It updates itself every week from free satellite data. Bank erosion is mapped with <b>SWiFT-Bank</b>, the method proposed in this work: the share of water in every 10 m pixel is estimated on every clear date, and the change between the two monitoring windows is tested statistically, so that land losses smaller than one pixel are found and each comes with a p-value. Two baseline methods are kept for comparison: the standard 20 m water-frequency method, and the same method run at 10 m with sub-pixel bank lines. This page describes how each step is calculated. Open a step to see its formulas and the values computed for each district in the most recent run. District results are on the tabs above.</p>
   <hr class="rule">
 
   <div class="grid2" id="districts">
@@ -268,7 +268,7 @@ footer{margin-top:26px;font-size:13px;color:var(--muted)}
       <div class="eq">f = (x − l) · (w − l) / ‖w − l‖²,   limited to 0 ≤ f ≤ 1
         <span class="note">for each window, the mean f̄ and variance s² of f over the n clear dates are kept for every pixel</span></div>
       <p>The bank line is the 0.5 contour of the mean water fraction, traced with marching squares, so it can fall inside a pixel (Bishop-Taylor et al., 2019).</p>
-      <p class="note">Baseline method (20 m, kept for comparison): every clear date is classified as water or land with an MNDWI threshold set by edge-based Otsu (Donchyts et al., 2016). A pixel is water if it was water on at least half of its clear dates (f = k / n ≥ 0.5, n ≥ 2). Radar VV backscatter is used in the same way where optical dates are missing.</p>
+      <p class="note">Baseline methods (kept for comparison). The 20 m baseline and the 10 m baseline use the same rule at two pixel sizes: every clear date is classified as water or land with an MNDWI threshold set by edge-based Otsu (Donchyts et al., 2016). A pixel is water if it was water on at least half of its clear dates (f = k / n ≥ 0.5, n ≥ 2). Radar VV backscatter is used in the same way where optical dates are missing.</p>
       <div class="live" data-live="water"></div>
     </div></div>
 
@@ -512,8 +512,8 @@ fetch("data/external/summary.json?t=" + Date.now()).then(r => r.ok ? r.json() : 
   const pc = x => (100 * x).toFixed(1) + "%";
   const sh = t.shoreline_20m, po = t.pooled;
   el.innerHTML = "<div style='font-weight:600;margin-bottom:2px'>Expert-labelled tiles (" + t.tiles_used + " tiles)</div>" +
-    "<div>Overall accuracy: SWiFT-Bank " + pc(po["M3 SWiFT-Bank"].overall_accuracy) + ", 10 m " + pc(po["M2 10 m sharpened"].overall_accuracy) + ", baseline 20 m " + pc(po["M1 standard 20 m"].overall_accuracy) + "</div>" +
-    "<div>Within 20 m of the shoreline: SWiFT-Bank " + pc(sh["M3 SWiFT-Bank"].overall_accuracy) + ", 10 m " + pc(sh["M2 10 m sharpened"].overall_accuracy) + ", baseline 20 m " + pc(sh["M1 standard 20 m"].overall_accuracy) + "</div>";
+    "<div>Overall accuracy: SWiFT-Bank " + pc(po["M3 SWiFT-Bank"].overall_accuracy) + ", baseline 10 m " + pc(po["M2 10 m sharpened"].overall_accuracy) + ", baseline 20 m " + pc(po["M1 standard 20 m"].overall_accuracy) + "</div>" +
+    "<div>Within 20 m of the shoreline: SWiFT-Bank " + pc(sh["M3 SWiFT-Bank"].overall_accuracy) + ", baseline 10 m " + pc(sh["M2 10 m sharpened"].overall_accuracy) + ", baseline 20 m " + pc(sh["M1 standard 20 m"].overall_accuracy) + "</div>";
 }).catch(() => {});
 </script>
 <script src="assets/fx.js"></script>
