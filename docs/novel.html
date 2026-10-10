@@ -17,7 +17,7 @@
 table.cmp3 td, table.cmp3 th { white-space: normal; }
 @media (max-width: 900px) { .two { grid-template-columns: 1fr; } #nmap { height: 440px; } }
 .verdict { background: #eef0fb; border-left: 4px solid #5b5fc7; padding: 10px 14px; border-radius: 8px; font-size: 14.5px; }
-table.cmp3 td:nth-child(4), table.cmp3 th:nth-child(4) { background: #eef0fb; font-weight: 600; }
+table.cmp3 td:nth-child(2), table.cmp3 th:nth-child(2) { background: #eef0fb; font-weight: 600; }
 table.cmp3 td:first-child { color: var(--muted); }
 .eqn { font-family: "Source Serif 4", Georgia, serif; background: #f6f3ec; border-left: 3px solid #5b5fc7; padding: 6px 12px; margin: 6px 0 10px; border-radius: 4px; }
 .steps-list { margin: 6px 0 0; padding-left: 20px; }
@@ -28,8 +28,8 @@ table.cmp3 td:first-child { color: var(--muted); }
 <body>
 <header class="top">
   <div>
-    <p class="eyebrow">Soil Conservation Department, Government of Assam · New method</p>
-    <h1>SWiFT-Bank: tested sub-pixel bank erosion <span class="muted">· Dibrugarh District</span></h1>
+    <p class="eyebrow">Soil Conservation Department, Government of Assam · Proposed method</p>
+    <h1>SWiFT-Bank: the proposed method for bank erosion <span class="muted">· Dibrugarh District</span></h1>
   </div>
   <div class="meta" id="meta">Loading…</div>
 </header>
@@ -43,7 +43,7 @@ table.cmp3 td:first-child { color: var(--muted); }
 
 <section class="two">
   <div class="card">
-    <div class="card-head"><h2>Three methods side by side</h2></div>
+    <div class="card-head"><h2>SWiFT-Bank compared with the baseline methods</h2></div>
     <div class="table-wrap" style="max-height:none"><table class="cmp3" id="cmpTable"></table></div>
     <p class="note">Same Sentinel-2 scenes, same windows, same river corridor. "Lost land" for SWiFT-Bank is the sum of the change in water fraction, so a patch can hold less lost land than its pixel footprint.</p>
   </div>
@@ -91,7 +91,7 @@ table.cmp3 td:first-child { color: var(--muted); }
 </section>
 
 <section class="card method">
-  <h2>How SWiFT-Bank works <span class="newtag">new</span></h2>
+  <h2>How SWiFT-Bank works <span class="newtag">proposed method</span></h2>
   <p>SWiFT-Bank stands for statistically tested sub-pixel water-fraction time series for bank erosion. The standard methods give each pixel a water or land label and count whole pixels that changed. SWiFT-Bank instead estimates how much of each pixel is water on every clear date, and then tests whether that amount changed between the two windows.</p>
   <ol class="steps-list">
     <li><b>Water fraction on each date.</b> Each 10 m pixel is a mixture of water and land. On each date, the water end-member <i>w</i> and land end-member <i>l</i> are the mean spectra (green, NIR and sharpened SWIR) of pure pixels within 155 m (MNDWI above 0.3 for water, below −0.2 for land), or within 755 m where pure pixels are few. The water fraction of pixel spectrum <i>x</i> is its projection on the line from <i>l</i> to <i>w</i>:
@@ -145,8 +145,8 @@ table.cmp3 td:first-child { color: var(--muted); }
       ["Detection limit along the bank", "–", "–", `${fmt(md.median)} m² (median)`],
       ["Median bank retreat (m)", hi.retreat ? fmt(hi.retreat.median_pixel_m) : "–", hi.retreat ? fmt(hi.retreat.median_subpixel_m, 1) : "–", S.retreat ? fmt(S.retreat.median_subpixel_m, 1) : "–"],
     ];
-    document.getElementById("cmpTable").innerHTML = `<thead><tr><th></th><th>Standard 20 m</th><th>10 m frequency</th><th>SWiFT-Bank (new)</th></tr></thead><tbody>` +
-      rows.map(r => `<tr>${r.map(c => `<td>${c}</td>`).join("")}</tr>`).join("") + "</tbody>";
+    document.getElementById("cmpTable").innerHTML = `<thead><tr><th></th><th>SWiFT-Bank (proposed)</th><th>10 m frequency</th><th>Standard 20 m (baseline)</th></tr></thead><tbody>` +
+      rows.map(r => [r[0], r[3], r[2], r[1]]).map(r => `<tr>${r.map(c => `<td>${c}</td>`).join("")}</tr>`).join("") + "</tbody>";
 
     document.getElementById("verdictCard").hidden = false;
     const ratio = (nt.swift_footprint_ha > 0) ? fmt(nt.freq10_ha / nt.swift_footprint_ha) + " times" : null;
@@ -155,15 +155,15 @@ table.cmp3 td:first-child { color: var(--muted); }
       `Along the bank, the median detection limit is ${fmt(md.median)} m² per 10 m pixel. SWiFT-Bank also finds ${fmt(100 * (ag.share_std20_loss_found ?? NaN))}% of the standard map's bank loss.`;
 
     new Chart(document.getElementById("nullChart"), { type: "bar",
-      data: { labels: ["10 m frequency", "SWiFT-Bank"], datasets: [{ label: "False change (ha)", data: [nt.freq10_ha, nt.swift_footprint_ha], backgroundColor: ["#1f9d8a", "#5b5fc7"] }] },
+      data: { labels: ["SWiFT-Bank", "10 m frequency"], datasets: [{ label: "False change (ha)", data: [nt.swift_footprint_ha, nt.freq10_ha], backgroundColor: ["#5b5fc7", "#1f9d8a"] }] },
       options: { indexAxis: "y", maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { title: { display: true, text: "ha of false change" } } } } });
     document.getElementById("nullNote").textContent = `The current window is split into odd and even dates (${fmt(nt.dates_odd)} and ${fmt(nt.dates_even)} at most per pixel). No erosion happens between them, so every change found is a false alarm. False patches: 10 m frequency ${fmt(nt.freq10_patches)}, SWiFT-Bank ${fmt(nt.swift_patches)}.`;
 
     new Chart(document.getElementById("sizeChart"), { type: "bar",
       data: { labels: S.size_labels.map(l => l + " ha"), datasets: [
-        { label: "Standard 20 m", data: st.size_hist || [], backgroundColor: "#b9b3a6" },
+        { label: "SWiFT-Bank (proposed)", data: S.size_hist || [], backgroundColor: "#5b5fc7" },
         { label: "10 m frequency", data: hi.size_hist || [], backgroundColor: "#1f9d8a" },
-        { label: "SWiFT-Bank", data: S.size_hist || [], backgroundColor: "#5b5fc7" }] },
+        { label: "Standard 20 m (baseline)", data: st.size_hist || [], backgroundColor: "#b9b3a6" }] },
       options: { maintainAspectRatio: false, plugins: { legend: { position: "bottom" } },
         scales: { x: { grid: { display: false } }, y: { title: { display: true, text: "Patches" } } } } });
 
@@ -214,7 +214,7 @@ table.cmp3 td:first-child { color: var(--muted); }
       const t1 = E.test1_dynamic_world, t2 = E.test2_real;
       const pc = (x, d = 1) => (x == null || !isFinite(x)) ? "–" : (100 * x).toFixed(d) + "%";
       const ci = k => { const c = (t1.ci95 || {})[k]; return c ? " (" + pc(c[0]) + "–" + pc(c[1]) + ")" : ""; };
-      const M = ["M1 standard 20 m", "M2 10 m sharpened", "M3 SWiFT-Bank"], K = ["M1", "M2", "M3"], N = ["Standard 20 m", "10 m frequency", "SWiFT-Bank (new)"];
+      const M = ["M3 SWiFT-Bank", "M2 10 m sharpened", "M1 standard 20 m"], K = ["M3", "M2", "M1"], N = ["SWiFT-Bank (proposed)", "10 m frequency", "Standard 20 m (baseline)"];
       if (t1 && t1.pooled) {
         document.getElementById("extCard").hidden = false;
         let h = "<thead><tr><th></th><th>" + N.join("</th><th>") + "</th></tr></thead><tbody>";
