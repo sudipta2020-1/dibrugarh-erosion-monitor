@@ -91,7 +91,7 @@ jobs:
         run: |
           git config user.name  "erosion-monitor-bot"
           git config user.email "erosion-monitor-bot@users.noreply.github.com"
-          git add docs/data/swift
+          git add docs/data/swift docs/swift
           git commit -m "SWiFT-Bank update" || echo "No changes"
           git pull --rebase
           git push
