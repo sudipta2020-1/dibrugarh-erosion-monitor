@@ -255,6 +255,7 @@ def lines_geojson(lines, crs, path, tol=3.0):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--config", default="config.yaml")
+    ap.add_argument("--only", choices=["baseline", "current"], help="only build the 10 m composite of one period")
     args = ap.parse_args()
     t_start = time.time()
     cfg = yaml.safe_load(Path(args.config).read_text())
@@ -273,13 +274,18 @@ def main():
     raw.mkdir(parents=True, exist_ok=True)
     st = {}
     for tag, per in periods.items():
+        if args.only and tag != args.only:
+            continue
         f = raw / f"s2_10m_{tag}_{per[1]}.nc"
         if f.exists():
             ds = xr.open_dataset(f).load().rio.write_crs(cfg["crs"])
         else:
             ds = s2_10m(bbox_ll, per, cfg["crs"], cfg["max_cloud_cover"], cfg.get("max_scenes_per_tile", 15))
-            ds.to_netcdf(f)
+            ds.to_netcdf(f, encoding={v: {"zlib": True, "complevel": 4} for v in ds.data_vars})
         st[tag] = ds
+    if args.only:
+        print(f"  saved {args.only} composite")
+        return
     tmpl = st["current"]["n_clear"].copy(data=np.zeros(st["current"]["n_clear"].shape, "uint8"))
     # District and corridor masks on the 10 m grid
     from rasterio.features import geometry_mask
