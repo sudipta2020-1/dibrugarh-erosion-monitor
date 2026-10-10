@@ -492,7 +492,7 @@ def main():
     # SWiFT-Bank edition of the full district dashboard (docs/swift/)
     import swift_system
     swift_system.build(cfg, {"raw": raw, "c": c, "d": d, "z": T["z"], "tmpl": tmpl, "inside": inside, "P": P,
-                             "cmask": cmask, "aoi": aoi, "out": out})
+                             "cmask": cmask, "aoi": aoi, "out": out, "lb": lb, "lc": lc})
 
 
 if __name__ == "__main__":
