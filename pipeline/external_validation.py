@@ -195,8 +195,10 @@ def test1():
         p3 = np.nan_to_num(f3, nan=0) >= 0.5
         ok &= np.isfinite(f3)
         shore = ndimage.binary_dilation(water, iterations=2) & ~ndimage.binary_erosion(water, iterations=2) & ok
-        rec = {"tile": name, "date": day, "mgrs": tile, "lon": float(name.split("_")[1].replace("p", ".")),
-               "lat": float(name.split("_")[2].split("-")[0].replace("p", ".")),
+        import re
+        mm = re.match("dw_(-?[0-9p]+)_(-?[0-9p]+)-", name)
+        rec = {"tile": name, "date": day, "mgrs": tile, "lon": float(mm.group(1).replace("p", ".")),
+               "lat": float(mm.group(2).replace("p", ".")),
                "labelled_px": int(ok.sum()), "water_share": round(float(water[ok].mean()), 3),
                "t_m1": round(t1, 3), "t_m2": round(t2, 3)}
         for m, p in zip(METHODS, [p1, p2, p3]):
