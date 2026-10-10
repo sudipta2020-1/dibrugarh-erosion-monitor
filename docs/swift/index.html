@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dibrugarh Soil Erosion Monitor (SWiFT-Bank)</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700&family=Source+Serif+4:opsz,wght@8..60,600&display=swap">
+<link rel="stylesheet" href="../assets/style.css">
+<link rel="stylesheet" href="../assets/fx.css">
+</head>
+<body>
+<header class="top">
+  <div>
+    <p class="eyebrow">Soil Conservation Department, Government of Assam · SWiFT-Bank edition</p>
+    <h1>Soil Erosion Risk Monitor (SWiFT-Bank) <span class="muted">· Dibrugarh District</span></h1>
+  </div>
+  <div class="meta" id="meta">Loading latest run…</div>
+</header>
+
+<div id="banner" class="banner" hidden></div><div class="banner" style="background:#eef0fb;border-left:4px solid #5b5fc7;color:#23235a">This edition uses the new <b>SWiFT-Bank</b> method for water change in the river corridor: tested sub-pixel water fractions at 10 m, losses down to 0.02 ha, each with a p-value. Erosion risk, soil loss, the AI model, vegetation change and exposure come from the standard run. <a href="https://sudipta2020-1.github.io/dibrugarh-erosion-monitor/novel.html" target="_blank" rel="noopener">How SWiFT-Bank works and how it compares</a></div>
+
+<section class="kpis" id="kpis"></section>
+
+<section class="grid">
+  <div class="card map-card">
+    <div class="card-head">
+      <h2>Map</h2>
+      <div class="controls">
+        <label>Layer
+          <select id="layerSelect"></select>
+        </label>
+        <label>Opacity
+          <input id="opacity" type="range" min="0" max="100" value="80">
+        </label>
+        <label class="check"><input id="showHot" type="checkbox" checked> Hotspots</label>
+        <label class="check"><input id="showSensors" type="checkbox" checked> Sensors</label>
+      </div>
+    </div>
+    <div id="map"></div>
+    <div id="legend" class="legend"></div>
+  </div>
+
+  <div class="side">
+    <div class="card">
+      <div class="card-head"><h2>Area by erosion risk class</h2></div>
+      <div class="chart-box"><canvas id="riskChart"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-head"><h2>Change over successive runs</h2></div>
+      <div class="chart-box"><canvas id="trendChart"></canvas></div>
+      <p class="note" id="trendNote"></p>
+    </div>
+  </div>
+</section>
+
+<section class="card">
+  <div class="card-head">
+    <h2>Priority sites for field verification</h2>
+    <div class="links" id="downloads"></div>
+  </div>
+  <div class="table-wrap">
+    <table id="hotTable">
+      <thead><tr><th>Rank</th><th>Type</th><th>Confidence</th><th>Action</th><th class="num">Area (ha)</th><th class="num">Bank retreat (m/yr)</th><th class="num">People within 500 m</th><th>Nearest place</th><th>Field check</th><th class="num">Priority</th><th>Location</th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </div>
+  <p class="note">Click a row to see the site on the map; the recommended measure and the lead agency are in the map pop-up and in the CSV download. Measures are a first screening and are decided in the field.</p>
+</section>
+
+<section class="card" id="sensorSection">
+  <div class="card-head">
+    <h2>Live sensor stations (pilot)</h2>
+    <div class="note" id="sensorStamp" style="margin:0"></div>
+  </div>
+  <div id="sensorBanner" class="banner" hidden>Demonstration: these readings are <b>simulated</b>. They show how the panel and the alerts work. Real readings appear once stations are installed and their ThingSpeak channels are entered in <code>data/sensors/stations.json</code>.</div>
+  <p class="note" id="sensorNote" style="margin:0 0 10px"></p>
+  <div class="sensor-grid">
+    <div>
+      <div id="sensorList" class="st-list"></div>
+      <h3 class="sub">Active alerts</h3>
+      <ul id="sensorAlerts" class="alerts"></ul>
+    </div>
+    <div>
+      <h3 class="sub" id="sensorTitle"></h3>
+      <div class="chart-box" style="height:200px"><canvas id="chLevel"></canvas></div>
+      <div class="chart-box" style="height:170px;margin-top:10px"><canvas id="chTilt"></canvas></div>
+      <div class="chart-box" style="height:150px;margin-top:10px"><canvas id="chSoil"></canvas></div>
+      <p class="note">Each station has a river level sensor, a rain gauge, soil moisture probes at 30, 60 and 100 cm, and tilt nodes on stakes 5, 10, 20 and 40 m back from the bank edge. A node that tilts and then stops reporting usually means the bank edge has reached it. Nodes send data by LoRa to a solar-powered gateway with a mobile data link.</p>
+    </div>
+  </div>
+</section>
+
+<section class="card method">
+  <div class="card-head"><h2>Field verification</h2><div class="links" id="fieldLinks"></div></div>
+  <div class="ml-grid">
+    <div>
+      <p>Officers check the priority sites with a mobile form that works offline on Android (KoboCollect or ODK Collect) or in any phone browser. The form shows the latest site list with the mapped location and suggested action, and records GPS, erosion type and severity, what happened since 2020, assets and households at risk, existing and recommended measures, urgency, and up to three photographs.</p>
+      <ol class="steps">
+        <li>In KoboToolbox (free), create a project from the <b>survey form</b> file and add the <b>site list</b> file under Settings &rarr; Media. Deploy, and share the form with field staff.</li>
+        <li>After each run, replace the site list with the new one from this page; the form itself does not change.</li>
+        <li>Export the data as CSV and upload it to the repository as <code>data/field_records.csv</code>. The next run marks each site as confirmed or not and reports the results here.</li>
+      </ol>
+    </div>
+    <div id="fieldBody"><p class="note">Loading…</p></div>
+  </div>
+</section>
+
+<section class="card">
+  <div class="card-head"><h2>AI bank-erosion model compared with RUSLE</h2></div>
+  <div class="ml-grid">
+    <div id="mlBody"><p class="note">Loading…</p></div>
+    <div><p class="note" style="margin:0 0 6px">What the model relies on most</p><div class="chart-box" style="height:260px"><canvas id="impChart"></canvas></div></div>
+  </div>
+</section>
+
+<section class="card method">
+  <h2>Method in brief</h2><p><b>SWiFT-Bank (this edition).</b> In the river corridor (land within 1 km of the main channels), water change is mapped with SWiFT-Bank instead of the 20 m water labels. On every clear Sentinel-2 date the share of each 10 m pixel that is water is estimated from local pure-water and pure-land spectra. The change in mean water fraction between the two windows is tested for each pixel (Welch t-test, false discovery rate 5 %), lost land is the sum of the changes, so it can be smaller than a pixel, and each patch gets a p-value. The confidence of a change is one minus its p-value. Bank retreat is measured between sub-pixel bank lines. Outside the corridor, and for vegetation loss, bare soil, RUSLE risk and the AI model, the standard run is used.</p>
+  <p>Each run builds cloud-free Sentinel-2 composites and Sentinel-1 radar composites for the most recent monitoring window and for the same calendar dates in the baseline year. Comparing the same months limits false change caused by seasonal river level and crop cycles. Water is mapped from every clear Sentinel-2 date in each window: a pixel counts as water only if it was water on at least half of its clear dates, which removes errors from single flooded or hazy scenes. The water thresholds are set for each run by edge-based Otsu (Donchyts et al., 2016) rather than fixed values. Radar is used only where optical dates are lacking, because dry sand on the chars looks like water on radar. Land that turned into water is split, using the JRC record since 1984, into bank erosion of stable land and loss of chars inside the river belt; water that turned into land is accretion. Land that turned into water but does not touch a river channel of at least 50 ha (new ponds, beels or flooded fields) is reported as new inland water and is not counted as bank erosion. For each erosion patch the bank retreat is measured as the largest distance from the baseline water edge, and divided by the years between the two windows. Annual soil loss is estimated with RUSLE (A = R × K × LS × C × P), where the cover factor C is derived from NDVI and the slope factor LS from the Copernicus 30 m DEM. Patches are ranked to give a field verification list.</p>
+  <p><b>AI prediction.</b> Random Forest and XGBoost models learn where bank loss happened between the baseline and current windows from conditions at the start: distance to the channel, the amount of river water nearby, height above nearby low ground, slope, vegetation, bare soil, soil erodibility and the 1984–2021 history of river movement. They are tested by spatial block cross-validation along the river and compared with RUSLE and with distance to the river alone. The averaged model is then applied to current conditions to map where bank loss is most likely over a period of similar length.</p>
+  <p><b>Priority.</b> Each site gets a hazard score (type, area and the strength of the evidence) and an exposure index from the people (WorldPop 2020), built-up land and cropland (ESA WorldCover 2021), roads, embankments, schools and health facilities (OpenStreetMap) within 500 m. Priority = hazard × (0.3 + 0.7 × exposure), so sites that threaten homes, roads and farms come first. AI-predicted sites are weighted by the model's tested skill.</p>
+  <p><b>Confidence.</b> For each pixel, the number of clear dates that showed water or land gives the probability that the water label is right (a Beta posterior); the confidence of a change is the product of the two periods. Sites are marked High (at least 0.9), Medium (0.75–0.9) or Low. AI sites are marked by how closely the two models agree. RUSLE risk sites are marked "not validated" until field data are available.</p>
+  <p class="note" id="inputsNote">RUSLE input details appear here after a run.</p>
+</section>
+
+<section class="card method">
+  <h2>Accuracy assessment</h2>
+  <div id="accBody"><p class="note">Loading…</p></div>
+</section>
+
+<section class="card method">
+  <h2>Context and data still needed</h2>
+  <p>The historical layer uses the JRC Global Surface Water record (Landsat, 1984–2021, 30 m). Land that became permanent or seasonal water is a satellite record of bank erosion, and water that became land records accretion; part of this change is sandbars (chars) within the braided channel rather than loss of mainland. The weekly Sentinel-2 comparison extends the record to the present.</p>
+  <p>For scale, the Water Resources Department reports about 4.27 lakh hectares eroded in Assam since 1954, roughly 8,000 hectares per year, with 2,534 villages and about 1.25 lakh families affected (<a href="https://onlineasdma.assam.gov.in/download/workshop_riverbank_erosion/Ppt_by_RK_Goswami_WRD_Deptt.pdf" target="_blank" rel="noopener">WRD presentation, ASDMA workshop</a>). District-level figures are not published. Recent events, such as the loss of about 70 m of bank in a few hours at Mohanaghat, Dibrugarh, in July 2026 (<a href="https://eastmojo.com/assam/2026/07/09/brahmaputra-devours-70-metres-of-dibrugarh-riverbank-in-five-hours/" target="_blank" rel="noopener">EastMojo</a>), are useful test cases for the change maps.</p>
+  <p class="note">Field-verified records (surveyed erosion sites, gully and sheet-erosion locations, embankment breaches and protection works) are held by the Soil Conservation Department, the Water Resources Department, ASDMA, the Brahmaputra Board and ASSAC/NESAC. They are needed to validate the risk map and to train the planned machine-learning model. Soil data from NBSS&amp;LUP will replace SoilGrids when shared.</p>
+</section>
+
+<footer>Data: Copernicus Sentinel-1 and Sentinel-2 and Copernicus DEM GLO-30 (via Microsoft Planetary Computer); IMD 0.25° gridded rainfall; CHIRPS v2.0; SoilGrids 2.0 (ISRIC); JRC Global Surface Water v1.4; ESA WorldCover 2021; WorldPop 2020; OpenStreetMap contributors; district boundary from geoBoundaries. Updated automatically every week.</footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="../assets/sensors.js"></script>
+<script src="../assets/app.js"></script>
+<script src="../assets/fx.js"></script>
+</body>
+</html>
