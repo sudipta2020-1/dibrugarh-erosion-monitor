@@ -115,6 +115,20 @@ section.card:has(>.step) .step{padding:14px 0}
 .fx-modal-body .eq{border-left-color:var(--sc) !important}
 .fx-modal-body .live{background:color-mix(in srgb,var(--sc) 10%,var(--card,#fff));border-left:3px solid var(--sc)}
 .fx-refs summary{cursor:pointer;font-weight:600;color:var(--accent,#7a4a1c)}
+/* Full-screen button and expanded map */
+.fx-fs{font:600 13px "Source Sans 3",sans-serif;color:#fff;background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.45);border-radius:999px;padding:5px 14px;cursor:pointer;margin-top:8px;backdrop-filter:blur(2px);transition:background .2s}
+.fx-fs:hover{background:rgba(255,255,255,.28)}
+.top .fx-fs{display:inline-block;margin-left:8px;vertical-align:top}
+.hero-text .fx-fs{display:inline-block;margin-top:12px}
+.fx-fs-float{position:fixed;top:12px;right:12px;z-index:2500;color:#0b4f6c;background:#fff;border-color:#0b4f6c}
+.fx-fs-hint{animation:fxHint 1.4s ease-in-out 4}
+@keyframes fxHint{50%{box-shadow:0 0 0 6px rgba(255,226,168,.55)}}
+.fx-mapmax{font:600 12.5px "Source Sans 3",sans-serif;color:#fff;background:linear-gradient(90deg,#0f6e8c,#1f9d8a);border:0;border-radius:999px;padding:4px 12px;cursor:pointer}
+.map-card.fx-max{position:fixed !important;inset:0;z-index:4000;margin:0 !important;border-radius:0;transform:none !important;opacity:1 !important;display:flex;flex-direction:column;background:#fff}
+.map-card.fx-max #map{flex:1;height:auto !important}
+.map-card:fullscreen{display:flex;flex-direction:column;background:#fff;padding:14px}
+.map-card:fullscreen #map{flex:1;height:auto !important}
+.fx-noscroll,.fx-noscroll body{overflow:hidden !important}
 @media (prefers-reduced-motion: reduce){
   body::before,.top,.fx-waves *,.fx-sat,.fx-tag i,.card-head h2::after,.card:not(.district)>h2::after{animation:none !important}
   .fx-on .fx-r{opacity:1;transform:none;transition:none}
