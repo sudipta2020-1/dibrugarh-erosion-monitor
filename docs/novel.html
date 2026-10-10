@@ -65,7 +65,7 @@ table.cmp3 td:first-child { color: var(--muted); }
     <h2>Map</h2>
     <div class="lyr controls">
       <label><input type="radio" name="m" value="swift" checked> SWiFT-Bank</label>
-      <label><input type="radio" name="m" value="change10"> 10 m frequency</label>
+      <label><input type="radio" name="m" value="change10"> 10 m frequency (baseline)</label>
       <label><input type="radio" name="m" value="change20"> Standard 20 m</label>
       <label><input type="radio" name="m" value="mdc"> Detection limit</label>
       <label><input type="checkbox" id="lnB" checked><span class="sw" style="border-color:#1b6ca8"></span>Bank line 2020</label>
@@ -145,7 +145,7 @@ table.cmp3 td:first-child { color: var(--muted); }
       ["Detection limit along the bank", "–", "–", `${fmt(md.median)} m² (median)`],
       ["Median bank retreat (m)", hi.retreat ? fmt(hi.retreat.median_pixel_m) : "–", hi.retreat ? fmt(hi.retreat.median_subpixel_m, 1) : "–", S.retreat ? fmt(S.retreat.median_subpixel_m, 1) : "–"],
     ];
-    document.getElementById("cmpTable").innerHTML = `<thead><tr><th></th><th>SWiFT-Bank (proposed)</th><th>10 m frequency</th><th>Standard 20 m (baseline)</th></tr></thead><tbody>` +
+    document.getElementById("cmpTable").innerHTML = `<thead><tr><th></th><th>SWiFT-Bank (proposed)</th><th>10 m frequency (baseline)</th><th>Standard 20 m (baseline)</th></tr></thead><tbody>` +
       rows.map(r => [r[0], r[3], r[2], r[1]]).map(r => `<tr>${r.map(c => `<td>${c}</td>`).join("")}</tr>`).join("") + "</tbody>";
 
     document.getElementById("verdictCard").hidden = false;
@@ -214,7 +214,7 @@ table.cmp3 td:first-child { color: var(--muted); }
       const t1 = E.test1_dynamic_world, t2 = E.test2_real;
       const pc = (x, d = 1) => (x == null || !isFinite(x)) ? "–" : (100 * x).toFixed(d) + "%";
       const ci = k => { const c = (t1.ci95 || {})[k]; return c ? " (" + pc(c[0]) + "–" + pc(c[1]) + ")" : ""; };
-      const M = ["M3 SWiFT-Bank", "M2 10 m sharpened", "M1 standard 20 m"], K = ["M3", "M2", "M1"], N = ["SWiFT-Bank (proposed)", "10 m frequency", "Standard 20 m (baseline)"];
+      const M = ["M3 SWiFT-Bank", "M2 10 m sharpened", "M1 standard 20 m"], K = ["M3", "M2", "M1"], N = ["SWiFT-Bank (proposed)", "10 m frequency (baseline)", "Standard 20 m (baseline)"];
       if (t1 && t1.pooled) {
         document.getElementById("extCard").hidden = false;
         let h = "<thead><tr><th></th><th>" + N.join("</th><th>") + "</th></tr></thead><tbody>";
