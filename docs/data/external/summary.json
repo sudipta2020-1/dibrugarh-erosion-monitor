@@ -1,0 +1,214 @@
+{
+  "run": "2026-10-10 15:32 UTC",
+  "test2_real": {
+    "reaches": 13,
+    "real_field": "ERate",
+    "real_median_rate_m_yr": 13.97,
+    "real_years": [
+      2001,
+      2019
+    ],
+    "correlation": {
+      "M1 standard 20 m": {
+        "spearman_rho": 0.567,
+        "p_value": 0.043438983331110265,
+        "reaches": 13,
+        "median_rate_m_yr": 6.18
+      },
+      "M2 10 m sharpened": {
+        "spearman_rho": 0.393,
+        "p_value": 0.3833168704269727,
+        "reaches": 7,
+        "median_rate_m_yr": 38.83
+      },
+      "M3 SWiFT-Bank": {
+        "spearman_rho": 0.626,
+        "p_value": 0.021988602409889674,
+        "reaches": 13,
+        "median_rate_m_yr": 18.63
+      }
+    }
+  },
+  "test1_dynamic_world": {
+    "tiles_used": 224,
+    "tiles_in_set": 409,
+    "pooled": {
+      "M1 standard 20 m": {
+        "overall_accuracy": 0.9653027057768362,
+        "water_f1": 0.9128817169190226,
+        "water_iou": 0.8397262111458977,
+        "water_users": 0.9497141583274032,
+        "water_producers": 0.8787995333098481,
+        "pixels": 34402135
+      },
+      "M2 10 m sharpened": {
+        "overall_accuracy": 0.9655336216778406,
+        "water_f1": 0.9150484464806796,
+        "water_iou": 0.8434002822637414,
+        "water_users": 0.9334690139025076,
+        "water_producers": 0.8973408132285271,
+        "pixels": 34402135
+      },
+      "M3 SWiFT-Bank": {
+        "overall_accuracy": 0.9735385899741397,
+        "water_f1": 0.9374146422521651,
+        "water_iou": 0.8822017312934078,
+        "water_users": 0.9177045053776468,
+        "water_producers": 0.9579900172823744,
+        "pixels": 34402135
+      }
+    },
+    "shoreline_20m": {
+      "M1 standard 20 m": {
+        "overall_accuracy": 0.5654605487508877,
+        "water_f1": 0.6299024800278824,
+        "water_iou": 0.45975010599296706,
+        "water_users": 0.9621465702614492,
+        "water_producers": 0.4682191623093387,
+        "pixels": 747771
+      },
+      "M2 10 m sharpened": {
+        "overall_accuracy": 0.6270542719629405,
+        "water_f1": 0.7007868777882447,
+        "water_iou": 0.5393933187768598,
+        "water_users": 0.9564168194411091,
+        "water_producers": 0.5529855598602043,
+        "pixels": 747771
+      },
+      "M3 SWiFT-Bank": {
+        "overall_accuracy": 0.7613962028481982,
+        "water_f1": 0.8312039212087555,
+        "water_iou": 0.7111624827389712,
+        "water_users": 0.9418044999946403,
+        "water_producers": 0.7438500717943161,
+        "pixels": 747771
+      }
+    },
+    "ci95": {
+      "M1_oa": [
+        0.9575,
+        0.9728
+      ],
+      "M1_f1": [
+        0.8863,
+        0.9338
+      ],
+      "M1_shore_oa": [
+        0.5349,
+        0.5964
+      ],
+      "M2_oa": [
+        0.9573,
+        0.9738
+      ],
+      "M2_f1": [
+        0.8901,
+        0.9367
+      ],
+      "M2_shore_oa": [
+        0.5982,
+        0.655
+      ],
+      "M3_oa": [
+        0.9656,
+        0.98
+      ],
+      "M3_f1": [
+        0.9159,
+        0.9544
+      ],
+      "M3_shore_oa": [
+        0.7366,
+        0.7849
+      ]
+    },
+    "differences": {
+      "M3_minus_M1_oa": {
+        "mean": 0.008,
+        "ci95": [
+          0.0016,
+          0.0148
+        ],
+        "share_positive": 0.994
+      },
+      "M3_minus_M1_f1": {
+        "mean": 0.0241,
+        "ci95": [
+          0.008,
+          0.042
+        ],
+        "share_positive": 0.999
+      },
+      "M3_minus_M1_shore_oa": {
+        "mean": 0.1957,
+        "ci95": [
+          0.1738,
+          0.2219
+        ],
+        "share_positive": 1.0
+      },
+      "M3_minus_M2_oa": {
+        "mean": 0.0077,
+        "ci95": [
+          0.0015,
+          0.0145
+        ],
+        "share_positive": 0.994
+      },
+      "M3_minus_M2_f1": {
+        "mean": 0.0219,
+        "ci95": [
+          0.0062,
+          0.039
+        ],
+        "share_positive": 0.999
+      },
+      "M3_minus_M2_shore_oa": {
+        "mean": 0.1342,
+        "ci95": [
+          0.1135,
+          0.1567
+        ],
+        "share_positive": 1.0
+      }
+    },
+    "subpixel": {
+      "20": {
+        "mixed_blocks": 10345,
+        "tiles": 112,
+        "swift_mae": 0.3049,
+        "hard_mae": 0.4835,
+        "swift_area_error_pct": -24.2,
+        "hard_area_error_pct": -69.9
+      },
+      "30": {
+        "mixed_blocks": 6043,
+        "tiles": 82,
+        "swift_mae": 0.2716,
+        "hard_mae": 0.4402,
+        "swift_area_error_pct": -19.2,
+        "hard_area_error_pct": -63.0
+      }
+    },
+    "majuli_tile": {
+      "tile": "dw_94p4985339347_27p0498068352-20190119",
+      "date": "2019-01-19",
+      "M1 standard 20 m": {
+        "overall_accuracy": 0.9684,
+        "water_f1": 0.9747,
+        "shoreline_oa": 0.7749
+      },
+      "M2 10 m sharpened": {
+        "overall_accuracy": 0.9695,
+        "water_f1": 0.9756,
+        "shoreline_oa": 0.7915
+      },
+      "M3 SWiFT-Bank": {
+        "overall_accuracy": 0.9515,
+        "water_f1": 0.9625,
+        "shoreline_oa": 0.8003
+      }
+    }
+  },
+  "runtime_min": 10.1
+}
