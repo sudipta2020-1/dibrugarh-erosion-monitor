@@ -1,0 +1,97 @@
+name: Novel method SWiFT-Bank (10 m)
+
+# SWiFT-Bank: statistically tested sub-pixel water fraction for bank erosion.
+# The two windows are summarised in parallel jobs, then a third job tests the
+# change and compares it with the 20 m and 10 m methods. Results: docs/data/swift/.
+on:
+  schedule:
+    # Every Monday at 06:40 UTC (12:10 IST), after the 10 m comparison run
+    - cron: "40 6 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: erosion-monitoring
+  cancel-in-progress: false
+
+jobs:
+  composite:
+    runs-on: ubuntu-latest
+    timeout-minutes: 340
+    strategy:
+      fail-fast: false
+      matrix:
+        period: [baseline, current]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt scikit-image
+
+      - name: Restore cached window statistics
+        uses: actions/cache/restore@v4
+        with:
+          path: outputs/dibrugarh_district/swift
+          key: swift-v1-${{ matrix.period }}-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: swift-v1-${{ matrix.period }}-
+
+      - name: Water-fraction statistics for one window
+        env:
+          PYTHONUNBUFFERED: "1"
+        run: python pipeline/swift.py --only ${{ matrix.period }}
+
+      - name: Save window statistics in the cache
+        if: always() && hashFiles('outputs/dibrugarh_district/swift/*.npz') != ''
+        uses: actions/cache/save@v4
+        with:
+          path: outputs/dibrugarh_district/swift
+          key: swift-v1-${{ matrix.period }}-${{ github.run_id }}-${{ github.run_attempt }}
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: swift-${{ matrix.period }}
+          path: outputs/dibrugarh_district/swift/swift_${{ matrix.period }}_*.npz
+          retention-days: 3
+          compression-level: 1
+
+  compare:
+    needs: composite
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt scikit-image
+
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: swift-*
+          merge-multiple: true
+          path: outputs/dibrugarh_district/swift
+
+      - name: Test the change and compare the methods
+        env:
+          PYTHONUNBUFFERED: "1"
+        run: python pipeline/swift.py
+
+      - name: Commit comparison data
+        run: |
+          git config user.name  "erosion-monitor-bot"
+          git config user.email "erosion-monitor-bot@users.noreply.github.com"
+          git add docs/data/swift
+          git commit -m "SWiFT-Bank update" || echo "No changes"
+          git pull --rebase
+          git push
