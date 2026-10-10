@@ -64,12 +64,134 @@ footer{margin-top:26px;font-size:13px;color:var(--muted)}
   .kv{grid-template-columns:repeat(2,1fr)}
   .step{grid-template-columns:1fr}
 }
+/* Animated banner: one 12 s cycle = capture, water, change, risk, rank, alert */
+.hero{position:relative;overflow:hidden;border-radius:12px;background:#0e2230;color:#f3efe6;margin:0 0 18px;min-height:300px;display:flex;flex-direction:column;justify-content:space-between}
+.hero-scene{position:absolute;inset:0;width:100%;height:100%}
+.hero-shade{position:absolute;inset:0;background:linear-gradient(90deg,rgba(9,24,34,.94) 0%,rgba(9,24,34,.78) 34%,rgba(9,24,34,.1) 62%,rgba(9,24,34,0) 100%)}
+.hero-text{position:relative;padding:26px 28px 10px;max-width:520px}
+.hero-text .eyebrow{color:#e9b97a}
+.hero-text h1{color:#fffaf0;font-size:36px;margin:6px 0 8px}
+.hero-text p{color:#c9d4d8;font-size:15px;margin:0}
+.hero-steps{position:relative;display:grid;grid-template-columns:repeat(6,1fr);gap:6px;padding:12px 16px 14px;margin:0;list-style:none;background:linear-gradient(0deg,rgba(9,24,34,.92),rgba(9,24,34,.55))}
+.hero-steps li{font-size:12.5px;line-height:1.3;color:#9fb3ba;border-top:3px solid rgba(255,255,255,.15);padding-top:6px;animation:stepOn 12s infinite}
+.hero-steps li b{display:block;color:#e7ecea;font-size:13px}
+.hero-steps li:nth-child(2){animation-delay:2s}.hero-steps li:nth-child(3){animation-delay:4s}
+.hero-steps li:nth-child(4){animation-delay:6s}.hero-steps li:nth-child(5){animation-delay:8s}.hero-steps li:nth-child(6){animation-delay:10s}
+@keyframes stepOn{0%,16%{border-top-color:#e9b97a;color:#f3efe6}17%,100%{border-top-color:rgba(255,255,255,.15)}}
+.sat{animation:satFly 12s linear infinite}
+@keyframes satFly{0%{transform:translate(380px,0)}16%{transform:translate(1020px,0)}21%,100%{transform:translate(1180px,0)}}
+.beam{animation:beam 12s infinite;transform-box:fill-box;transform-origin:50% 0}
+@keyframes beam{0%,2%{opacity:0}5%,15%{opacity:.55}18%,100%{opacity:0}}
+.scan{animation:scan 12s linear infinite}
+@keyframes scan{0%{transform:translateX(0);opacity:0}2%{opacity:.8}16%{transform:translateX(640px);opacity:.8}18%,100%{transform:translateX(640px);opacity:0}}
+.water-hl{animation:waterHl 12s infinite}
+@keyframes waterHl{0%,15%{opacity:0}20%,30%{opacity:.85}36%,100%{opacity:0}}
+.bite{animation:bite 12s infinite;transform-box:fill-box;transform-origin:50% 100%}
+@keyframes bite{0%,30%{transform:scaleY(0)}42%,100%{transform:scaleY(1)}}
+.chg-box{animation:chg 12s infinite}
+@keyframes chg{0%,36%{opacity:0}42%,92%{opacity:1}97%,100%{opacity:0}}
+.risk{animation:risk 12s infinite}
+@keyframes risk{0%,50%{opacity:0}56%,66%{opacity:.75}72%,100%{opacity:0}}
+.pin{animation:pin 12s infinite;transform-box:fill-box;transform-origin:50% 100%}
+@keyframes pin{0%,66%{opacity:0;transform:translateY(-14px)}71%,95%{opacity:1;transform:translateY(0)}99%,100%{opacity:0}}
+.wave{animation:wave 12s infinite;transform-box:fill-box;transform-origin:0 50%}
+.wave.w2{animation-delay:.25s}.wave.w3{animation-delay:.5s}
+@keyframes wave{0%,83%{opacity:0}86%{opacity:1}92%,100%{opacity:0}}
+.alert{animation:alertOn 12s infinite}
+@keyframes alertOn{0%,83%{opacity:0}86%,96%{opacity:1}99%,100%{opacity:0}}
+.flow-line{stroke-dasharray:6 10;animation:flowRiver 3s linear infinite}
+@keyframes flowRiver{to{stroke-dashoffset:-32}}
+@media (max-width:760px){
+  .hero{min-height:360px}
+  .hero-text h1{font-size:28px}
+  .hero-shade{background:linear-gradient(180deg,rgba(9,24,34,.9) 0%,rgba(9,24,34,.6) 55%,rgba(9,24,34,.2) 100%)}
+  .hero-steps{grid-template-columns:repeat(3,1fr);row-gap:10px}
+}
+@media (prefers-reduced-motion: reduce){
+  .hero *{animation:none !important}
+  .bite{transform:scaleY(1)} .chg-box,.pin,.alert{opacity:1}
+}
 </style>
 </head>
 <body>
 <div class="wrap">
-  <p class="eyebrow">Soil Conservation Department, Government of Assam · Pilot</p>
-  <h1>Satellite-based Soil Erosion Risk Monitoring</h1>
+  <header class="hero" aria-label="Soil Erosion Risk Monitoring, Assam">
+    <svg class="hero-scene" viewBox="0 0 1080 300" preserveAspectRatio="xMaxYMid slice" aria-hidden="true">
+      <defs>
+        <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0b1c29"/><stop offset="1" stop-color="#16384a"/></linearGradient>
+        <linearGradient id="land" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3f6b3a"/><stop offset="1" stop-color="#2d5230"/></linearGradient>
+        <linearGradient id="riv" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#2b6f97"/><stop offset="1" stop-color="#3a86ad"/></linearGradient>
+        <radialGradient id="riskG"><stop offset="0" stop-color="#ff8a3d" stop-opacity=".95"/><stop offset=".6" stop-color="#ffb347" stop-opacity=".55"/><stop offset="1" stop-color="#ffb347" stop-opacity="0"/></radialGradient>
+        <linearGradient id="beamG" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffe7b0" stop-opacity=".9"/><stop offset="1" stop-color="#ffe7b0" stop-opacity="0"/></linearGradient>
+      </defs>
+      <rect width="1080" height="300" fill="url(#sky)"/>
+      <g fill="#cfe3ee" opacity=".55"><circle cx="560" cy="30" r="1.2"/><circle cx="700" cy="18" r="1"/><circle cx="820" cy="44" r="1.3"/><circle cx="940" cy="22" r="1"/><circle cx="1030" cy="52" r="1.2"/><circle cx="640" cy="60" r="1"/></g>
+      <g transform="translate(0 -32)">
+      <!-- land, north bank -->
+      <path d="M380 128 C520 122 640 136 760 130 C880 124 980 134 1080 128 L1080 196 C980 200 900 192 820 198 C760 202 700 194 640 199 C560 205 470 197 380 202 Z" fill="url(#land)"/>
+      <g fill="#c99a5b"><rect x="640" y="150" width="14" height="10"/><rect x="664" y="156" width="12" height="9"/><rect x="900" y="146" width="14" height="10"/></g>
+      <g fill="#7a4a1c"><path d="M638 151 l9 -7 l9 7z"/><path d="M662 157 l8 -6 l8 6z"/><path d="M898 147 l9 -7 l9 7z"/></g>
+      <g fill="#2f5d2d"><circle cx="720" cy="150" r="8"/><circle cx="734" cy="154" r="6"/><circle cx="980" cy="152" r="8"/><circle cx="560" cy="150" r="7"/></g>
+      <!-- river with chars -->
+      <path d="M380 202 C470 197 560 205 640 199 C700 194 760 202 820 198 C900 192 980 200 1080 196 L1080 300 L380 300 Z" fill="url(#riv)"/>
+      <ellipse cx="560" cy="250" rx="70" ry="10" fill="#d9c48f" opacity=".85"/>
+      <ellipse cx="900" cy="262" rx="90" ry="11" fill="#d9c48f" opacity=".85"/>
+      <path class="flow-line" d="M380 230 C520 222 680 238 840 228 S1000 236 1080 230" stroke="#bfe0f0" stroke-width="2" fill="none" opacity=".5"/>
+      <path class="flow-line" d="M380 280 C520 272 680 288 840 278 S1000 286 1080 280" stroke="#bfe0f0" stroke-width="2" fill="none" opacity=".35"/>
+      <!-- step 2: water map overlay -->
+      <path class="water-hl" d="M380 202 C470 197 560 205 640 199 C700 194 760 202 820 198 C900 192 980 200 1080 196 L1080 300 L380 300 Z" fill="#59c3ff"/>
+      <!-- step 3: bank erosion bite (land turning to water) -->
+      <path class="bite" d="M770 200 C780 178 800 168 830 168 C856 168 872 180 880 196 Z" fill="url(#riv)"/>
+      <g class="chg-box">
+        <rect x="760" y="160" width="132" height="44" rx="4" fill="none" stroke="#ff6b5e" stroke-width="2" stroke-dasharray="5 4"/>
+        <rect x="760" y="138" width="132" height="18" rx="3" fill="#ff6b5e"/>
+        <text x="826" y="151" text-anchor="middle" font-size="11" font-weight="700" fill="#fff" font-family="Source Sans 3, sans-serif">Bank erosion · 82 m/yr</text>
+      </g>
+      <!-- step 4: risk surface -->
+      <ellipse class="risk" cx="790" cy="186" rx="190" ry="40" fill="url(#riskG)"/>
+      <!-- step 5: priority pin -->
+      <g class="pin">
+        <path d="M688 166 c-10 0 -18 8 -18 18 c0 13 18 30 18 30 s18 -17 18 -30 c0 -10 -8 -18 -18 -18z" fill="#e9b97a" stroke="#0b1c29" stroke-width="1.5"/>
+        <text x="688" y="189" text-anchor="middle" font-size="12" font-weight="700" fill="#0b1c29" font-family="Source Sans 3, sans-serif">1</text>
+        <rect x="610" y="114" width="156" height="20" rx="10" fill="#e9b97a"/>
+        <text x="688" y="128" text-anchor="middle" font-size="11" font-weight="700" fill="#0b1c29" font-family="Source Sans 3, sans-serif">Priority site · act now</text>
+      </g>
+      <!-- step 6: sensor station and alert -->
+      <g>
+        <rect x="944" y="150" width="4" height="46" fill="#d7dee2"/>
+        <rect x="938" y="146" width="16" height="10" rx="2" fill="#d7dee2"/>
+        <path class="wave" d="M958 140 a10 10 0 0 1 0 20" stroke="#7fe0a8" stroke-width="2" fill="none"/>
+        <path class="wave w2" d="M964 134 a17 17 0 0 1 0 32" stroke="#7fe0a8" stroke-width="2" fill="none"/>
+        <path class="wave w3" d="M970 128 a24 24 0 0 1 0 44" stroke="#7fe0a8" stroke-width="2" fill="none"/>
+        <g class="alert"><rect x="910" y="96" width="132" height="22" rx="11" fill="#ff6b5e"/><text x="976" y="111" text-anchor="middle" font-size="11" font-weight="700" fill="#fff" font-family="Source Sans 3, sans-serif">Sensor alert · drawdown</text></g>
+      </g>
+      </g>
+      <!-- step 1: satellite, beam and scan line -->
+      <rect class="scan" x="380" y="90" width="3" height="150" fill="#ffe7b0"/>
+      <g class="sat">
+        <g transform="translate(0 40)">
+          <path class="beam" d="M-8 10 L8 10 L60 90 L-60 90 Z" fill="url(#beamG)"/>
+          <rect x="-7" y="-6" width="14" height="14" rx="2" fill="#e7ecea"/>
+          <rect x="-34" y="-3" width="24" height="8" fill="#5aa0d0" stroke="#e7ecea" stroke-width="1"/>
+          <rect x="10" y="-3" width="24" height="8" fill="#5aa0d0" stroke="#e7ecea" stroke-width="1"/>
+        </g>
+      </g>
+    </svg>
+    <div class="hero-shade"></div>
+    <div class="hero-text">
+      <p class="eyebrow">Soil Conservation Department, Government of Assam · Pilot</p>
+      <h1>Soil Erosion Risk Monitoring, Assam</h1>
+      <p>Satellite-based mapping of river bank erosion and soil erosion risk for Dibrugarh and Majuli, updated every month.</p>
+    </div>
+    <ol class="hero-steps">
+      <li><b>1 Capture</b>Sentinel-1 and -2 images</li>
+      <li><b>2 Map water</b>water frequency per pixel</li>
+      <li><b>3 Detect change</b>bank loss and retreat</li>
+      <li><b>4 Model risk</b>RUSLE and AI</li>
+      <li><b>5 Rank sites</b>people and assets at risk</li>
+      <li><b>6 Alert and act</b>field check, sensors</li>
+    </ol>
+  </header>
   <p class="lead">This system maps river bank erosion, land change and soil erosion risk for Dibrugarh and Majuli districts. It updates itself every month from free satellite data. This page describes how each step is calculated. The boxes marked "Latest runs" show the values computed for each district in the most recent run. District results are on the two tabs above.</p>
   <hr class="rule">
 
