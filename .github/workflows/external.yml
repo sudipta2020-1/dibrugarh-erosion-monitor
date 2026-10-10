@@ -1,0 +1,43 @@
+name: External accuracy check
+
+# Checks the three water and bank-change methods against labelled data they did
+# not produce: Dynamic World expert-labelled Sentinel-2 tiles and the REAL global
+# riverbank erosion dataset. Results go to docs/data/external/.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: external-check
+  cancel-in-progress: false
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 330
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt scikit-image
+
+      - name: Run the external checks
+        env:
+          PYTHONUNBUFFERED: "1"
+        run: python pipeline/external_validation.py
+
+      - name: Commit results
+        run: |
+          git config user.name  "erosion-monitor-bot"
+          git config user.email "erosion-monitor-bot@users.noreply.github.com"
+          git add docs/data/external
+          git commit -m "External accuracy check" || echo "No changes"
+          git pull --rebase
+          git push
