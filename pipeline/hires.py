@@ -27,6 +27,7 @@ Run:  python pipeline/hires.py            (periods from docs/data/summary.json)
 import argparse
 import json
 import time
+import warnings
 from pathlib import Path
 
 import numpy as np
@@ -86,8 +87,28 @@ def to_ll(bounds, crs):
 
 
 # -------------------------------------------------------------- acquisition
-def s2_10m(bbox_ll, period, crs, max_cloud, per_tile):
-    """Per-date water counts and median MNDWI at 10 m with a sharpened SWIR band."""
+BLOCK = 1024                     # pixels per block side (2 x 2 dask chunks)
+
+
+def _nir20(nir):
+    """NIR averaged over 2 x 2 pixels (20 m) and repeated back to 10 m, within one chunk."""
+    a = np.asarray(nir, dtype="float32")
+    h, w = a.shape[-2:]
+    ph, pw = h % 2, w % 2
+    if ph or pw:
+        a = np.pad(a, [(0, 0)] * (a.ndim - 2) + [(0, ph), (0, pw)], constant_values=np.nan)
+    H, W = a.shape[-2:]
+    r = a.reshape(a.shape[:-2] + (H // 2, 2, W // 2, 2))
+    with np.errstate(invalid="ignore"), warnings.catch_warnings():
+        warnings.simplefilter("ignore", RuntimeWarning)
+        m = np.nanmean(r, axis=(-3, -1))
+    m = np.repeat(np.repeat(m, 2, axis=-2), 2, axis=-1)
+    return m[..., :h, :w]
+
+
+def s2_10m(bbox_ll, period, crs, max_cloud, per_tile, cmask=None):
+    """Per-date water counts and median MNDWI at 10 m with a sharpened SWIR band.
+    Only blocks that touch the river corridor are read."""
     items = _search("sentinel-2-l2a", bbox_ll, period, {"eo:cloud_cover": {"lt": max_cloud}})
     items = _clearest(list(items), per_tile)
     offs = [_s2_offset(it) for it in items]
@@ -103,7 +124,8 @@ def s2_10m(bbox_ll, period, crs, max_cloud, per_tile):
     refl = {b: ((ds[b].astype("float32").where((ds[b] > 0) & clear) + off) / np.float32(1e4)).clip(0, 1)
             for b in ["B03", "B08", "B11"]}
     nir = refl["B08"]
-    nir20 = nir.rolling(x=2, y=2, center=True, min_periods=1).mean()
+    # 2 x 2 block mean inside each chunk (chunks are 512 px, so blocks never cross chunks)
+    nir20 = xr.apply_ufunc(_nir20, nir, dask="parallelized", output_dtypes=[np.float32])
     swir = (refl["B11"] * (nir / nir20)).clip(0, 1)            # SWIR sharpened to 10 m
     mndwi = (refl["B03"] - swir) / (refl["B03"] + swir)
     ok = np.isfinite(mndwi)
@@ -111,7 +133,29 @@ def s2_10m(bbox_ll, period, crs, max_cloud, per_tile):
            mndwi.median("time", skipna=True).astype("float32").rename("mndwi")]
     for t, name in zip(OPT_THRESHOLDS, COUNT_BANDS[1:]):
         out.append((ok & (mndwi > t)).sum("time").astype("uint8").rename(name))
-    res = _compute_in_strips(xr.merge(out), f"Sentinel-2 10 m {period[0][:7]}")
+    lazy = xr.merge(out)
+
+    H, W = lazy.sizes["y"], lazy.sizes["x"]
+    if cmask is not None:
+        from rasterio.enums import Resampling
+        tmpl = xr.DataArray(np.zeros((H, W), "uint8"), coords={"y": lazy.y, "x": lazy.x},
+                            dims=("y", "x")).rio.write_crs(crs)
+        need = cmask.rio.reproject_match(tmpl, resampling=Resampling.max).values > 0
+    else:
+        need = np.ones((H, W), bool)
+    arrs = {v: (np.full((H, W), np.nan, "float32") if v == "mndwi" else np.zeros((H, W), "uint8"))
+            for v in lazy.data_vars}
+    blocks = [(i, j) for i in range(0, H, BLOCK) for j in range(0, W, BLOCK)
+              if need[i:i + BLOCK, j:j + BLOCK].any()]
+    total = len(range(0, H, BLOCK)) * len(range(0, W, BLOCK))
+    print(f"  {len(blocks)} of {total} blocks of {BLOCK} px touch the corridor", flush=True)
+    for n, (i, j) in enumerate(blocks, 1):
+        part = lazy.isel(y=slice(i, i + BLOCK), x=slice(j, j + BLOCK)).compute()
+        for v in arrs:
+            arrs[v][i:i + BLOCK, j:j + BLOCK] = part[v].values
+        if n % 5 == 0 or n == len(blocks):
+            print(f"  Sentinel-2 10 m {period[0][:7]}: block {n} of {len(blocks)} done", flush=True)
+    res = xr.Dataset({v: (("y", "x"), a) for v, a in arrs.items()}, coords={"y": lazy.y, "x": lazy.x})
     return res.rio.write_crs(crs)
 
 
@@ -280,7 +324,7 @@ def main():
         if f.exists():
             ds = xr.open_dataset(f).load().rio.write_crs(cfg["crs"])
         else:
-            ds = s2_10m(bbox_ll, per, cfg["crs"], cfg["max_cloud_cover"], cfg.get("max_scenes_per_tile", 15))
+            ds = s2_10m(bbox_ll, per, cfg["crs"], cfg["max_cloud_cover"], cfg.get("max_scenes_per_tile", 15), cmask)
             ds.to_netcdf(f, encoding={v: {"zlib": True, "complevel": 4} for v in ds.data_vars})
         st[tag] = ds
     if args.only:
