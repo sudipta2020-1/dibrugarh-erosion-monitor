@@ -494,6 +494,16 @@ def main():
     swift_system.build(cfg, {"raw": raw, "c": c, "d": d, "z": T["z"], "tmpl": tmpl, "inside": inside, "P": P,
                              "cmask": cmask, "aoi": aoi, "out": out, "lb": lb, "lc": lc})
 
+    # Download files (GeoTIFF and Shapefile), published as the release "swift-latest"
+    try:
+        import exports
+        exports.swift_files(cfg, {"tmpl": tmpl, "inside": inside, "c": c, "d": d,
+                                  "wf_base": B["all_mean"], "wf_cur": C["all_mean"], "mdc_m2": mdc_m2, "P": P,
+                                  "lb": lb, "lc": lc, "periods": periods, "pub": pub,
+                                  "dash": pubroot.parent / "swift" / "data", "repository": summ.get("repository", "")})
+    except Exception as e:
+        print("  download files not written:", e)
+
 
 if __name__ == "__main__":
     main()
