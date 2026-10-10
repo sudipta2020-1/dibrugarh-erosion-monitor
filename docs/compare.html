@@ -3,21 +3,21 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Baseline 10 m · Dibrugarh</title>
+<title>Method Comparison · Dibrugarh</title>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700&family=Source+Serif+4:opsz,wght@8..60,600&display=swap">
 <link rel="stylesheet" href="assets/style.css">
 <link rel="stylesheet" href="assets/fx.css">
 <style>
-.cmp-kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 10px; margin-bottom: 14px; }
-.cmp { background: #fff; border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; border-top: 4px solid #0f6e8c; }
+:root { --sw: #5b5fc7; --m10: #1f9d8a; --m20: #8a8a80; }
+.cmp-kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 10px; margin-bottom: 14px; }
+.cmp { background: #fff; border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; border-top: 4px solid var(--sw); }
 .cmp .label { font-size: 12.5px; color: var(--muted); }
-.cmp .pair { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 6px; }
-.cmp .pair div { border-radius: 8px; padding: 6px 8px; }
-.cmp .std { background: #f3f1ec; }
-.cmp .hi { background: #e3f3f1; }
-.cmp .pair span { display: block; font-size: 11.5px; color: var(--muted); }
-.cmp .pair b { font-size: 20px; font-variant-numeric: tabular-nums; }
+.trio { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-top: 6px; }
+.trio div { border-radius: 8px; padding: 6px 8px; min-width: 0; }
+.trio .s { background: #eef0fb; } .trio .h { background: #e3f3f1; } .trio .t { background: #f3f1ec; }
+.trio span { display: block; font-size: 11px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.trio b { font-size: 18px; font-variant-numeric: tabular-nums; }
 .cmp .note { margin: 6px 0 0; }
 #cmap { height: 600px; border-radius: 8px; border: 1px solid var(--line); }
 .lyr { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 13px; color: var(--muted); align-items: center; }
@@ -27,20 +27,27 @@
 @media (max-width: 900px) { .two { grid-template-columns: 1fr; } #cmap { height: 440px; } }
 .steps-list { margin: 6px 0 0; padding-left: 20px; }
 .steps-list li { margin-bottom: 6px; }
-.verdict { background: #e3f3f1; border-left: 4px solid #1f9d8a; padding: 10px 14px; border-radius: 8px; font-size: 14.5px; }
+.verdict { background: #eef0fb; border-left: 4px solid var(--sw); padding: 10px 14px; border-radius: 8px; font-size: 14.5px; }
+table.m3 td, table.m3 th { white-space: normal; }
+table.m3 td:nth-child(2), table.m3 th:nth-child(2) { background: #eef0fb; font-weight: 600; }
+table.m3 td:first-child { color: var(--muted); }
+.mgrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; }
+.mgrid p, .card > p { font-size: 14px; }
+.mgrid h3 { margin: 0 0 6px; font-size: 15px; }
+.tag { display: inline-block; font-size: 11px; padding: 1px 7px; border-radius: 10px; margin-left: 6px; vertical-align: 1px; }
 </style>
 </head>
 <body>
 <header class="top">
   <div>
-    <p class="eyebrow">Soil Conservation Department, Government of Assam · Baseline 10 m method</p>
-    <h1>Baseline 10 m method compared with baseline 20 m <span class="muted">· Dibrugarh District</span></h1>
+    <p class="eyebrow">Soil Conservation Department, Government of Assam · Method comparison</p>
+    <h1>SWiFT-Bank compared with the 10 m and 20 m baselines <span class="muted">· Dibrugarh District</span></h1>
   </div>
   <div class="meta" id="meta">Loading…</div>
 </header>
 
-<div class="banner" style="background:#eef0fb;border-left:4px solid #5b5fc7;color:#23235a">Baseline method, kept for comparison. The 10 m method uses the same rule as the 20 m baseline (a pixel is water if it was water on at least half of its clear dates), but reads the images at 10 m and traces sub-pixel bank lines. It has no statistical test of change. The proposed main method is <b>SWiFT-Bank</b>; its results are on the district tabs and its method on the SWiFT-Bank Method tab.</div>
-<div id="pending" class="banner" hidden>The first 10 m comparison run has not finished yet. This page fills in automatically when it does.</div>
+<div class="banner" style="background:#eef0fb;border-left:4px solid #5b5fc7;color:#23235a">This page compares the proposed method, <b>SWiFT-Bank</b>, with two baseline methods on the same images and the same monitoring windows. The two baselines use the same rule (a pixel is water if it was water on at least half of its clear dates) at 20 m and at 10 m, and have no statistical test of change. All figures are for the river corridor, which is land within 1 km of the river channels.</div>
+<div id="pending" class="banner" hidden></div>
 
 <section class="card" id="verdictCard" hidden>
   <div class="card-head"><h2>Summary</h2></div>
@@ -52,132 +59,210 @@
 <section class="two">
   <div class="card map-card">
     <div class="card-head">
-      <h2>Map: compare the two methods</h2>
+      <h2>Map: compare the three methods</h2>
       <div class="lyr controls">
-        <label><input type="radio" name="m" value="hi" checked> 10 m sub-pixel</label>
-        <label><input type="radio" name="m" value="std"> Standard 20 m</label>
+        <label><input type="radio" name="m" value="swift" checked> SWiFT-Bank</label>
+        <label><input type="radio" name="m" value="change10"> Baseline 10 m</label>
+        <label><input type="radio" name="m" value="change20"> Baseline 20 m</label>
         <label><input type="checkbox" id="lnB" checked><span class="sw" style="border-color:#1b6ca8"></span>Bank line 2020</label>
         <label><input type="checkbox" id="lnC" checked><span class="sw" style="border-color:#e8590c"></span>Bank line now</label>
-        <label><input type="checkbox" id="small" checked> Small losses only found at 10 m</label>
+        <label><input type="checkbox" id="small"> Losses below 0.4 ha (SWiFT-Bank)</label>
       </div>
     </div>
     <div id="cmap"></div>
     <div id="legend" class="legend"></div>
-    <p class="note">Zoom in on a river bank to see the difference. Bank lines are traced at sub-pixel precision from the 10 m water frequency. Orange circles mark losses smaller than 0.4 ha that the 10 m method found and the standard method missed. Click a loss patch for its area and retreat.</p>
+    <p class="note">Switch between the three change maps and zoom in on a river bank to see the differences. The bank lines are the sub-pixel bank lines of SWiFT-Bank (water fraction 0.5). With SWiFT-Bank selected, click a loss patch to see its lost land and its p-value.</p>
   </div>
   <div>
     <div class="card">
-      <div class="card-head"><h2>Size of bank-loss patches</h2></div>
+      <div class="card-head"><h2>Size of land-loss patches</h2></div>
       <div class="chart-box" style="height:260px"><canvas id="sizeChart"></canvas></div>
-      <p class="note">Number of land-to-water patches (bank erosion and char loss) by size. The standard method cannot report patches below 0.4 ha; the 10 m method reports patches down to 0.05 ha.</p>
+      <p class="note">Number of land-to-water patches (bank erosion and char loss) by size. The 20 m baseline cannot report patches below 0.4 ha, the 10 m baseline below 0.05 ha, and SWiFT-Bank below 0.02 ha of lost land.</p>
     </div>
     <div class="card">
-      <div class="card-head"><h2>Area by change class (ha)</h2></div>
-      <div class="table-wrap" style="max-height:none"><table id="areaTable"></table></div>
-      <p class="note" id="areaNote"></p>
+      <div class="card-head"><h2>False change in the null test</h2></div>
+      <div class="chart-box" style="height:150px"><canvas id="nullChart"></canvas></div>
+      <p class="note" id="nullNote"></p>
     </div>
   </div>
 </section>
 
-<section class="card method">
-  <h2>How the 10 m baseline method works</h2>
-  <ol class="steps-list">
-    <li><b>10 m images.</b> The same Sentinel-2 scenes and the same two monitoring windows as the standard run are read at 10 m instead of 20 m.</li>
-    <li><b>Sharpened SWIR band.</b> The water index MNDWI needs the short-wave infrared band, which Sentinel-2 records only at 20 m. It is sharpened to 10 m with the 10 m near-infrared band: SWIR<sub>10</sub> = SWIR<sub>20</sub> × NIR<sub>10</sub> / NIR<sub>20</sub> (Du et al., 2016).</li>
-    <li><b>Water frequency.</b> As in the standard run, every clear date is classified with an edge-based Otsu threshold, and a pixel is water if it was water on at least half of its clear dates.</li>
-    <li><b>Smaller minimum patch.</b> Land-to-water change is kept down to 5 pixels of 10 m, which is 0.05 ha. The standard run keeps 10 pixels of 20 m, which is 0.4 ha.</li>
-    <li><b>Sub-pixel bank lines.</b> The bank line is traced as the 0.5 contour of the smoothed water-frequency surface with marching squares and linear interpolation, so it can fall inside a pixel (Bishop-Taylor et al., 2019). Bank retreat is measured between the 2020 and current bank lines instead of counting whole pixels.</li>
-    <li><b>Comparison.</b> The standard 20 m change map of the latest run is placed on the 10 m grid. Agreement, patch sizes and areas are compared for the river corridor: land within 1 km of the river channels.</li>
-  </ol>
-  <p><b>Why it should be more accurate.</b> A 10 m pixel holds a quarter of the ground of a 20 m pixel, so mixed land and water pixels along the bank are smaller and fewer. Sub-pixel waterlines have been reported to be several times more accurate than whole-pixel lines. In tests with 30 m Landsat images, errors were about 1.5 to 3.3 m with well-chosen thresholds (Bishop-Taylor et al., 2019).</p>
-  <p><b>Limits.</b> Sharpening can add small artefacts at sharp edges. Haze, shadow and wet sand still cause errors, and losses smaller than about 0.05 ha remain below detection. This page compares the two methods with each other. Which one is closer to the truth on the ground must be decided by the accuracy assessment points and field checks.</p>
-  <p class="note">References: Bishop-Taylor, R. et al. (2019). Sub-pixel waterline extraction: characterising accuracy and sensitivity to indices and spectra. <i>Remote Sensing</i> 11(24), 2984. Bishop-Taylor, R. et al. (2021). Mapping Australia's dynamic coastline at mean sea level using three decades of Landsat imagery. <i>Remote Sensing of Environment</i> 267, 112734. Du, Y. et al. (2016). Water bodies' mapping from Sentinel-2 imagery with Modified Normalized Difference Water Index at 10-m spatial resolution produced by sharpening the SWIR band. <i>Remote Sensing</i> 8(4), 354. Donchyts, G. et al. (2016). <i>Remote Sensing</i> 8(5), 386.</p>
+<section class="card">
+  <div class="card-head"><h2>Area by change class (ha)</h2></div>
+  <div class="table-wrap" style="max-height:none"><table class="m3" id="areaTable"></table></div>
+  <p class="note" id="areaNote"></p>
 </section>
 
-<footer>Data: Copernicus Sentinel-2 (via Microsoft Planetary Computer); JRC Global Surface Water. The 10 m baseline runs every Monday after the standard run and uses the same monitoring windows.</footer>
+<section class="card" id="extCard" hidden>
+  <div class="card-head"><h2>Accuracy against independent labelled data</h2></div>
+  <div class="table-wrap" style="max-height:none"><table class="m3" id="extTable"></table></div>
+  <p class="note" id="extNote"></p>
+</section>
+
+<section class="card">
+  <h2>How the three methods differ</h2>
+  <div class="mgrid">
+    <div>
+      <h3>SWiFT-Bank <span class="tag" style="background:#eef0fb;color:#23235a">proposed</span></h3>
+      <ol class="steps-list">
+        <li>Every clear Sentinel-2 date is read at 10 m. The SWIR band is sharpened from 20 m to 10 m with the NIR band.</li>
+        <li>On each date, the share of water in each pixel (0 to 1) is found by unmixing between local pure-water and pure-land spectra.</li>
+        <li>The change in mean water share between the two windows is tested for each pixel with Welch's t-test, with the false discovery rate held at 5 %.</li>
+        <li>Lost land is the sum of the water-share change times the pixel area. Patches are kept if they lose at least 0.02 ha and their combined p-value is below 0.01.</li>
+      </ol>
+    </div>
+    <div>
+      <h3>Baseline 10 m <span class="tag" style="background:#e3f3f1;color:#0f5148">baseline</span></h3>
+      <ol class="steps-list">
+        <li>The same dates are read at 10 m, with the same sharpened SWIR band.</li>
+        <li>Each date is classified as water or land with an edge-based Otsu threshold on MNDWI.</li>
+        <li>A pixel is water if it was water on at least half of its clear dates.</li>
+        <li>Water and land labels of the two windows are compared, and patches of at least 5 pixels (0.05 ha) are kept. There is no test of change.</li>
+      </ol>
+    </div>
+    <div>
+      <h3>Baseline 20 m <span class="tag" style="background:#f3f1ec;color:#3b3b36">baseline</span></h3>
+      <ol class="steps-list">
+        <li>The same dates are read at 20 m.</li>
+        <li>Each date is classified as water or land with an edge-based Otsu threshold. Radar is used where optical dates are missing.</li>
+        <li>A pixel is water if it was water on at least half of its clear dates.</li>
+        <li>Patches of at least 10 pixels (0.4 ha) are kept. There is no test of change.</li>
+      </ol>
+    </div>
+  </div>
+  <p><b>Null test.</b> The current window is split into odd and even dates, and each method is run on the two halves. No erosion can happen between them, so any change found is a false alarm. This measures how often a method reports change that is not there.</p>
+  <p><b>Limits.</b> The three methods are compared here with each other and with independent labelled data from other places. The accuracy of the smallest losses in this district still has to be checked in the field.</p>
+  <p class="note">References: Benjamini, Y. and Hochberg, Y. (1995). <i>J. R. Stat. Soc. B</i> 57(1), 289–300. Bishop-Taylor, R. et al. (2019). <i>Remote Sensing</i> 11(24), 2984. Brown, C. F. et al. (2022). <i>Scientific Data</i> 9, 251. Donchyts, G. et al. (2016). <i>Remote Sensing</i> 8(5), 386. Du, Y. et al. (2016). <i>Remote Sensing</i> 8(4), 354. Langhorst, T. and Pavelsky, T. REAL, Zenodo 7045021. Welch, B. L. (1947). <i>Biometrika</i> 34, 28–35.</p>
+</section>
+
+<footer>Data: Copernicus Sentinel-2 (via Microsoft Planetary Computer); JRC Global Surface Water; Dynamic World expert labels; REAL. The comparison is updated every Monday with the weekly runs.</footer>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script>
 (function () {
-  const D = "data/hires/";
+  const D = "data/";
+  const EXT = "https://sudipta2020-1.github.io/dibrugarh-erosion-monitor/data/external/summary.json";
+  const C = { s: "#5b5fc7", h: "#1f9d8a", t: "#b9b3a6" };
   const fmt = (v, d = 0) => (v == null || !isFinite(v)) ? "–" : Number(v).toLocaleString("en-IN", { minimumFractionDigits: d, maximumFractionDigits: d });
+  const pc = (v, d = 1) => (v == null || !isFinite(v)) ? "–" : fmt(100 * v, d) + "%";
   const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+  const getJ = async u => { try { const r = await fetch(u, { cache: "no-cache" }); return r.ok ? await r.json() : null; } catch (e) { return null; } };
 
   async function main() {
-    let S;
-    try { const r = await fetch(D + "summary.json", { cache: "no-cache" }); if (!r.ok) throw 0; S = await r.json(); }
-    catch (e) { document.getElementById("pending").hidden = false; document.getElementById("meta").textContent = ""; return; }
-    const hi = S.hires || {}, st = S.standard || {}, ag = S.agreement || {};
-    document.getElementById("meta").innerHTML = `Run <b>${esc(S.run)}</b><br>Window <b>${esc(S.periods.current.join(" to "))}</b> · Baseline <b>${esc(S.periods.baseline.join(" to "))}</b>`;
+    const [W, H] = await Promise.all([getJ(D + "swift/summary.json"), getJ(D + "hires/summary.json")]);
+    const pend = document.getElementById("pending");
+    if (!W && !H) { pend.hidden = false; pend.textContent = "The first comparison run has not finished yet. This page fills in automatically when it does."; document.getElementById("meta").textContent = ""; return; }
+    if (!H) { pend.hidden = false; pend.textContent = "The 10 m and 20 m baseline figures for this district are still being computed. They appear here automatically when the run finishes."; }
+    if (!W) { pend.hidden = false; pend.textContent = "The SWiFT-Bank figures for this district are still being computed. They appear here automatically when the run finishes."; }
+    const w = W || {}, hi = (H || {}).hires || {}, st = (H || {}).standard || {}, nt = w.null_test || {}, ag = w.agreement || {};
+    const P = (W || H).periods;
+    document.getElementById("meta").innerHTML = `Run <b>${esc((W || H).run)}</b><br>Window <b>${esc(P.current.join(" to "))}</b> · Baseline <b>${esc(P.baseline.join(" to "))}</b>`;
 
     const kp = [
-      ["Smallest change reported", `${fmt(st.min_patch_ha, 1)} ha`, `${fmt(S.min_patch_ha, 2)} ha`, "Minimum patch: 10 pixels at 20 m against 5 pixels at 10 m."],
-      ["Bank-loss patches", fmt(st.bank_loss_patches), fmt(hi.bank_loss_patches), "Bank erosion and char loss patches in the river corridor."],
-      ["Bank-loss area (ha)", fmt(st.bank_loss_ha), fmt(hi.bank_loss_ha), "Total land turned to water."],
-      ["Losses below 0.4 ha", "0", fmt(hi.small_patches), `${fmt(hi.small_ha, 1)} ha in patches the standard method cannot report.`],
-      ["Median bank retreat (m)", hi.retreat ? fmt(hi.retreat.median_pixel_m) : "–", hi.retreat ? fmt(hi.retreat.median_subpixel_m, 1) : "–", "Whole pixels against sub-pixel bank lines."],
-      ["Agreement with standard map", "–", ag.share_standard_within_20m_of_10m != null ? fmt(100 * ag.share_standard_within_20m_of_10m) + "%" : "–", `Share of the standard map's bank loss that the 10 m map also finds within 20 m. Overlap (IoU): ${ag.iou_bank_loss != null ? fmt(100 * ag.iou_bank_loss) + "%" : "–"}.`],
+      ["Smallest change reported", `${fmt(w.min_patch_ha, 2)} ha`, H ? `${fmt(H.min_patch_ha, 2)} ha` : "–", H ? `${fmt(st.min_patch_ha, 1)} ha` : "–", "SWiFT-Bank: lost land in a tested patch. Baselines: 5 pixels at 10 m and 10 pixels at 20 m."],
+      ["Statistical test of change", "Yes", "No", "No", "SWiFT-Bank gives each patch a p-value; the baselines give none."],
+      ["False change in the null test (ha)", fmt(nt.swift_footprint_ha, 1), fmt(nt.freq10_ha), "–", "Change found between two halves of the same window, where none can exist. Not computed for the 20 m baseline."],
+      ["Land-loss patches", fmt(w.bank_loss_patches), fmt(hi.bank_loss_patches), fmt(st.bank_loss_patches), "Bank erosion and char loss patches in the river corridor."],
+      ["Land-loss area (ha)", fmt(w.bank_loss_ha), fmt(hi.bank_loss_ha), fmt(st.bank_loss_ha), "SWiFT-Bank counts lost land within mixed pixels; the baselines count whole pixels."],
+      ["Losses below 0.4 ha", fmt(w.small_patches), fmt(hi.small_patches), H ? "0" : "–", `Area in these patches: SWiFT-Bank ${fmt(w.small_ha, 1)} ha, baseline 10 m ${fmt(hi.small_ha, 1)} ha.`],
     ];
-    document.getElementById("kpis").innerHTML = kp.map(([l, a, b, n]) => `<div class="cmp kpi" style="--c:#0f6e8c"><div class="label">${l}</div>
-      <div class="pair"><div class="std"><span>Standard 20 m</span><b>${a}</b></div><div class="hi"><span>10 m sub-pixel</span><b>${b}</b></div></div>
+    document.getElementById("kpis").innerHTML = kp.map(([l, a, b, c, n]) => `<div class="cmp"><div class="label">${l}</div>
+      <div class="trio"><div class="s"><span>SWiFT-Bank</span><b>${a}</b></div><div class="h"><span>Baseline 10 m</span><b>${b}</b></div><div class="t"><span>Baseline 20 m</span><b>${c}</b></div></div>
       <p class="note">${n}</p></div>`).join("");
 
-    if (ag.new_small_patches != null) {
+    const E = await getJ(EXT);
+    const t1 = E && E.test1_dynamic_world, t2 = E && E.test2_real;
+    const M = ["M3 SWiFT-Bank", "M2 10 m sharpened", "M1 standard 20 m"];
+
+    if (W) {
       document.getElementById("verdictCard").hidden = false;
-      document.getElementById("verdict").innerHTML = `In ${fmt(S.area_analysed_km2)} km² of river corridor, the 10 m method found <b>${fmt(ag.new_small_patches)}</b> land-loss patches smaller than 0.4 ha (${fmt(ag.new_small_ha, 1)} ha in total) that the standard method misses. It also traced <b>${fmt(hi.bankline_km.current)}</b> km of current bank line at sub-pixel precision. For larger losses, both methods agree: ${fmt(100 * (ag.share_standard_within_20m_of_10m || 0))}% of the standard map's bank loss is also found by the 10 m method within 20 m. Field checks and the accuracy assessment points will show which method is closer to the ground truth.`;
+      let v = `In ${fmt(w.area_analysed_km2)} km² of river corridor, SWiFT-Bank found <b>${fmt(w.bank_loss_patches)}</b> land-loss patches, each with a p-value below 0.01, and <b>${fmt(w.small_patches)}</b> of them are smaller than 0.4 ha. `;
+      v += `In the null test, where no erosion can occur, SWiFT-Bank reported <b>${fmt(nt.swift_footprint_ha, 1)} ha</b> of false change, while the 10 m baseline reported <b>${fmt(nt.freq10_ha)} ha</b>. `;
+      v += `SWiFT-Bank also found ${pc(ag.share_std20_loss_found)} of the land loss mapped by the 20 m baseline and ${pc(ag.share_freq10_loss_found)} of that mapped by the 10 m baseline, so it keeps the large losses that the baselines see. `;
+      if (t1) v += `On independent expert labels, accuracy within 20 m of the shoreline was ${pc(t1.shoreline_20m[M[0]].overall_accuracy)} for SWiFT-Bank, ${pc(t1.shoreline_20m[M[1]].overall_accuracy)} for the 10 m baseline and ${pc(t1.shoreline_20m[M[2]].overall_accuracy)} for the 20 m baseline.`;
+      document.getElementById("verdict").innerHTML = v;
     }
 
     // Area table
-    const classes = Object.keys(hi.area_ha || {});
-    document.getElementById("areaTable").innerHTML = `<thead><tr><th>Class</th><th>Standard 20 m</th><th>10 m sub-pixel</th><th>Difference</th></tr></thead><tbody>` +
-      classes.map(k => { const a = (st.area_ha || {})[k], b = hi.area_ha[k];
-        return `<tr><td>${esc(k)}</td><td>${fmt(a)}</td><td>${fmt(b)}</td><td>${a ? (b >= a ? "+" : "") + fmt(100 * (b - a) / a) + "%" : "–"}</td></tr>`; }).join("") + "</tbody>";
-    document.getElementById("areaNote").textContent = `River corridor only (${fmt(S.area_analysed_km2)} km²). Water thresholds (MNDWI): 2020 ${S.water.baseline.threshold}, now ${S.water.current.threshold}.`;
+    const classes = Object.keys(w.area_ha || hi.area_ha || {});
+    document.getElementById("areaTable").innerHTML = `<thead><tr><th>Class</th><th>SWiFT-Bank</th><th>Baseline 10 m</th><th>Baseline 20 m</th></tr></thead><tbody>` +
+      classes.map(k => `<tr><td>${esc(k)}</td><td>${fmt((w.area_ha || {})[k])}</td><td>${fmt((hi.area_ha || {})[k])}</td><td>${fmt((st.area_ha || {})[k])}</td></tr>`).join("") + "</tbody>";
+    document.getElementById("areaNote").textContent = `River corridor only (${fmt(w.area_analysed_km2 || (H || {}).area_analysed_km2)} km²). For SWiFT-Bank, bank erosion and char loss are lost land within the tested patches; accretion and new inland water are the area of tested change.`;
 
     // Size chart
+    const labels = (w.size_labels || (H || {}).size_labels || []).map(l => l + " ha");
     new Chart(document.getElementById("sizeChart"), { type: "bar",
-      data: { labels: S.size_labels.map(l => l + " ha"), datasets: [
-        { label: "Standard 20 m", data: st.size_hist || [], backgroundColor: "#b9b3a6" },
-        { label: "10 m sub-pixel", data: hi.size_hist || [], backgroundColor: "#1f9d8a" }] },
+      data: { labels, datasets: [
+        { label: "SWiFT-Bank", data: w.size_hist || [], backgroundColor: C.s },
+        { label: "Baseline 10 m", data: hi.size_hist || [], backgroundColor: C.h },
+        { label: "Baseline 20 m", data: st.size_hist || [], backgroundColor: C.t }] },
       options: { maintainAspectRatio: false, plugins: { legend: { position: "bottom" } },
         scales: { x: { grid: { display: false } }, y: { title: { display: true, text: "Patches" } } } } });
 
+    // Null test chart
+    if (W) {
+      new Chart(document.getElementById("nullChart"), { type: "bar",
+        data: { labels: ["SWiFT-Bank", "Baseline 10 m"], datasets: [{ label: "False change (ha)", data: [nt.swift_footprint_ha, nt.freq10_ha], backgroundColor: [C.s, C.h] }] },
+        options: { indexAxis: "y", maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { title: { display: true, text: "ha of false change" } } } } });
+      document.getElementById("nullNote").textContent = `The current window was split into odd and even dates (up to ${fmt(nt.dates_odd)} and ${fmt(nt.dates_even)} per pixel). False patches: SWiFT-Bank ${fmt(nt.swift_patches)}, baseline 10 m ${fmt(nt.freq10_patches)}.`;
+    }
+
+    // Independent accuracy
+    if (t1) {
+      document.getElementById("extCard").hidden = false;
+      const po = t1.pooled, sh = t1.shoreline_20m, sp = (t1.subpixel || {})["20"] || {};
+      const row = (l, f) => `<tr><td>${l}</td>${M.map(f).map(x => `<td>${x}</td>`).join("")}</tr>`;
+      let h = `<thead><tr><th>Measure</th><th>SWiFT-Bank</th><th>Baseline 10 m</th><th>Baseline 20 m</th></tr></thead><tbody>`;
+      h += row("Overall accuracy, all pixels", m => pc(po[m].overall_accuracy));
+      h += row("Water F1 score", m => fmt(po[m].water_f1, 3));
+      h += row("Accuracy within 20 m of the shoreline", m => pc(sh[m].overall_accuracy));
+      h += `<tr><td>Error in the water share of mixed 20 m blocks (MAE)</td><td>${fmt(sp.swift_mae, 2)}</td><td colspan="2">${fmt(sp.hard_mae, 2)} (water/land map)</td></tr>`;
+      if (t2) h += row("Rank correlation with REAL bank-retreat rates (Spearman ρ)", m => t2.correlation[m] ? `${fmt(t2.correlation[m].spearman_rho, 2)} (p = ${fmt(t2.correlation[m].p_value, 2)}, ${t2.correlation[m].reaches} reaches)` : "–");
+      document.getElementById("extTable").innerHTML = h + "</tbody>";
+      document.getElementById("extNote").textContent = `Test 1: ${t1.tiles_used} Sentinel-2 tiles in which experts labelled every 10 m pixel by hand (Dynamic World test set, Brown et al., 2022); one tile lies on the Brahmaputra at Majuli. Test 2: reaches of the Brahmaputra with bank-retreat rates from the REAL record (Langhorst and Pavelsky). These tests are shared by both districts.`;
+    }
+
     // Map
     const map = L.map("cmap", { zoomSnap: 0.25 });
-    window.MAP = map;
     L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
       { attribution: "Imagery © Esri", maxZoom: 19 }).addTo(map);
     const ov = {};
-    for (const k of ["change10", "change20"]) if (S.layers[k]) ov[k] = L.imageOverlay(S.layers[k].file.replace("hires/", D), S.layers[k].bounds, { opacity: 0.85 });
-    const b = (S.layers.change10 || S.layers.change20).bounds;
-    map.fitBounds(b);
-    const show = m => { Object.values(ov).forEach(o => map.removeLayer(o)); const o = ov[m === "hi" ? "change10" : "change20"]; if (o) o.addTo(map); if (patches) { m === "hi" ? patches.addTo(map) : map.removeLayer(patches); } };
-    let patches = null;
-    const lines = {};
-    const addLines = async (f, color, id) => {
-      try { const g = await (await fetch(D + f)).json();
-        lines[id] = L.geoJSON(g, { style: { color, weight: 2, opacity: 0.95 }, interactive: false });
-        if (document.getElementById(id).checked) lines[id].addTo(map);
-        document.getElementById(id).onchange = e => e.target.checked ? lines[id].addTo(map) : map.removeLayer(lines[id]);
-      } catch (e) {}
-    };
-    addLines("banklines_baseline.geojson", "#1b6ca8", "lnB");
-    addLines("banklines_current.geojson", "#e8590c", "lnC");
-    try {
-      const g = await (await fetch(D + "loss_patches_10m.geojson")).json();
-      patches = L.geoJSON(g, { style: f => ({ color: f.properties.small ? "#ff9f1c" : "#d7191c", weight: 1, fillOpacity: 0 }),
-        onEachFeature: (f, l) => { const p = f.properties; l.bindPopup(`<b>${esc(p.class || "Land to water")}</b><br>Area ${fmt(p.area_ha, 2)} ha${p.small ? " (below 0.4 ha)" : ""}<br>Retreat: ${fmt(p.retreat_subpixel_m, 1)} m sub-pixel, ${fmt(p.retreat_pixel_m)} m by whole pixels<br>${p.also_in_20m ? "Also in the standard 20 m map" : "<b>Not in the standard 20 m map</b>"}`); } });
-      const smallOnly = L.layerGroup(g.features.filter(f => f.properties.small && !f.properties.also_in_20m)
-        .map(f => L.circleMarker([f.properties.lat, f.properties.lon], { radius: 6, color: "#ff9f1c", weight: 2, fillOpacity: 0.2 })
-          .bindTooltip(`${fmt(f.properties.area_ha, 2)} ha · only found at 10 m`)));
-      const cb = document.getElementById("small");
-      if (cb.checked) smallOnly.addTo(map);
-      cb.onchange = e => e.target.checked ? smallOnly.addTo(map) : map.removeLayer(smallOnly);
-    } catch (e) {}
+    if (W && w.layers && w.layers.swift) ov.swift = L.imageOverlay(D + w.layers.swift.file, w.layers.swift.bounds, { opacity: 0.85 });
+    if (H) for (const k of ["change10", "change20"]) if (H.layers[k]) ov[k] = L.imageOverlay(D + H.layers[k].file, H.layers[k].bounds, { opacity: 0.85 });
+    const any = Object.values(ov)[0];
+    if (any) map.fitBounds(any.getBounds());
+    let patches = null, cur = "swift";
+    const show = m => { cur = m; Object.values(ov).forEach(o => map.removeLayer(o)); if (ov[m]) ov[m].addTo(map); if (patches) { m === "swift" ? patches.addTo(map) : map.removeLayer(patches); } };
     document.querySelectorAll("input[name=m]").forEach(r => r.onchange = () => show(r.value));
-    show("hi");
-    document.getElementById("legend").innerHTML = (S.legend || []).map(([n, c]) => `<span><i class="sw" style="border:0;width:14px;height:14px;background:${c};display:inline-block;border-radius:3px;vertical-align:-2px;margin-right:6px"></i>${esc(n)}</span>`).join("");
+    show(ov.swift ? "swift" : "change10");
+    if (!ov.swift) document.querySelector("input[value=change10]").checked = true;
+    document.getElementById("legend").innerHTML = (w.legend || (H || {}).legend || []).map(([n, c]) => `<span><i style="width:14px;height:14px;background:${c};display:inline-block;border-radius:3px;vertical-align:-2px;margin-right:6px"></i>${esc(n)}</span>`).join("");
+
+    const addLines = async (f, color, id) => {
+      const g = await getJ(D + f); if (!g) return;
+      const l = L.geoJSON(g, { style: { color, weight: 2, opacity: 0.95 }, interactive: false });
+      const cb = document.getElementById(id);
+      if (cb.checked) l.addTo(map);
+      cb.onchange = e => e.target.checked ? l.addTo(map) : map.removeLayer(l);
+    };
+    const lineDir = W ? "swift/" : "hires/";
+    addLines(lineDir + "banklines_baseline.geojson", "#1b6ca8", "lnB");
+    addLines(lineDir + "banklines_current.geojson", "#e8590c", "lnC");
+
+    if (W) {
+      const g = await getJ(D + "swift/loss_patches.geojson");
+      if (g) {
+        patches = L.geoJSON(g, { style: f => ({ color: f.properties.small ? "#ff9f1c" : "#d7191c", weight: 1, fillOpacity: 0 }),
+          onEachFeature: (f, l) => { const p = f.properties; l.bindPopup(`<b>${esc(p.class || "Land to water")}</b><br>Lost land ${fmt(p.loss_ha, 2)} ha (patch ${fmt(p.footprint_ha, 2)} ha)<br>p-value ${p.p_value != null ? Number(p.p_value).toExponential(1) : "–"}${p.retreat_subpixel_m != null ? `<br>Bank retreat ${fmt(p.retreat_subpixel_m, 1)} m` : ""}`); } });
+        if (cur === "swift") patches.addTo(map);
+        const smallOnly = L.layerGroup(g.features.filter(f => f.properties.small)
+          .map(f => L.circleMarker([f.properties.lat, f.properties.lon], { radius: 5, color: "#ff9f1c", weight: 2, fillOpacity: 0.2 })
+            .bindTooltip(`${fmt(f.properties.loss_ha, 2)} ha lost · p = ${Number(f.properties.p_value).toExponential(1)}`)));
+        const cb = document.getElementById("small");
+        cb.onchange = e => e.target.checked ? smallOnly.addTo(map) : map.removeLayer(smallOnly);
+      }
+    }
   }
   main();
 })();
