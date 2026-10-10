@@ -126,8 +126,8 @@ Monitor), a lead agency and a recommended measure, from the rules in
 
 ## 4c. IoT sensor stations (pilot)
 
-The dashboard has a "Live sensor stations" panel for a small number of stations
-at the highest-priority bank erosion sites. Until hardware is installed it shows
+The dashboard has a "Live sensor stations" panel for stations at the very high
+risk (immediate action) and high risk (before monsoon) bank erosion sites. Until hardware is installed it shows
 clearly labelled simulated readings, so the panel and the alert rules can be
 demonstrated. Stations and thresholds are set in `docs/data/sensors/stations.json`.
 
@@ -135,6 +135,9 @@ demonstrated. Stations and thresholds are set in `docs/data/sensors/stations.jso
 - River level: ultrasonic or radar level sensor on a bridge or pole.
 - Rain gauge: tipping bucket.
 - Soil moisture at 30, 60 and 100 cm in the bank.
+- Piezometer: a vibrating-wire sensor in a borehole about 3 m deep and 10 m behind
+  the edge. It measures the water pressure inside the bank. When the river falls
+  faster than the bank drains, this pressure stays high and the bank is weakest.
 - Tilt nodes: MEMS accelerometer nodes on stakes 5, 10, 20 and 40 m back from the
   bank edge. A node that tilts and then stops reporting usually means the edge has
   reached it; these nodes are expendable.
@@ -144,7 +147,7 @@ demonstrated. Stations and thresholds are set in `docs/data/sensors/stations.jso
 **Connecting real stations (ThingSpeak)**
 1. Create two ThingSpeak channels per station: a main channel with
    field1 = river level (m), field2 = rain (mm in the interval), field3-field5 =
-   soil moisture (%) at 30, 60 and 100 cm, field6 = battery (V); and a tilt
+   soil moisture (%) at 30, 60 and 100 cm, field6 = battery (V), field7 = pore-water pressure (kPa); and a tilt
    channel with field1-field4 = tilt (degrees) of the nodes at 5, 10, 20 and 40 m.
 2. Have the gateway post readings every 15 minutes (ThingSpeak HTTP or MQTT API).
 3. In `stations.json`, set `"mode": "thingspeak"` and fill in each station's
