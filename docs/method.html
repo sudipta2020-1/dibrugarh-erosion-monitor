@@ -1,0 +1,367 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Soil Erosion Monitor: Method</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700&family=Source+Serif+4:opsz,wght@8..60,500;8..60,600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f5f2ea; --card:#fffdf8; --ink:#1f1d1a; --muted:#6b675f; --line:#ddd7ca;
+  --accent:#7a4a1c; --accent-soft:#f1e6d6; --water:#2f6f9f; --loss:#b3261e; --ok:#2e7d4f;
+  --code:#f3efe6;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#191816; --card:#22201d; --ink:#ece8df; --muted:#a29d92; --line:#3a3631;
+    --accent:#d9a46b; --accent-soft:#3a2e22; --water:#7fb3da; --loss:#ef8a80; --ok:#7fc59a; --code:#2b2824;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#191816; --card:#22201d; --ink:#ece8df; --muted:#a29d92; --line:#3a3631;
+  --accent:#d9a46b; --accent-soft:#3a2e22; --water:#7fb3da; --loss:#ef8a80; --ok:#7fc59a; --code:#2b2824;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink)}
+body{font:16px/1.6 "Source Sans 3",system-ui,sans-serif}
+.wrap{max-width:1080px;margin:0 auto;padding:28px 16px 48px}
+.eyebrow{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);font-weight:700;margin:0}
+h1{font:600 30px/1.2 "Source Serif 4",Georgia,serif;margin:4px 0 6px}
+h2{font:600 22px/1.25 "Source Serif 4",Georgia,serif;margin:0 0 8px}
+h3{font-size:16px;margin:16px 0 4px}
+p{margin:0 0 10px}
+.lead{color:var(--muted);max-width:780px}
+hr.rule{border:0;border-top:2px solid var(--ink);margin:14px 0 22px}
+a{color:var(--accent)}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:18px 20px}
+.district h2{display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap}
+.district .when{font:400 13px "Source Sans 3",sans-serif;color:var(--muted)}
+.kv{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:10px 0 12px}
+.kv div{border-top:3px solid var(--line);padding-top:6px}
+.kv b{display:block;font-size:22px;line-height:1.1}
+.kv span{font-size:12.5px;color:var(--muted)}
+.btn{display:inline-block;background:var(--accent);color:var(--card);text-decoration:none;font-weight:600;padding:7px 14px;border-radius:6px;font-size:14px}
+.flow{margin:8px 0 4px;overflow-x:auto}
+.flow svg{display:block;width:100%;min-width:640px;height:auto}
+.flow text{font-family:"Source Sans 3",sans-serif}
+.step{display:grid;grid-template-columns:46px 1fr;gap:14px;padding:20px 0;border-top:1px solid var(--line)}
+.step:first-of-type{border-top:0}
+.num{width:38px;height:38px;border-radius:50%;background:var(--accent-soft);color:var(--accent);display:flex;align-items:center;justify-content:center;font-weight:700}
+.eq{background:var(--code);border-left:3px solid var(--accent);padding:10px 14px;margin:8px 0 10px;font:15px/1.7 "Source Serif 4",Georgia,serif;overflow-x:auto}
+.eq .note{font:13px/1.5 "Source Sans 3",sans-serif;color:var(--muted);display:block}
+.live{font-size:14px;background:var(--accent-soft);border-radius:6px;padding:8px 12px;margin-top:6px}
+.live b{font-weight:600}
+table{border-collapse:collapse;width:100%;font-size:14.5px;margin:6px 0 10px}
+th,td{border-bottom:1px solid var(--line);padding:6px 8px;text-align:left;vertical-align:top}
+th{font-weight:600;color:var(--muted);font-size:13px}
+.refs{font-size:13.5px;color:var(--muted)}
+.refs li{margin-bottom:4px}
+footer{margin-top:26px;font-size:13px;color:var(--muted)}
+@media (max-width:560px){
+  h1{font-size:25px}
+  .kv{grid-template-columns:repeat(2,1fr)}
+  .step{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <p class="eyebrow">Soil Conservation Department, Government of Assam · Pilot</p>
+  <h1>Satellite-based Soil Erosion Risk Monitoring</h1>
+  <p class="lead">This system maps river bank erosion, land change and soil erosion risk for Dibrugarh and Majuli districts. It updates itself every month from free satellite data. This page describes how each step is calculated. The boxes marked "Latest runs" show the values computed for each district in the most recent run. District results are on the two tabs above.</p>
+  <hr class="rule">
+
+  <div class="grid2" id="districts">
+    <section class="card district" data-key="dib">
+      <h2>Dibrugarh District <span class="when">Loading…</span></h2>
+      <div class="kv"></div>
+      <a class="btn" href="https://sites.google.com/dibru.ac.in/dibrugarhsoil/dibrugarh-district" target="_top">Open Dibrugarh results</a>
+    </section>
+    <section class="card district" data-key="maj">
+      <h2>Majuli District <span class="when">Loading…</span></h2>
+      <div class="kv"></div>
+      <a class="btn" href="https://sites.google.com/dibru.ac.in/dibrugarhsoil/majuli-district" target="_top">Open Majuli results</a>
+    </section>
+  </div>
+
+  <section class="card" style="margin-top:16px">
+    <h2>Overview of the processing chain</h2>
+    <p>Each monthly run follows the same chain for both districts. A GitHub Actions job runs the Python pipeline. It writes the results as web layers, and GitHub Pages publishes the dashboards that this site embeds.</p>
+    <div class="flow">
+      <svg viewBox="0 0 960 250" role="img" aria-label="Processing chain from satellite data to dashboard">
+        <defs><marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="var(--muted)"/></marker></defs>
+        <g font-size="13" fill="var(--ink)">
+          <g><rect x="10" y="20" width="170" height="64" rx="8" fill="var(--card)" stroke="var(--line)"/><text x="95" y="46" text-anchor="middle" font-weight="700">1–2 Inputs</text><text x="95" y="66" text-anchor="middle" fill="var(--muted)">Sentinel-2, Sentinel-1, DEM</text></g>
+          <g><rect x="210" y="20" width="170" height="64" rx="8" fill="var(--card)" stroke="var(--line)"/><text x="295" y="46" text-anchor="middle" font-weight="700">3–4 Indices, water</text><text x="295" y="66" text-anchor="middle" fill="var(--muted)">NDVI, MNDWI, BSI, frequency</text></g>
+          <g><rect x="410" y="20" width="170" height="64" rx="8" fill="var(--card)" stroke="var(--line)"/><text x="495" y="46" text-anchor="middle" font-weight="700">5–6 Change, retreat</text><text x="495" y="66" text-anchor="middle" fill="var(--muted)">6 change classes, m/yr</text></g>
+          <g><rect x="610" y="20" width="170" height="64" rx="8" fill="var(--card)" stroke="var(--line)"/><text x="695" y="46" text-anchor="middle" font-weight="700">7–8 Risk models</text><text x="695" y="66" text-anchor="middle" fill="var(--muted)">RUSLE, RF + XGBoost</text></g>
+          <g><rect x="790" y="140" width="160" height="64" rx="8" fill="var(--accent-soft)" stroke="var(--accent)"/><text x="870" y="166" text-anchor="middle" font-weight="700">Dashboard</text><text x="870" y="186" text-anchor="middle" fill="var(--muted)">monthly, automatic</text></g>
+          <g><rect x="410" y="140" width="170" height="64" rx="8" fill="var(--card)" stroke="var(--line)"/><text x="495" y="166" text-anchor="middle" font-weight="700">9–11 Priority sites</text><text x="495" y="186" text-anchor="middle" fill="var(--muted)">confidence, people, action</text></g>
+          <g><rect x="210" y="140" width="170" height="64" rx="8" fill="var(--card)" stroke="var(--line)"/><text x="295" y="166" text-anchor="middle" font-weight="700">12–13 Checking</text><text x="295" y="166" dy="20" text-anchor="middle" fill="var(--muted)">accuracy, field visits</text></g>
+          <g><rect x="10" y="140" width="170" height="64" rx="8" fill="var(--card)" stroke="var(--line)"/><text x="95" y="166" text-anchor="middle" font-weight="700">14 Sensors</text><text x="95" y="186" text-anchor="middle" fill="var(--muted)">real-time alerts</text></g>
+        </g>
+        <g stroke="var(--muted)" stroke-width="1.6" fill="none" marker-end="url(#ar)">
+          <path d="M180 52 H206"/><path d="M380 52 H406"/><path d="M580 52 H606"/>
+          <path d="M695 84 V112 H495 V136"/>
+          <path d="M580 172 H786"/>
+          <path d="M410 172 H384"/>
+          <path d="M295 140 V112 H495" stroke-dasharray="4 4" marker-end="none"/>
+          <path d="M180 172 H206" stroke-dasharray="4 4"/>
+        </g>
+        <text x="300" y="234" font-size="12" fill="var(--muted)">Dashed lines: field and sensor data feed back into checking and ranking.</text>
+      </svg>
+    </div>
+  </section>
+
+  <section class="card" style="margin-top:16px">
+    <h2>Steps and calculations</h2>
+
+    <div class="step"><div class="num">1</div><div>
+      <h3>Study area and monitoring windows</h3>
+      <p>The district boundary is fixed once. Dibrugarh uses the geoBoundaries ADM2 polygon. Majuli became a district in 2016 and is missing from older boundary sets, so its polygon is built from the OpenStreetMap administrative relation (admin_level 5). All layers are placed on one grid in UTM zone 46N (EPSG:32646) at 20 m resolution.</p>
+      <p>Each run compares the latest 120 days with the same calendar dates in the baseline year 2020. Comparing the same months keeps differences in river level and crop stage small, so they are not mistaken for change.</p>
+      <div class="live" data-live="window"></div>
+    </div></div>
+
+    <div class="step"><div class="num">2</div><div>
+      <h3>Satellite data and composites</h3>
+      <p>Images are read from the Microsoft Planetary Computer catalogue, which is free and needs no account. Three datasets are used: Sentinel-2 L2A surface reflectance (bands B02, B03, B04, B08, B11, B12), Sentinel-1 radiometrically terrain-corrected radar (VV, VH), and the Copernicus 30 m DEM. Clouds, shadows and cirrus are removed with the Sentinel-2 scene classification: only classes 4 (vegetation), 5 (bare soil), 6 (water) and 7 (unclassified) are kept. At most the 15 clearest scenes of each tile are used. A per-pixel median of the clear observations gives one composite for each window. Radar sees through clouds and is used where the optical view is missing.</p>
+      <div class="live" data-live="coverage"></div>
+    </div></div>
+
+    <div class="step"><div class="num">3</div><div>
+      <h3>Spectral indices</h3>
+      <p>Three indices are computed from the composites (B = Sentinel-2 band):</p>
+      <div class="eq">NDVI = (B08 − B04) / (B08 + B04)  <span class="note">vegetation greenness</span>
+        MNDWI = (B03 − B11) / (B03 + B11)  <span class="note">open water (Xu, 2006)</span>
+        BSI = [(B11 + B04) − (B08 + B02)] / [(B11 + B04) + (B08 + B02)]  <span class="note">bare soil</span></div>
+    </div></div>
+
+    <div class="step"><div class="num">4</div><div>
+      <h3>Water mapping with a frequency rule</h3>
+      <p>A single composite can be misled by one flooded or hazy date. The system therefore classifies every clear date separately and counts how often each pixel was water. The threshold is chosen automatically by the edge-based Otsu method (Donchyts et al., 2016): pixels near the land–water edge are selected, and the threshold that best separates their MNDWI values into two groups is used. For radar, the same is done on VV backscatter (in dB).</p>
+      <div class="eq">water frequency f = k / n
+        <span class="note">k = number of clear dates on which the pixel was water, n = number of clear dates</span>
+        pixel is water if f ≥ 0.5 and n ≥ 2</div>
+      <div class="live" data-live="water"></div>
+    </div></div>
+
+    <div class="step"><div class="num">5</div><div>
+      <h3>Change detection</h3>
+      <p>The baseline and current water maps and indices are compared pixel by pixel. Land-to-water change is then split by the JRC Global Surface Water record (Landsat, 1984–2021, Pekel et al., 2016). Loss of land that had never been water is bank erosion of stable land. Loss inside the historical river belt is char or sandbar loss. A loss patch that does not touch a water body of at least 50 ha is a pond or flooded field, not a river bank.</p>
+      <table>
+        <tr><th>Class</th><th>Rule</th></tr>
+        <tr><td>1 Bank erosion (stable land)</td><td>land in baseline, water now, never water in 1984–2021, touches the river</td></tr>
+        <tr><td>2 Accretion</td><td>water in baseline, land now</td></tr>
+        <tr><td>3 Vegetation loss</td><td>land in both windows and ΔNDVI = NDVI<sub>current</sub> − NDVI<sub>baseline</sub> &lt; −0.15</td></tr>
+        <tr><td>4 New bare soil</td><td>land now, BSI &gt; 0.05 now and ≤ 0.05 in baseline</td></tr>
+        <tr><td>5 Char or sandbar loss</td><td>land to water inside the JRC river belt, touches the river</td></tr>
+        <tr><td>6 New inland water</td><td>land to water not touching a water body ≥ 50 ha</td></tr>
+      </table>
+      <p>Patches smaller than 10 pixels (0.4 ha) are dropped as noise.</p>
+      <div class="live" data-live="change"></div>
+    </div></div>
+
+    <div class="step"><div class="num">6</div><div>
+      <h3>Bank retreat</h3>
+      <p>For every pixel that turned into water, the distance to the nearest baseline water pixel is how far the bank moved back. It is computed with a Euclidean distance transform. The rate divides the largest distance in a patch by the years between the two windows.</p>
+      <div class="eq">retreat rate (m/yr) = max distance to baseline water (m) / years between windows</div>
+    </div></div>
+
+    <div class="step"><div class="num">7</div><div>
+      <h3>Soil loss by RUSLE</h3>
+      <p>Sheet and rill erosion on land is estimated with the Revised Universal Soil Loss Equation (Renard et al., 1997). Water pixels are excluded.</p>
+      <div class="eq">A = R × K × LS × C × P  <span class="note">A = soil loss (t ha⁻¹ yr⁻¹)</span>
+        R = 79 + 0.363 P<sub>mm</sub>  <span class="note">rainfall erosivity; P = mean annual rainfall from IMD 0.25° gridded data, 2000–2025 (Singh et al., 1981; Pai et al., 2014). CHIRPS v2.0 is used as a cross-check.</span>
+        K from SoilGrids 250 m topsoil sand, silt, clay and organic carbon  <span class="note">Williams (1995) EPIC equation</span>
+        LS = (λ / 22.13)<sup>m</sup> × S,  S = 10.8 sin θ + 0.03 (tan θ &lt; 0.09) or 16.8 sin θ − 0.50  <span class="note">θ from the Copernicus DEM smoothed over 100 m; λ = cell size (McCool et al., 1987)</span>
+        C = exp[−2 × NDVI / (1 − NDVI)]  <span class="note">cover factor (Van der Knijff et al., 2000)</span>
+        P = 1  <span class="note">no support practice assumed</span></div>
+      <p>Soil loss is grouped into five risk classes: very low (≤ 5), low (5–10), moderate (10–20), high (20–40) and very high (&gt; 40 t ha⁻¹ yr⁻¹). Both districts are mostly flat floodplain, so RUSLE risk is low almost everywhere. River bank erosion is the main hazard, and RUSLE does not describe it.</p>
+      <div class="live" data-live="rusle"></div>
+    </div></div>
+
+    <div class="step"><div class="num">8</div><div>
+      <h3>AI prediction of bank erosion</h3>
+      <p>Random Forest (300 trees) and XGBoost (400 trees, depth 6) models learn which land pixels near the river were lost between the two windows. They use 14 predictors measured in the baseline window, such as distance to the channel, river water within 300 m, 1 km and 3 km, height above low ground, slope, NDVI, BSI, MNDWI, water frequency, soil K, the 1984–2021 water history and past bank loss within 1 km. Up to 150,000 land pixels within 3 km of the river are sampled. The trained models are then applied to current conditions to predict where loss is likely next. The final map is the mean of the two models.</p>
+      <p>Accuracy is measured by spatial block cross-validation: the river is cut into 6 blocks, and each block is predicted by a model that never saw it. This avoids the over-optimistic scores of random splits. The models are compared with two simple baselines: RUSLE soil loss, and distance to the river alone. A model that is no better than chance adds no sites to the priority list.</p>
+      <div class="eq">model skill = (cross-validated ROC-AUC − 0.5) / 0.4, limited to 0–1
+        <span class="note">susceptibility classes: very low &lt; 0.05 ≤ low &lt; 0.15 ≤ moderate &lt; 0.30 ≤ high &lt; 0.50 ≤ very high</span></div>
+      <div class="live" data-live="ml"></div>
+    </div></div>
+
+    <div class="step"><div class="num">9</div><div>
+      <h3>Confidence of each result</h3>
+      <p>Every water or land label rests on several dates. With k water dates out of n, a Beta(k + 1, n − k + 1) distribution describes the true water frequency. The confidence of a label is the probability that the frequency lies on the same side of 0.5 as the label. A change needs both labels to be right, so the two confidences are multiplied.</p>
+      <div class="eq">confidence(water) = 1 − I<sub>0.5</sub>(k + 1, n − k + 1),   confidence(land) = I<sub>0.5</sub>(k + 1, n − k + 1)
+        <span class="note">I = regularised incomplete beta function</span>
+        change confidence = confidence<sub>baseline</sub> × confidence<sub>current</sub>
+        <span class="note">site label: High ≥ 0.90, Medium ≥ 0.75, otherwise Low. For AI sites, the agreement between the two models is used.</span></div>
+      <div class="live" data-live="conf"></div>
+    </div></div>
+
+    <div class="step"><div class="num">10</div><div>
+      <h3>People and assets at risk, and site priority</h3>
+      <p>Exposure is counted within 500 m of each site. The sources are WorldPop 2020 population, ESA WorldCover 2021 built-up and cropland, and OpenStreetMap roads, embankments and facilities (schools, health centres and similar). Each count is scaled to 0–1 against a saturation value and combined with weights. Hazard comes from the class of the site, its area and its confidence.</p>
+      <table>
+        <tr><th>Exposure layer</th><th>Weight</th><th>Saturation (= 1.0)</th></tr>
+        <tr><td>Population</td><td>0.35</td><td>2,000 people</td></tr>
+        <tr><td>Built-up area</td><td>0.15</td><td>10 ha</td></tr>
+        <tr><td>Cropland</td><td>0.15</td><td>40 ha</td></tr>
+        <tr><td>Facilities</td><td>0.15</td><td>2</td></tr>
+        <tr><td>Roads</td><td>0.10</td><td>3 km</td></tr>
+        <tr><td>Embankments</td><td>0.10</td><td>1 km</td></tr>
+      </table>
+      <div class="eq">exposure index E = Σ w<sub>i</sub> × min(x<sub>i</sub> / s<sub>i</sub>, 1) / Σ w<sub>i</sub><br>
+        hazard H = class weight × ln(1 + area<sub>ha</sub>) × evidence
+        <span class="note">class weight: bank erosion 1.0, very high RUSLE 0.9, AI prediction 0.8, vegetation loss and bare soil 0.6, high RUSLE 0.5, char loss 0.4, accretion 0.3. Evidence = change confidence, or for AI sites min(p / 0.5, 1) × model skill.</span>
+        priority = H × (0.3 + 0.7 × E)</div>
+      <p>The 50 sites with the highest priority are listed, with room kept for each kind of evidence (30 change, 15 AI, 5 RUSLE).</p>
+      <div class="live" data-live="expo"></div>
+    </div></div>
+
+    <div class="step"><div class="num">11</div><div>
+      <h3>Recommended action</h3>
+      <p>Each site gets an urgency, a lead agency and a suggested action from fixed rules.</p>
+      <table>
+        <tr><th>Urgency</th><th>Rule (main cases)</th></tr>
+        <tr><td>Immediate</td><td>bank erosion with ≥ 500 people within 500 m, or an embankment within 500 m, or retreat ≥ 50 m/yr, and confidence High or Medium</td></tr>
+        <tr><td>Before monsoon</td><td>the same triggers with Low confidence, or bank erosion near roads, facilities or exposure ≥ 0.4; AI sites with people or assets; very high RUSLE</td></tr>
+        <tr><td>Routine</td><td>other bank erosion, vegetation loss, bare soil, new inland water, high RUSLE</td></tr>
+        <tr><td>Monitor</td><td>char loss and accretion inside the river belt</td></tr>
+      </table>
+      <div class="live" data-live="urg"></div>
+    </div></div>
+
+    <div class="step"><div class="num">12</div><div>
+      <h3>Accuracy assessment</h3>
+      <p>A stratified random sample of 330 points is drawn from the change map, with more points in rare classes. For each point an analyst looks at the before and after image chips on the labelling page and records the true class. User's and producer's accuracy, overall accuracy and the corrected area of each class, all with 95% confidence intervals, are then estimated by the method of Olofsson et al. (2014) and Stehman (2014). These are good-practice estimators for maps from stratified samples.</p>
+      <div class="eq">area estimate Â<sub>j</sub> = A<sub>total</sub> × Σ<sub>h</sub> W<sub>h</sub> × (n<sub>hj</sub> / n<sub>h</sub>)
+        <span class="note">W<sub>h</sub> = mapped share of stratum h; n<sub>hj</sub> = sample points of stratum h whose true class is j</span></div>
+      <div class="live" data-live="val"></div>
+    </div></div>
+
+    <div class="step"><div class="num">13</div><div>
+      <h3>Field verification</h3>
+      <p>Each run writes a KoboToolbox/ODK form and a list of priority sites. Field staff pick a site ID, record erosion type, severity, bank height and photographs. Records are matched to sites by ID, or else by the nearest record within 300 m. Each site is then marked confirmed, not confirmed or new. The confirmation rate and the false alarms are shown on each dashboard.</p>
+    </div></div>
+
+    <div class="step"><div class="num">14</div><div>
+      <h3>Real-time sensor stations (pilot)</h3>
+      <p>Four proposed stations per district sit at the highest-priority bank sites. Each station has a river level sensor, a rain gauge, soil moisture probes at 30, 60 and 100 cm, and tilt nodes 5, 10, 20 and 40 m from the bank edge. Readings are simulated until hardware is installed; the panel can read ThingSpeak channels instead. The rules are checked every minute.</p>
+      <table>
+        <tr><th>Alert</th><th>Rule</th></tr>
+        <tr><td>Rapid drawdown</td><td>river level falls &gt; 0.5 m in 6 h (banks most often fail as the river falls)</td></tr>
+        <tr><td>Rapid rise / above warning</td><td>rise &gt; 1.0 m in 6 h, or level above the station warning level</td></tr>
+        <tr><td>Heavy rain</td><td>≥ 64.5 mm in 24 h (IMD "heavy rain")</td></tr>
+        <tr><td>Saturated bank</td><td>soil moisture ≥ 45%</td></tr>
+        <tr><td>Bank movement</td><td>tilt change ≥ 3° in 24 h; critical at ≥ 10°</td></tr>
+        <tr><td>Possible bank failure</td><td>a tilted node stops reporting for 2 h</td></tr>
+      </table>
+    </div></div>
+  </section>
+
+  <section class="card" style="margin-top:16px">
+    <h2>Limitations</h2>
+    <p>The change maps rely on 20 m pixels, so changes smaller than about 0.4 ha are not detected. The char/bank split uses the JRC record, which ends in 2021. On an island district such as Majuli, most of the bank was water at some time since 1984, so much real loss of island land is counted as char loss. RUSLE uses the cell size as slope length, which is a simple approximation for flat floodplains. Population near a site is an upper bound, because WorldPop cells are 100 m. All results should be confirmed in the field before works are planned.</p>
+  </section>
+
+  <section class="card" style="margin-top:16px">
+    <h2>References</h2>
+    <ol class="refs">
+      <li>Donchyts, G. et al. (2016). A 30 m resolution surface water mask including estimation of positional and thematic differences using Landsat 8, SRTM and OpenStreetMap. <i>Remote Sensing</i>, 8(5), 386.</li>
+      <li>McCool, D.K. et al. (1987). Revised slope steepness factor for the Universal Soil Loss Equation. <i>Transactions of the ASAE</i>, 30(5), 1387–1396.</li>
+      <li>Olofsson, P. et al. (2014). Good practices for estimating area and assessing accuracy of land change. <i>Remote Sensing of Environment</i>, 148, 42–57.</li>
+      <li>Pai, D.S. et al. (2014). Development of a new high spatial resolution (0.25° × 0.25°) long period daily gridded rainfall data set over India. <i>Mausam</i>, 65(1), 1–18.</li>
+      <li>Pekel, J.-F. et al. (2016). High-resolution mapping of global surface water and its long-term changes. <i>Nature</i>, 540, 418–422.</li>
+      <li>Renard, K.G. et al. (1997). <i>Predicting Soil Erosion by Water: A Guide to Conservation Planning with RUSLE</i>. USDA Agriculture Handbook 703.</li>
+      <li>Singh, G., Ram Babu and Chandra, S. (1981). Soil loss prediction research in India. Bulletin T-12/D-9, CSWCRTI, Dehradun.</li>
+      <li>Stehman, S.V. (2014). Estimating area and map accuracy for stratified random sampling when the strata are different from the map classes. <i>International Journal of Remote Sensing</i>, 35(13), 4923–4939.</li>
+      <li>Van der Knijff, J.M., Jones, R.J.A. and Montanarella, L. (2000). <i>Soil Erosion Risk Assessment in Europe</i>. EUR 19044 EN, European Commission.</li>
+      <li>Williams, J.R. (1995). The EPIC model. In: Singh, V.P. (ed.), <i>Computer Models of Watershed Hydrology</i>, 909–1000.</li>
+      <li>Xu, H. (2006). Modification of normalised difference water index (NDWI) to enhance open water features in remotely sensed imagery. <i>International Journal of Remote Sensing</i>, 27(14), 3025–3033.</li>
+    </ol>
+  </section>
+
+  <footer>Data: Copernicus Sentinel-1, Sentinel-2 and DEM GLO-30 (via Microsoft Planetary Computer); IMD gridded rainfall; CHIRPS v2.0; SoilGrids 2.0; JRC Global Surface Water; ESA WorldCover 2021; WorldPop 2020; OpenStreetMap contributors. Code: <a href="https://github.com/sudipta2020-1/dibrugarh-erosion-monitor" target="_blank" rel="noopener">Dibrugarh</a> and <a href="https://github.com/sudipta2020-1/majuli-erosion-monitor" target="_blank" rel="noopener">Majuli</a> repositories. Department of Computer Science and Engineering, DUIET, Dibrugarh University.</footer>
+</div>
+
+<script>
+(function () {
+  const SRC = {
+    dib: { name: "Dibrugarh", url: "https://sudipta2020-1.github.io/dibrugarh-erosion-monitor/data/summary.json" },
+    maj: { name: "Majuli", url: "https://sudipta2020-1.github.io/majuli-erosion-monitor/data/summary.json" }
+  };
+  const fmt = (v, d = 0) => (v === undefined || v === null || isNaN(v)) ? "–" :
+    Number(v).toLocaleString("en-IN", { maximumFractionDigits: d, minimumFractionDigits: d });
+  const get = (o, path) => path.split(".").reduce((a, k) => (a && a[k] !== undefined ? a[k] : undefined), o);
+  const ens = s => get(s, "ml_model.metrics") ? s.ml_model.metrics["Ensemble (RF + XGBoost)"] || {} : {};
+  const metric = (s, name) => (get(s, "ml_model.metrics") || {})[name] || {};
+  const ca = (s, key) => {
+    const c = s.change_area_ha || {};
+    const k = Object.keys(c).find(x => x.startsWith(key));
+    return k ? c[k] : undefined;
+  };
+
+  const LIVE = {
+    window: s => `${(s.period_current || []).join(" to ")} compared with ${(s.period_baseline || []).join(" to ")}`,
+    coverage: s => `${fmt(s.clear_coverage_pct, 1)}% of the district had a clear optical view; run confidence: ${s.confidence || "–"}`,
+    water: s => {
+      const w = get(s, "water_detection.current") || {};
+      return `MNDWI threshold ${fmt(w.mndwi_threshold_otsu, 3)} (Otsu), radar VV threshold ${fmt(w.vv_threshold_otsu, 1)} dB; ${fmt(w.share_from_optical_frequency_pct, 1)}% of pixels labelled from optical frequency`;
+    },
+    change: s => `bank erosion ${fmt(ca(s, "Bank erosion"))} ha, char loss ${fmt(ca(s, "Char"))} ha, accretion ${fmt(ca(s, "Accretion"))} ha, vegetation loss ${fmt(ca(s, "Vegetation"))} ha, new inland water ${fmt(ca(s, "New inland"))} ha`,
+    rusle: s => {
+      const r = s.rusle_inputs || {};
+      return `mean rainfall ${fmt(r.mean_rainfall_mm)} mm, mean R ${fmt(r.mean_R)}, mean K ${fmt(r.mean_K, 4)}, mean soil loss ${fmt(s.mean_soil_loss_t_ha_yr, 2)} t/ha/yr`;
+    },
+    ml: s => `ROC-AUC: ensemble ${fmt(ens(s).roc_auc, 3)}, distance to river ${fmt(metric(s, "Distance to river only").roc_auc, 3)}, RUSLE ${fmt(metric(s, "RUSLE soil loss (baseline)").roc_auc, 3)}; the top 20% of the AI map captured ${fmt(100 * (ens(s).captured_top20pct || NaN))}% of observed loss`,
+    conf: s => `mean change confidence ${fmt(get(s, "confidence_summary.mean_change_confidence"), 3)}; ${fmt(get(s, "confidence_summary.change_area_high_confidence_ha"))} ha of change at high confidence`,
+    expo: s => `${fmt(get(s, "exposure.people_near_bank_erosion"))} people within 500 m of bank erosion (upper bound); ${fmt(s.hotspots_listed)} sites listed`,
+    urg: s => {
+      const u = s.sites_by_urgency || {};
+      return `Immediate ${fmt(u["Immediate"])}, before monsoon ${fmt(u["Before monsoon"])}, routine ${fmt(u["Routine"])}, monitor ${fmt(u["Monitor"])}`;
+    },
+    val: s => {
+      const v = s.validation || {}, a = s.accuracy || {};
+      return a.overall_accuracy !== undefined ? `overall accuracy ${fmt(100 * a.overall_accuracy, 1)}% ± ${fmt(100 * (a.overall_ci95 || 0), 1)}%` :
+        `${fmt(v.sample_points)} points drawn; accuracy will appear once the points are labelled`;
+    }
+  };
+
+  function card(key, s) {
+    const el = document.querySelector(`.district[data-key="${key}"]`);
+    if (!s) { el.querySelector(".when").textContent = "results not available"; return; }
+    el.querySelector(".when").textContent = `last run ${String(s.run_date || "").slice(0, 10)}`;
+    const u = s.sites_by_urgency || {};
+    el.querySelector(".kv").innerHTML = [
+      [fmt(s.district_area_ha / 100), "district area, km²"],
+      [fmt(u["Immediate"]), "sites for immediate action"],
+      [fmt(get(s, "exposure.people_near_bank_erosion")), "people near bank erosion"],
+      [fmt(ca(s, "Bank erosion")), "ha bank erosion"],
+      [fmt(ca(s, "Char")), "ha char loss"],
+      [fmt(ens(s).roc_auc, 2), "AI model ROC-AUC"]
+    ].map(([b, t]) => `<div><b>${b}</b><span>${t}</span></div>`).join("");
+  }
+
+  Promise.all(Object.entries(SRC).map(([k, v]) =>
+    fetch(v.url + "?t=" + Date.now()).then(r => r.ok ? r.json() : null).catch(() => null).then(s => [k, s])))
+  .then(res => {
+    const S = Object.fromEntries(res);
+    card("dib", S.dib); card("maj", S.maj);
+    document.querySelectorAll("[data-live]").forEach(el => {
+      const f = LIVE[el.dataset.live];
+      const rows = Object.entries(SRC).filter(([k]) => S[k]).map(([k, v]) => {
+        let t; try { t = f(S[k]); } catch (e) { t = "–"; }
+        return `<div><b>${v.name}:</b> ${t}</div>`;
+      });
+      el.innerHTML = rows.length ? `<div style="font-weight:600;margin-bottom:2px">Latest runs</div>${rows.join("")}` : "";
+      if (!rows.length) el.style.display = "none";
+    });
+  });
+})();
+</script>
+</body>
+</html>
