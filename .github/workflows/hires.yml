@@ -3,6 +3,8 @@ name: High-resolution comparison (10 m)
 # 10 m water mapping with a sharpened SWIR band and sub-pixel bank lines,
 # compared with the standard 20 m run. Runs after the weekly monitoring run and
 # uses the same monitoring windows. Results go to docs/data/hires/.
+# The two 10 m composites (baseline and current) are built in parallel jobs,
+# then a third job compares them with the standard 20 m map.
 on:
   schedule:
     # Every Monday at 05:40 UTC (11:10 IST), after the 08:40 IST monitoring run
@@ -17,9 +19,13 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  hires:
+  composite:
     runs-on: ubuntu-latest
-    timeout-minutes: 330
+    timeout-minutes: 340
+    strategy:
+      fail-fast: false
+      matrix:
+        period: [baseline, current]
     steps:
       - uses: actions/checkout@v4
 
@@ -31,24 +37,57 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt scikit-image
 
-      - name: Restore cached 10 m composites
+      - name: Restore cached 10 m composite
         uses: actions/cache/restore@v4
         with:
           path: outputs/dibrugarh_district/hires
-          key: hires-v1-${{ github.run_id }}-${{ github.run_attempt }}
-          restore-keys: hires-v1-
+          key: hires-v2-${{ matrix.period }}-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: hires-v2-${{ matrix.period }}-
 
-      - name: Run the 10 m comparison
+      - name: Build the 10 m composite
         env:
           PYTHONUNBUFFERED: "1"
-        run: python pipeline/hires.py
+        run: python pipeline/hires.py --only ${{ matrix.period }}
 
-      - name: Save 10 m composites for later attempts
-        if: always() && hashFiles('outputs/dibrugarh_district/hires/**') != ''
+      - name: Save 10 m composite in the cache
+        if: always() && hashFiles('outputs/dibrugarh_district/hires/*.nc') != ''
         uses: actions/cache/save@v4
         with:
           path: outputs/dibrugarh_district/hires
-          key: hires-v1-${{ github.run_id }}-${{ github.run_attempt }}
+          key: hires-v2-${{ matrix.period }}-${{ github.run_id }}-${{ github.run_attempt }}
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: nc-${{ matrix.period }}
+          path: outputs/dibrugarh_district/hires/s2_10m_${{ matrix.period }}_*.nc
+          retention-days: 3
+          compression-level: 0
+
+  compare:
+    needs: composite
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt scikit-image
+
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: nc-*
+          merge-multiple: true
+          path: outputs/dibrugarh_district/hires
+
+      - name: Compare the 10 m and 20 m results
+        env:
+          PYTHONUNBUFFERED: "1"
+        run: python pipeline/hires.py
 
       - name: Commit comparison data
         run: |
