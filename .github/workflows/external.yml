@@ -5,6 +5,11 @@ name: External accuracy check
 # riverbank erosion dataset. Results go to docs/data/external/.
 on:
   workflow_dispatch:
+    inputs:
+      which:
+        description: "Which test to run: all, test1 (Dynamic World tiles) or test2 (REAL reaches)"
+        required: false
+        default: "all"
 
 permissions:
   contents: write
@@ -31,7 +36,7 @@ jobs:
       - name: Run the external checks
         env:
           PYTHONUNBUFFERED: "1"
-        run: python pipeline/external_validation.py
+        run: python pipeline/external_validation.py "${{ github.event.inputs.which || 'all' }}"
 
       - name: Commit results
         run: |
