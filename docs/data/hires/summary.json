@@ -1,0 +1,190 @@
+{
+  "run": "2026-10-10 10:46 UTC",
+  "periods": {
+    "baseline": [
+      "2019-10-31",
+      "2020-02-28"
+    ],
+    "current": [
+      "2025-10-31",
+      "2026-02-28"
+    ]
+  },
+  "district": "Dibrugarh",
+  "resolution_m": 10,
+  "min_patch_ha": 0.05,
+  "area_analysed_km2": 1277.5,
+  "years_between": 6.0,
+  "water": {
+    "baseline": {
+      "threshold": 0.1,
+      "otsu": 0.119,
+      "edge_px": 1331895
+    },
+    "current": {
+      "threshold": 0.1,
+      "otsu": 0.08,
+      "edge_px": 1143336
+    }
+  },
+  "hires": {
+    "area_ha": {
+      "Bank erosion (stable land to water)": 607.4,
+      "Accretion (water to land)": 15671.6,
+      "Char or sandbar lost (within river belt)": 9880.1,
+      "New inland water (pond or flooding)": 269.0
+    },
+    "bank_loss_patches": 1207,
+    "bank_loss_ha": 10497.5,
+    "size_hist": [
+      0,
+      319,
+      181,
+      141,
+      154,
+      215,
+      105,
+      92
+    ],
+    "small_patches": 641,
+    "small_ha": 85.31,
+    "mean_confidence": 0.953,
+    "bankline_km": {
+      "baseline": 1887.1,
+      "current": 1564.8
+    },
+    "retreat": {
+      "median_subpixel_m": 32.2,
+      "median_pixel_m": 36.0,
+      "p90_subpixel_m": 335.2
+    }
+  },
+  "size_labels": [
+    "< 0.05",
+    "0.05\u20130.1",
+    "0.1\u20130.2",
+    "0.2\u20130.4",
+    "0.4\u20131",
+    "1\u20135",
+    "5\u201320",
+    "> 20"
+  ],
+  "standard": {
+    "area_ha": {
+      "Bank erosion (stable land to water)": 594.6,
+      "Accretion (water to land)": 15308.1,
+      "Char or sandbar lost (within river belt)": 9928.3,
+      "New inland water (pond or flooding)": 452.2
+    },
+    "resolution_m": 20,
+    "min_patch_ha": 0.4,
+    "bank_loss_patches": 580,
+    "bank_loss_ha": 10478.7,
+    "size_hist": [
+      0,
+      0,
+      0,
+      0,
+      167,
+      216,
+      106,
+      91
+    ]
+  },
+  "agreement": {
+    "iou_bank_loss": 0.903,
+    "share_10m_within_20m_of_standard": 0.977,
+    "share_standard_within_20m_of_10m": 0.996,
+    "new_small_patches": 467,
+    "new_small_ha": 55.1
+  },
+  "layers": {
+    "change20": {
+      "file": "hires/change20.png",
+      "bounds": [
+        [
+          27.120497,
+          94.535152
+        ],
+        [
+          27.671185,
+          95.496032
+        ]
+      ]
+    },
+    "change10": {
+      "file": "hires/change10.png",
+      "bounds": [
+        [
+          27.120497,
+          94.535152
+        ],
+        [
+          27.671185,
+          95.496032
+        ]
+      ]
+    }
+  },
+  "legend": [
+    [
+      "Bank erosion (stable land to water)",
+      "#d7191c"
+    ],
+    [
+      "Char or sandbar lost (within river belt)",
+      "#f59ec0"
+    ],
+    [
+      "New inland water (pond or flooding)",
+      "#66c2a5"
+    ],
+    [
+      "Accretion (water to land)",
+      "#2c7bb6"
+    ]
+  ],
+  "examples_small": [
+    {
+      "lat": 27.592663,
+      "lon": 94.957937,
+      "area_ha": 0.37
+    },
+    {
+      "lat": 27.213005,
+      "lon": 94.63921,
+      "area_ha": 0.35
+    },
+    {
+      "lat": 27.197817,
+      "lon": 94.586144,
+      "area_ha": 0.35
+    },
+    {
+      "lat": 27.588966,
+      "lon": 95.282234,
+      "area_ha": 0.34
+    },
+    {
+      "lat": 27.585441,
+      "lon": 95.129232,
+      "area_ha": 0.34
+    },
+    {
+      "lat": 27.323118,
+      "lon": 94.639362,
+      "area_ha": 0.34
+    },
+    {
+      "lat": 27.301644,
+      "lon": 95.288499,
+      "area_ha": 0.34
+    },
+    {
+      "lat": 27.602015,
+      "lon": 95.23429,
+      "area_ha": 0.33
+    }
+  ],
+  "runtime_min": 3.0
+}
