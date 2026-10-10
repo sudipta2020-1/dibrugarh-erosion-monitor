@@ -1,11 +1,11 @@
 # Dibrugarh Soil Erosion Monitoring Dashboard
 
-An automated system that captures satellite imagery of Dibrugarh district every month, maps soil erosion risk and land change, and publishes the results to a web dashboard that is embedded in a Google Site.
+An automated system that captures satellite imagery of Dibrugarh district every week, maps soil erosion risk and land change, and publishes the results to a web dashboard that is embedded in a Google Site.
 
 ## 1. How the system works
 
 ```
-GitHub Actions (monthly schedule)
+GitHub Actions (weekly schedule)
    └─ pipeline/run.py
         1. Downloads the district boundary (geoBoundaries)
         2. Captures Sentinel-2, Sentinel-1 and Copernicus DEM data (Planetary Computer)
@@ -18,7 +18,7 @@ GitHub Actions (monthly schedule)
 Google Site  ◄── Embed (By URL) ───┘
 ```
 
-The Google Site does not run any code. It shows the GitHub Pages dashboard inside an embed block, so every monthly run updates the Google Site on its own.
+The Google Site does not run any code. It shows the GitHub Pages dashboard inside an embed block, so every weekly run updates the Google Site on its own.
 
 **Monitoring windows.** Each run compares the latest 120 days with the same calendar dates in the baseline year (2020 by default). Comparing the same months limits false change from seasonal river levels and crop cycles. During the monsoon, cloud cover reduces the optical view; such runs are still published but marked as low confidence on the dashboard, and water change is taken from radar.
 
@@ -43,7 +43,7 @@ You need a free GitHub account and the Google account that owns the Google Site.
 
 *Actions → Erosion monitoring run → Run workflow*. Leave the date blank to use today, or enter an end date such as `2026-02-28` to start with a dry-season window. The first run takes about 30 to 90 minutes. When it finishes, the dashboard fills in.
 
-From then on the job runs by itself at 08:40 IST on the 1st of every month. It can also be started by hand at any time from the Actions tab.
+From then on the job runs by itself at 08:40 IST every Monday. Sentinel-2 passes over Assam about every 5 days, so each weekly run has new images; in the monsoon, cloudy weeks rely more on radar and are marked as low confidence. It can also be started by hand at any time from the Actions tab.
 
 **Step 5. Embed the dashboard in Google Sites**
 
