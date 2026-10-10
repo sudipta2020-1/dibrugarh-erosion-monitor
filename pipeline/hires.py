@@ -320,12 +320,14 @@ def main():
     for tag, per in periods.items():
         if args.only and tag != args.only:
             continue
-        f = raw / f"s2_10m_{tag}_{per[1]}.nc"
+        f = raw / f"s2_10m_{tag}_{per[1]}.npz"
         if f.exists():
-            ds = xr.open_dataset(f).load().rio.write_crs(cfg["crs"])
+            z = np.load(f)
+            ds = xr.Dataset({k: (("y", "x"), z[k]) for k in z.files if k not in ("x", "y")},
+                            coords={"y": z["y"], "x": z["x"]}).rio.write_crs(cfg["crs"])
         else:
             ds = s2_10m(bbox_ll, per, cfg["crs"], cfg["max_cloud_cover"], cfg.get("max_scenes_per_tile", 15), cmask)
-            ds.to_netcdf(f)
+            np.savez_compressed(f, x=ds.x.values, y=ds.y.values, **{v: ds[v].values for v in ds.data_vars})
         st[tag] = ds
     if args.only:
         print(f"  saved {args.only} composite")
