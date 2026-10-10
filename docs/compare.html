@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Method Comparison · Dibrugarh</title>
+<title>Baseline 10 m · Dibrugarh</title>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700&family=Source+Serif+4:opsz,wght@8..60,600&display=swap">
 <link rel="stylesheet" href="assets/style.css">
@@ -33,13 +33,13 @@
 <body>
 <header class="top">
   <div>
-    <p class="eyebrow">Soil Conservation Department, Government of Assam · Supplementary comparison</p>
-    <h1>10 m sub-pixel method vs standard 20 m <span class="muted">· Dibrugarh District</span></h1>
+    <p class="eyebrow">Soil Conservation Department, Government of Assam · Baseline 10 m method</p>
+    <h1>Baseline 10 m method compared with baseline 20 m <span class="muted">· Dibrugarh District</span></h1>
   </div>
   <div class="meta" id="meta">Loading…</div>
 </header>
 
-<div class="banner" style="background:#eef0fb;border-left:4px solid #5b5fc7;color:#23235a">Supplementary comparison of the 10 m frequency method with the 20 m baseline. The proposed main method is <b>SWiFT-Bank</b>; see the SWiFT-Bank method tab.</div>
+<div class="banner" style="background:#eef0fb;border-left:4px solid #5b5fc7;color:#23235a">Baseline method, kept for comparison. The 10 m method uses the same rule as the 20 m baseline (a pixel is water if it was water on at least half of its clear dates), but reads the images at 10 m and traces sub-pixel bank lines. It has no statistical test of change. The proposed main method is <b>SWiFT-Bank</b>; its results are on the district tabs and its method on the SWiFT-Bank Method tab.</div>
 <div id="pending" class="banner" hidden>The first 10 m comparison run has not finished yet. This page fills in automatically when it does.</div>
 
 <section class="card" id="verdictCard" hidden>
@@ -80,7 +80,7 @@
 </section>
 
 <section class="card method">
-  <h2>How the 10 m method works</h2>
+  <h2>How the 10 m baseline method works</h2>
   <ol class="steps-list">
     <li><b>10 m images.</b> The same Sentinel-2 scenes and the same two monitoring windows as the standard run are read at 10 m instead of 20 m.</li>
     <li><b>Sharpened SWIR band.</b> The water index MNDWI needs the short-wave infrared band, which Sentinel-2 records only at 20 m. It is sharpened to 10 m with the 10 m near-infrared band: SWIR<sub>10</sub> = SWIR<sub>20</sub> × NIR<sub>10</sub> / NIR<sub>20</sub> (Du et al., 2016).</li>
@@ -94,7 +94,7 @@
   <p class="note">References: Bishop-Taylor, R. et al. (2019). Sub-pixel waterline extraction: characterising accuracy and sensitivity to indices and spectra. <i>Remote Sensing</i> 11(24), 2984. Bishop-Taylor, R. et al. (2021). Mapping Australia's dynamic coastline at mean sea level using three decades of Landsat imagery. <i>Remote Sensing of Environment</i> 267, 112734. Du, Y. et al. (2016). Water bodies' mapping from Sentinel-2 imagery with Modified Normalized Difference Water Index at 10-m spatial resolution produced by sharpening the SWIR band. <i>Remote Sensing</i> 8(4), 354. Donchyts, G. et al. (2016). <i>Remote Sensing</i> 8(5), 386.</p>
 </section>
 
-<footer>Data: Copernicus Sentinel-2 (via Microsoft Planetary Computer); JRC Global Surface Water. The 10 m comparison runs every Monday after the standard run and uses the same monitoring windows.</footer>
+<footer>Data: Copernicus Sentinel-2 (via Microsoft Planetary Computer); JRC Global Surface Water. The 10 m baseline runs every Monday after the standard run and uses the same monitoring windows.</footer>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
