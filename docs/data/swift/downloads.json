@@ -1,0 +1,81 @@
+{
+ "tag": "swift-latest",
+ "repository": "sudipta2020-1/dibrugarh-erosion-monitor",
+ "run": "2026-10-10 18:39 UTC",
+ "periods": {
+  "baseline": [
+   "2019-10-31",
+   "2020-02-28"
+  ],
+  "current": [
+   "2025-10-31",
+   "2026-02-28"
+  ]
+ },
+ "crs": "EPSG:32646",
+ "files": [
+  {
+   "name": "swift_change_class_10m.tif",
+   "label": "Change classes, tested (10 m)",
+   "format": "GeoTIFF",
+   "group": "swift",
+   "size_mb": 1.13
+  },
+  {
+   "name": "swift_water_fraction_change_10m.tif",
+   "label": "Change in water share of each pixel, % (10 m)",
+   "format": "GeoTIFF",
+   "group": "swift",
+   "size_mb": 7.89
+  },
+  {
+   "name": "swift_water_fraction_baseline_10m.tif",
+   "label": "Mean water share of each pixel, baseline window 2019-10-31 to 2020-02-28, % (10 m)",
+   "format": "GeoTIFF",
+   "group": "swift",
+   "size_mb": 6.79
+  },
+  {
+   "name": "swift_water_fraction_current_10m.tif",
+   "label": "Mean water share of each pixel, current window 2025-10-31 to 2026-02-28, % (10 m)",
+   "format": "GeoTIFF",
+   "group": "swift",
+   "size_mb": 6.37
+  },
+  {
+   "name": "swift_detection_limit_m2_10m.tif",
+   "label": "Smallest detectable land loss per pixel, m\u00b2 (10 m)",
+   "format": "GeoTIFF",
+   "group": "swift",
+   "size_mb": 5.14
+  },
+  {
+   "name": "swift_loss_patches_shp.zip",
+   "label": "Land-loss patches with lost land and p-value",
+   "format": "Shapefile",
+   "group": "swift",
+   "size_mb": 0.57
+  },
+  {
+   "name": "swift_bank_lines_shp.zip",
+   "label": "Sub-pixel bank lines, baseline and current",
+   "format": "Shapefile",
+   "group": "swift",
+   "size_mb": 4.56
+  },
+  {
+   "name": "priority_sites_shp.zip",
+   "label": "Priority sites for field verification",
+   "format": "Shapefile",
+   "group": "sites",
+   "size_mb": 0.17
+  },
+  {
+   "name": "README_swift_data.txt",
+   "label": "Read me: what each file contains",
+   "format": "Text",
+   "group": "swift",
+   "size_mb": 0.0
+  }
+ ]
+}
