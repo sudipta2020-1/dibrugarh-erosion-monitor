@@ -373,13 +373,14 @@ footer{margin-top:26px;font-size:13px;color:var(--muted)}
 
     <div class="step"><div class="num">14</div><div>
       <h3>Real-time sensor stations (pilot)</h3>
-      <p>Four proposed stations per district sit at the highest-priority bank sites. Each station has a river level sensor, a rain gauge, soil moisture probes at 30, 60 and 100 cm, and tilt nodes 5, 10, 20 and 40 m from the bank edge. Readings are simulated until hardware is installed; the panel can read ThingSpeak channels instead. The rules are checked every minute.</p>
+      <p>Six proposed stations per district sit at the very high risk (immediate action) and high risk (before monsoon) bank sites. Each station has a radar river level sensor, a tipping-bucket rain gauge, soil moisture probes at 30, 60 and 100 cm, a vibrating-wire piezometer about 3 m deep for the water pressure inside the bank, and tilt nodes 5, 10, 20 and 40 m from the bank edge. On each dashboard, the button "Sensors used and how they work" opens a window that describes every sensor. Readings are simulated until hardware is installed; the panel can read ThingSpeak channels instead. The rules are checked every minute.</p>
       <table>
         <tr><th>Alert</th><th>Rule</th></tr>
         <tr><td>Rapid drawdown</td><td>river level falls &gt; 0.5 m in 6 h (banks most often fail as the river falls)</td></tr>
         <tr><td>Rapid rise / above warning</td><td>rise &gt; 1.0 m in 6 h, or level above the station warning level</td></tr>
         <tr><td>Heavy rain</td><td>≥ 64.5 mm in 24 h (IMD "heavy rain")</td></tr>
         <tr><td>Saturated bank</td><td>soil moisture ≥ 45%</td></tr>
+        <tr><td>Water pressure in the bank</td><td>piezometer pressure ≥ 10 kPa above the pressure from the river level alone (river falling faster than the bank drains); rise ≥ 5 kPa in 24 h: watch</td></tr>
         <tr><td>Bank movement</td><td>tilt change ≥ 3° in 24 h; critical at ≥ 10°</td></tr>
         <tr><td>Possible bank failure</td><td>a tilted node stops reporting for 2 h</td></tr>
       </table>
