@@ -489,6 +489,11 @@ def main():
     (pub / "summary.json").write_text(json.dumps(out, indent=2))
     print(json.dumps({k: v for k, v in out.items() if k != "layers"}, indent=2))
 
+    # SWiFT-Bank edition of the full district dashboard (docs/swift/)
+    import swift_system
+    swift_system.build(cfg, {"raw": raw, "c": c, "d": d, "z": T["z"], "tmpl": tmpl, "inside": inside, "P": P,
+                             "cmask": cmask, "aoi": aoi, "out": out})
+
 
 if __name__ == "__main__":
     main()
