@@ -7,6 +7,7 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700&family=Source+Serif+4:opsz,wght@8..60,600&display=swap">
 <link rel="stylesheet" href="assets/style.css">
+<link rel="stylesheet" href="assets/fx.css">
 </head>
 <body>
 <header class="top">
@@ -94,10 +95,10 @@
   <div class="card-head"><h2>Field verification</h2><div class="links" id="fieldLinks"></div></div>
   <div class="ml-grid">
     <div>
-      <p>Officers check the priority sites with a mobile form that works offline on Android (KoboCollect or ODK Collect) or in any phone browser. The form shows this month's site list with the mapped location and suggested action, and records GPS, erosion type and severity, what happened since 2020, assets and households at risk, existing and recommended measures, urgency, and up to three photographs.</p>
+      <p>Officers check the priority sites with a mobile form that works offline on Android (KoboCollect or ODK Collect) or in any phone browser. The form shows the latest site list with the mapped location and suggested action, and records GPS, erosion type and severity, what happened since 2020, assets and households at risk, existing and recommended measures, urgency, and up to three photographs.</p>
       <ol class="steps">
         <li>In KoboToolbox (free), create a project from the <b>survey form</b> file and add the <b>site list</b> file under Settings &rarr; Media. Deploy, and share the form with field staff.</li>
-        <li>Each month, replace the site list with the new one from this page; the form itself does not change.</li>
+        <li>After each run, replace the site list with the new one from this page; the form itself does not change.</li>
         <li>Export the data as CSV and upload it to the repository as <code>data/field_records.csv</code>. The next run marks each site as confirmed or not and reports the results here.</li>
       </ol>
     </div>
@@ -129,16 +130,17 @@
 
 <section class="card method">
   <h2>Context and data still needed</h2>
-  <p>The historical layer uses the JRC Global Surface Water record (Landsat, 1984–2021, 30 m). Land that became permanent or seasonal water is a satellite record of bank erosion, and water that became land records accretion; part of this change is sandbars (chars) within the braided channel rather than loss of mainland. The monthly Sentinel-2 comparison extends the record to the present.</p>
+  <p>The historical layer uses the JRC Global Surface Water record (Landsat, 1984–2021, 30 m). Land that became permanent or seasonal water is a satellite record of bank erosion, and water that became land records accretion; part of this change is sandbars (chars) within the braided channel rather than loss of mainland. The weekly Sentinel-2 comparison extends the record to the present.</p>
   <p>For scale, the Water Resources Department reports about 4.27 lakh hectares eroded in Assam since 1954, roughly 8,000 hectares per year, with 2,534 villages and about 1.25 lakh families affected (<a href="https://onlineasdma.assam.gov.in/download/workshop_riverbank_erosion/Ppt_by_RK_Goswami_WRD_Deptt.pdf" target="_blank" rel="noopener">WRD presentation, ASDMA workshop</a>). District-level figures are not published. Recent events, such as the loss of about 70 m of bank in a few hours at Mohanaghat, Dibrugarh, in July 2026 (<a href="https://eastmojo.com/assam/2026/07/09/brahmaputra-devours-70-metres-of-dibrugarh-riverbank-in-five-hours/" target="_blank" rel="noopener">EastMojo</a>), are useful test cases for the change maps.</p>
   <p class="note">Field-verified records (surveyed erosion sites, gully and sheet-erosion locations, embankment breaches and protection works) are held by the Soil Conservation Department, the Water Resources Department, ASDMA, the Brahmaputra Board and ASSAC/NESAC. They are needed to validate the risk map and to train the planned machine-learning model. Soil data from NBSS&amp;LUP will replace SoilGrids when shared.</p>
 </section>
 
-<footer>Data: Copernicus Sentinel-1 and Sentinel-2 and Copernicus DEM GLO-30 (via Microsoft Planetary Computer); IMD 0.25° gridded rainfall; CHIRPS v2.0; SoilGrids 2.0 (ISRIC); JRC Global Surface Water v1.4; ESA WorldCover 2021; WorldPop 2020; OpenStreetMap contributors; district boundary from geoBoundaries. Updated automatically every month.</footer>
+<footer>Data: Copernicus Sentinel-1 and Sentinel-2 and Copernicus DEM GLO-30 (via Microsoft Planetary Computer); IMD 0.25° gridded rainfall; CHIRPS v2.0; SoilGrids 2.0 (ISRIC); JRC Global Surface Water v1.4; ESA WorldCover 2021; WorldPop 2020; OpenStreetMap contributors; district boundary from geoBoundaries. Updated automatically every week.</footer>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script src="assets/sensors.js"></script>
 <script src="assets/app.js"></script>
+<script src="assets/fx.js"></script>
 </body>
 </html>
