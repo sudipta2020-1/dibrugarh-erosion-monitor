@@ -1,7 +1,9 @@
 // Live IoT sensor stations at high-risk bank erosion sites.
 //
-// Each station: river level, rain gauge, soil moisture at 30/60/100 cm, battery,
-// and a line of tilt nodes set back 5, 10, 20 and 40 m from the bank edge.
+// Stations sit at the very high and high risk bank erosion sites. Each station:
+// river level, rain gauge, soil moisture at 30/60/100 cm, a piezometer (pore-water
+// pressure inside the bank), battery, and a line of tilt nodes set back 5, 10, 20
+// and 40 m from the bank edge.
 // Data come from ThingSpeak channels (mode "thingspeak") or, before hardware is
 // installed, from a deterministic simulator (mode "simulated") so that the panel,
 // charts and alert rules can be demonstrated. Simulated data are always labelled.
@@ -13,6 +15,71 @@
     watch: "background:#fefcbf;color:#744210", info: "background:#edf2f7;color:#4a5568" };
   const STATUS_COLOR = { critical: "#c53030", warning: "#dd6b20", watch: "#d69e2e", info: "#2f855a", normal: "#2f855a" };
   let CFG, DATA = {}, SEL = null, LAYER, CHARTS = [];
+  const RISK_STYLE = { "Very high": "background:#9b2c2c;color:#fff", "High": "background:#dd6b20;color:#fff" };
+
+  // What each sensor is, how it is installed and how its readings are used
+  const SENSORS = [
+    { icon: "↗", name: "Tilt nodes", what: "Ground tilt in degrees",
+      device: "MEMS inclinometer (for example SCA3300 or ADXL355) in a sealed tube on a 1.5 m steel stake",
+      how: "Four nodes per station, staked 5, 10, 20 and 40 m back from the bank edge. Each node reads every 15 minutes and sends by LoRa radio. A crack opening behind the edge tilts the stake before the block falls.",
+      rule: "Tilt rise of 3° or more in 24 h: warning. Tilt of 10° or more: critical. A tilted node that stops reporting for 2 h: possible bank failure." },
+    { icon: "◎", name: "Piezometer", what: "Pore-water pressure inside the bank, in kPa",
+      device: "Vibrating-wire piezometer with a data logger",
+      how: "Placed in a borehole about 3 m deep and 10 m behind the edge, sealed with bentonite. It shows how much water is held in the bank. The reading is compared with the pressure the river level alone would give.",
+      rule: "Pressure 10 kPa or more above the river-level pressure: warning. This happens when the river falls faster than the bank drains, the usual moment of collapse. Rise of 5 kPa or more in 24 h: watch." },
+    { icon: "≋", name: "Soil moisture probes", what: "Volumetric water content in %",
+      device: "Capacitive or TDR soil moisture probes",
+      how: "Three probes at 30, 60 and 100 cm depth near the piezometer. They show rain soaking into the bank and how deep it has reached.",
+      rule: "45% or more at 30 cm: watch (bank soil near saturation)." },
+    { icon: "☂", name: "Rain gauge", what: "Rainfall in mm",
+      device: "Tipping-bucket rain gauge, 0.2 mm per tip",
+      how: "Mounted on the gateway pole, clear of trees. Rain adds weight to the bank and raises soil moisture and pore pressure.",
+      rule: "64.5 mm or more in 24 h (IMD heavy rain): warning." },
+    { icon: "≈", name: "River level sensor", what: "Water level in metres",
+      device: "Non-contact radar level sensor",
+      how: "Fixed to a pole, jetty or bridge over the water, pointing down. It measures the distance to the water surface every 15 minutes. Where a CWC gauge is close, its level can be used as a check.",
+      rule: "Fall of more than 0.5 m in 6 h: warning (rapid drawdown). Rise of more than 1 m in 6 h: watch. Above the station warning level: warning." },
+    { icon: "⌁", name: "Gateway and power", what: "Data link and battery voltage",
+      device: "Solar-powered LoRa gateway with a 4G or NB-IoT link",
+      how: "Mounted above the highest flood level. It collects the node readings and sends them to ThingSpeak or a server every 15 minutes. Nodes at the edge are cheap and expected to be lost with the bank.",
+      rule: "Battery below 3.5 V: information (check the solar panel)." },
+  ];
+
+  function showSensorInfo(stId) {
+    let ov = document.getElementById("sensorInfo");
+    if (!ov) {
+      ov = document.createElement("div");
+      ov.id = "sensorInfo"; ov.className = "si-overlay"; ov.setAttribute("role", "dialog"); ov.setAttribute("aria-modal", "true");
+      document.body.appendChild(ov);
+      ov.addEventListener("click", e => { if (e.target === ov || e.target.closest(".si-close")) ov.hidden = true; });
+      document.addEventListener("keydown", e => { if (e.key === "Escape") ov.hidden = true; });
+    }
+    const st = CFG.stations.find(s => s.id === stId);
+    const D = st && DATA[st.id], d = D && D.data;
+    const now = d ? {
+      "Tilt nodes": st.node_setbacks_m.map(m => { const j = lastIdx(d.tilt[m]); return `${m} m: ${j < 0 ? "–" : f1(d.tilt[m][j]) + "°"}`; }).join(", "),
+      "Piezometer": d.pore_kpa ? `${f1(d.pore_kpa[lastIdx(d.pore_kpa)], 1)} kPa` : "–",
+      "Soil moisture probes": `30 cm ${f1(d.soil_30[lastIdx(d.soil_30)], 0)}%, 60 cm ${f1(d.soil_60[lastIdx(d.soil_60)], 0)}%, 100 cm ${f1(d.soil_100[lastIdx(d.soil_100)], 0)}%`,
+      "Rain gauge": `${f1(d.rain_mm.slice(-stepsFor(24, d)).reduce((a, b) => a + (b || 0), 0), 0)} mm in 24 h`,
+      "River level sensor": `${f1(d.level_m[lastIdx(d.level_m)], 2)} m (warning ${st.level_warning_m} m)`,
+      "Gateway and power": `${f1(d.battery_v[lastIdx(d.battery_v)], 2)} V`,
+    } : {};
+    ov.innerHTML = `<div class="si-box">
+      <button class="si-close" aria-label="Close">×</button>
+      <p class="eyebrow">Sensor station design</p>
+      <h2>${st ? esc(st.name) : "Sensors used at each station"}</h2>
+      ${st ? `<p class="si-meta"><span class="urg" style="${RISK_STYLE[st.risk] || ""}">${esc(st.risk || "")} risk</span> Site ${esc(st.site_id)} · ${esc(st.site_class || "")}${st.people_500m ? ` · about ${st.people_500m.toLocaleString("en-IN")} people within 500 m` : ""}</p>` :
+        `<p class="si-meta">Stations are placed only at very high risk (immediate action) and high risk (before monsoon) bank erosion sites.</p>`}
+      <div class="si-grid">${SENSORS.map(s => `<div class="si-item">
+        <div class="si-h"><span class="si-ic">${s.icon}</span><b>${s.name}</b><span class="note" style="margin:0">${s.what}</span></div>
+        ${now[s.name] ? `<div class="si-now">Now: <b>${esc(now[s.name])}</b></div>` : ""}
+        <p><b>Sensor:</b> ${s.device}.</p><p><b>How it is used:</b> ${s.how}</p><p><b>Alert rule:</b> ${s.rule}</p></div>`).join("")}</div>
+      <p class="note">Readings every 15 minutes. ${D && D.src.startsWith("simulated") ? "Values shown are simulated until hardware is installed." : ""}</p>
+    </div>`;
+    ov.hidden = false;
+    ov.querySelector(".si-close").focus();
+  }
+  window.showSensorInfo = showSensorInfo;
 
   const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
   const f1 = (v, d = 1) => (v == null || !isFinite(v)) ? "–" : Number(v).toFixed(d);
@@ -25,9 +92,10 @@
   function simulate(st, idx, now) {
     const dt = STEP_MIN * 60000, n = Math.round(CFG.history_days * 24 * 60 / STEP_MIN);
     const t0 = Math.floor(now / dt) * dt - (n - 1) * dt, seed = 17 + idx * 31;
-    const out = { t: [], level_m: [], rain_mm: [], soil_30: [], soil_60: [], soil_100: [], battery_v: [], tilt: {} };
+    const out = { t: [], level_m: [], rain_mm: [], soil_30: [], soil_60: [], soil_100: [], pore_kpa: [], battery_v: [], tilt: {} };
     st.node_setbacks_m.forEach(s => out.tilt[s] = []);
-    let store = 0, s30 = 0, s60 = 0, s100 = 0;
+    let store = 0, s30 = 0, s60 = 0, s100 = 0, head = null;
+    const tip = st.piezo_tip_m ?? st.level_warning_m - 5;
     const base0 = [24, 29, 33];
     for (let k = 0; k < n; k++) {
       const t = t0 + k * dt, h = t / 3600000, hAgo = (now - t) / 3600000;
@@ -45,8 +113,12 @@
       s30 = s30 * Math.exp(-0.25 / 24) + 0.9 * rain;
       s60 = s60 * Math.exp(-0.25 / 48) + 0.45 * rain;
       s100 = s100 * Math.exp(-0.25 / 96) + 0.2 * rain;
+      // Pore-water head in the bank: fills quickly when the river rises, drains slowly
+      if (head === null) head = level;
+      head += (level - head) * (level > head ? 0.08 : 0.012) + 0.004 * rain;
       out.t.push(t);
       out.level_m.push(+level.toFixed(3));
+      out.pore_kpa.push(+(9.81 * (head - tip)).toFixed(1));
       out.rain_mm.push(+rain.toFixed(2));
       out.soil_30.push(+Math.min(48, base0[0] + s30).toFixed(1));
       out.soil_60.push(+Math.min(48, base0[1] + s60).toFixed(1));
@@ -74,7 +146,7 @@
     };
     const main = ts.main_channel ? await get(ts.main_channel, ts.main_read_key) : [];
     const tilt = ts.tilt_channel ? await get(ts.tilt_channel, ts.tilt_read_key) : [];
-    const out = { t: [], level_m: [], rain_mm: [], soil_30: [], soil_60: [], soil_100: [], battery_v: [], tilt: {} };
+    const out = { t: [], level_m: [], rain_mm: [], soil_30: [], soil_60: [], soil_100: [], pore_kpa: [], battery_v: [], tilt: {} };
     const mf = CFG.thingspeak.main_fields, tf = CFG.thingspeak.tilt_fields;
     main.forEach(r => { out.t.push(Date.parse(r.created_at)); Object.entries(mf).forEach(([f, k]) => out[k].push(r[f] == null ? null : +r[f])); });
     // Tilt nodes report on their own clock: put each reading at the nearest main timestamp
@@ -107,6 +179,13 @@
     if (i >= 0 && d.level_m[i] >= st.level_warning_m) add("warning", "Above warning level", `Level ${f1(d.level_m[i], 2)} m (warning ${st.level_warning_m} m).`);
     const k24 = stepsFor(24, d), r24 = d.rain_mm.slice(-k24).reduce((a, b) => a + (b || 0), 0);
     if (r24 >= th.rain_24h_mm) add("warning", "Heavy rain", `${f1(r24, 0)} mm in the last 24 h (IMD heavy rain: 64.5 mm or more).`);
+    const ip = lastIdx(d.pore_kpa || []);
+    if (ip >= 0 && i >= 0) {
+      const tip = st.piezo_tip_m ?? st.level_warning_m - 5, excess = d.pore_kpa[ip] - 9.81 * (d.level_m[i] - tip);
+      const refP = d.pore_kpa.slice(Math.max(0, ip - k24), ip + 1).filter(x => x != null), riseP = d.pore_kpa[ip] - Math.min(...refP);
+      if (excess >= (th.pore_excess_kpa ?? 10)) add("warning", "High water pressure inside the bank", `Pore-water pressure ${f1(d.pore_kpa[ip])} kPa is ${f1(excess)} kPa above the river level. The bank is draining more slowly than the river is falling, which weakens it.`);
+      else if (riseP >= (th.pore_rise_kpa_24h ?? 5)) add("watch", "Pore-water pressure rising", `Up ${f1(riseP)} kPa in 24 h.`);
+    }
     const sm = d.soil_30[lastIdx(d.soil_30)];
     if (sm >= th.soil_moisture_pct) add("watch", "Bank soil near saturation", `Soil moisture ${f1(sm, 0)}% at 30 cm.`);
     st.node_setbacks_m.forEach(s => {
@@ -138,7 +217,8 @@
     const nodes = st.node_setbacks_m.map(m => { const j = lastIdx(d.tilt[m]); const silent = j < 0 || (Date.now() - d.t[j]) / 3600000 > CFG.thresholds.node_silent_h; return `<span title="${m} m from the edge" class="node ${silent ? "lost" : ""}">${m}</span>`; }).join("");
     return `<button class="st-card ${SEL === st.id ? "on" : ""}" data-id="${st.id}" style="--c:${STATUS_COLOR[s]}">
       <div class="st-head"><b>${esc(st.name)}</b><span class="urg" style="${SEV_STYLE[s] || "background:#c6f6d5;color:#22543d"}">${statusText(s)}</span></div>
-      <div class="st-vals"><span>Level <b>${f1(d.level_m[i], 2)} m</b></span><span>Rain 24 h <b>${f1(r24, 0)} mm</b></span><span>Soil 30 cm <b>${f1(d.soil_30[lastIdx(d.soil_30)], 0)}%</b></span></div>
+      <div class="st-risk">${st.risk ? `<span class="urg" style="${RISK_STYLE[st.risk] || ""}">${esc(st.risk)} risk</span>` : ""} <span>${esc(st.site_class || "")}</span><span class="si-link" data-info="${st.id}" role="button" tabindex="0">Sensors ⓘ</span></div>
+      <div class="st-vals"><span>Level <b>${f1(d.level_m[i], 2)} m</b></span><span>Rain 24 h <b>${f1(r24, 0)} mm</b></span><span>Soil 30 cm <b>${f1(d.soil_30[lastIdx(d.soil_30)], 0)}%</b></span><span>Pore pressure <b>${d.pore_kpa ? f1(d.pore_kpa[lastIdx(d.pore_kpa)], 0) : "–"} kPa</b></span></div>
       <div class="st-nodes">Tilt nodes (m from edge): ${nodes}</div>
       <div class="note" style="margin:4px 0 0">Site ${esc(st.site_id)} · updated ${i >= 0 ? tlabel(d.t[i]) : "–"}</div>
     </button>`;
@@ -147,7 +227,9 @@
   function renderList() {
     const el = document.getElementById("sensorList");
     el.innerHTML = CFG.stations.map(stationCard).join("");
-    el.querySelectorAll(".st-card").forEach(b => b.onclick = () => { SEL = b.dataset.id; renderList(); renderDetail(); });
+    el.querySelectorAll(".st-card").forEach(b => b.onclick = e => {
+      const info = e.target.closest(".si-link"); if (info) { showSensorInfo(info.dataset.info); return; }
+      SEL = b.dataset.id; renderList(); renderDetail(); });
     const all = CFG.stations.flatMap(st => DATA[st.id].alerts.map(a => ({ ...a, name: st.name })))
       .filter(a => a.sev !== "info" || a.title === "Battery low").sort((a, b) => SEV[b.sev] - SEV[a.sev]);
     document.getElementById("sensorAlerts").innerHTML = all.length
@@ -182,6 +264,13 @@
       { type: "line", label: `${s} m from edge`, data: d.tilt[s], borderColor: pal[j % 4], backgroundColor: pal[j % 4], ...pt })), "Tilt (degrees)"));
     CHARTS.push(lineChart("chSoil", labels, [["soil_30", "30 cm", "#744210"], ["soil_60", "60 cm", "#b7791f"], ["soil_100", "100 cm", "#d69e2e"]].map(([k, n, c]) => (
       { type: "line", label: n, data: d[k], borderColor: c, backgroundColor: c, ...pt })), "Soil moisture (%)"));
+    if (document.getElementById("chPore") && d.pore_kpa) {
+      const tip = st.piezo_tip_m ?? st.level_warning_m - 5;
+      CHARTS.push(lineChart("chPore", labels, [
+        { type: "line", label: "Pore-water pressure in the bank (kPa)", data: d.pore_kpa, borderColor: "#6b46c1", backgroundColor: "#6b46c1", ...pt },
+        { type: "line", label: "Pressure from river level alone (kPa)", data: d.level_m.map(v => v == null ? null : +(9.81 * (v - tip)).toFixed(1)), borderColor: "#2b6cb0", borderDash: [5, 4], backgroundColor: "#2b6cb0", ...pt },
+      ], "Pressure (kPa)"));
+    }
   }
 
   function renderMap() {
@@ -192,7 +281,18 @@
       return L.marker([st.lat, st.lon], { icon: L.divIcon({ className: "", iconSize: [22, 22], iconAnchor: [11, 11],
         html: `<div class="st-pin" style="background:${STATUS_COLOR[s]}">S</div>` }) })
         .bindTooltip(`${st.name}: ${statusText(s)}`, { direction: "top" })
-        .on("click", () => { SEL = st.id; renderList(); renderDetail(); document.getElementById("sensorSection").scrollIntoView({ behavior: "smooth" }); });
+        .bindPopup(() => {
+          const D = DATA[st.id], d = D.data, al = D.alerts.filter(a => a.sev !== "info");
+          return `<div class="st-pop"><b>${esc(st.name)}</b><br><span class="urg" style="${RISK_STYLE[st.risk] || ""}">${esc(st.risk || "")} risk</span> ${esc(st.site_class || "")} · site ${esc(st.site_id)}
+            <table><tr><td>River level</td><td><b>${f1(d.level_m[lastIdx(d.level_m)], 2)} m</b></td></tr>
+            <tr><td>Rain, 24 h</td><td><b>${f1(d.rain_mm.slice(-stepsFor(24, d)).reduce((a, b) => a + (b || 0), 0), 0)} mm</b></td></tr>
+            <tr><td>Soil moisture 30 cm</td><td><b>${f1(d.soil_30[lastIdx(d.soil_30)], 0)}%</b></td></tr>
+            <tr><td>Pore pressure</td><td><b>${d.pore_kpa ? f1(d.pore_kpa[lastIdx(d.pore_kpa)], 1) : "–"} kPa</b></td></tr>
+            <tr><td>Tilt (${st.node_setbacks_m.join("/")} m)</td><td><b>${st.node_setbacks_m.map(m => { const j = lastIdx(d.tilt[m]); return j < 0 ? "–" : f1(d.tilt[m][j]) + "°"; }).join(" / ")}</b></td></tr></table>
+            ${al.length ? `<div class="st-pop-al">${esc(al[0].title)}</div>` : ""}
+            <button class="si-btn" onclick="showSensorInfo('${st.id}')">Sensors used and how they work</button></div>`;
+        }, { maxWidth: 280 })
+        .on("click", () => { SEL = st.id; renderList(); renderDetail(); });
     }));
     const cb = document.getElementById("showSensors");
     if (!cb || cb.checked) LAYER.addTo(MAP);
@@ -218,6 +318,21 @@
     try { CFG = await (await fetch(CFG_URL, { cache: "no-cache" })).json(); }
     catch { sec.hidden = true; return; }
     document.getElementById("sensorNote").textContent = CFG.note || "";
+    // Extra controls: pore-pressure chart and the sensor information button
+    const soil = document.getElementById("chSoil");
+    if (soil && !document.getElementById("chPore")) {
+      const box = document.createElement("div"); box.className = "chart-box"; box.style.cssText = "height:150px;margin-top:10px";
+      box.innerHTML = '<canvas id="chPore"></canvas>'; soil.parentNode.after(box);
+      const p = box.nextElementSibling;
+      if (p && p.classList.contains("note")) p.textContent = "Each station has a radar river level sensor, a rain gauge, soil moisture probes at 30, 60 and 100 cm, a piezometer about 3 m deep for the water pressure inside the bank, and tilt nodes on stakes 5, 10, 20 and 40 m back from the edge. When the river falls faster than the bank drains, the pressure inside the bank stays high and the bank is most likely to fail.";
+    }
+    const head = sec.querySelector(".card-head");
+    const h2 = head && head.querySelector("h2");
+    if (h2) h2.textContent = "Live sensor stations at very high and high risk sites (pilot)";
+    if (head && !head.querySelector(".si-btn")) {
+      const b = document.createElement("button"); b.className = "si-btn"; b.type = "button"; b.textContent = "Sensors used and how they work";
+      b.onclick = () => showSensorInfo(null); head.insertBefore(b, head.lastElementChild);
+    }
     SEL = CFG.stations[0] && CFG.stations[0].id;
     await refresh();
     setInterval(refresh, (CFG.refresh_s || 60) * 1000);
