@@ -1,0 +1,60 @@
+name: High-resolution comparison (10 m)
+
+# 10 m water mapping with a sharpened SWIR band and sub-pixel bank lines,
+# compared with the standard 20 m run. Runs after the weekly monitoring run and
+# uses the same monitoring windows. Results go to docs/data/hires/.
+on:
+  schedule:
+    # Every Monday at 05:40 UTC (11:10 IST), after the 08:40 IST monitoring run
+    - cron: "40 5 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: erosion-monitoring
+  cancel-in-progress: false
+
+jobs:
+  hires:
+    runs-on: ubuntu-latest
+    timeout-minutes: 330
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt scikit-image
+
+      - name: Restore cached 10 m composites
+        uses: actions/cache/restore@v4
+        with:
+          path: outputs/dibrugarh_district/hires
+          key: hires-v1-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: hires-v1-
+
+      - name: Run the 10 m comparison
+        env:
+          PYTHONUNBUFFERED: "1"
+        run: python pipeline/hires.py
+
+      - name: Save 10 m composites for later attempts
+        if: always() && hashFiles('outputs/dibrugarh_district/hires/**') != ''
+        uses: actions/cache/save@v4
+        with:
+          path: outputs/dibrugarh_district/hires
+          key: hires-v1-${{ github.run_id }}-${{ github.run_attempt }}
+
+      - name: Commit comparison data
+        run: |
+          git config user.name  "erosion-monitor-bot"
+          git config user.email "erosion-monitor-bot@users.noreply.github.com"
+          git add docs/data/hires
+          git commit -m "High-resolution comparison update" || echo "No changes"
+          git pull --rebase
+          git push
