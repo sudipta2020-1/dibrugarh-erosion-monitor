@@ -1,6 +1,6 @@
 {
   "mode": "simulated",
-  "note": "Proposed pilot stations at the highest-priority bank erosion sites of the February 2026 run. Until hardware is installed the dashboard shows simulated readings. To show real data, set mode to \"thingspeak\" and fill in each station's channel IDs and read keys.",
+  "note": "Proposed pilot stations at the very high risk (immediate action) and high risk (before monsoon) bank erosion sites of the latest run. Until hardware is installed the dashboard shows simulated readings. To show real data, set mode to \"thingspeak\" and fill in each station's channel IDs and read keys.",
   "refresh_s": 60,
   "history_days": 7,
   "thresholds": {
@@ -11,25 +11,171 @@
     "tilt_change_deg_24h": 3,
     "tilt_critical_deg": 10,
     "node_silent_h": 2,
-    "battery_low_v": 3.5
+    "battery_low_v": 3.5,
+    "pore_excess_kpa": 10,
+    "pore_rise_kpa_24h": 5
   },
   "thingspeak": {
-    "main_fields": {"field1": "level_m", "field2": "rain_mm", "field3": "soil_30", "field4": "soil_60",
-                    "field5": "soil_100", "field6": "battery_v"},
-    "tilt_fields": {"field1": "tilt_5", "field2": "tilt_10", "field3": "tilt_20", "field4": "tilt_40"}
+    "main_fields": {
+      "field1": "level_m",
+      "field2": "rain_mm",
+      "field3": "soil_30",
+      "field4": "soil_60",
+      "field5": "soil_100",
+      "field6": "battery_v",
+      "field7": "pore_kpa"
+    },
+    "tilt_fields": {
+      "field1": "tilt_5",
+      "field2": "tilt_10",
+      "field3": "tilt_20",
+      "field4": "tilt_40"
+    }
   },
   "stations": [
-    {"id": "ST1", "name": "Bank station near Dibrugarh", "site_id": "2602-01", "lat": 27.461268, "lon": 94.862736,
-     "level_warning_m": 6.0, "node_setbacks_m": [5, 10, 20, 40],
-     "thingspeak": {"main_channel": null, "main_read_key": null, "tilt_channel": null, "tilt_read_key": null}},
-    {"id": "ST2", "name": "Bank station near Nakapur", "site_id": "2602-03", "lat": 27.560385, "lon": 95.190009,
-     "level_warning_m": 6.0, "node_setbacks_m": [5, 10, 20, 40],
-     "thingspeak": {"main_channel": null, "main_read_key": null, "tilt_channel": null, "tilt_read_key": null}},
-    {"id": "ST3", "name": "Bank station near Lengeri Gaon", "site_id": "2602-04", "lat": 27.330821, "lon": 95.03316,
-     "level_warning_m": 5.5, "node_setbacks_m": [5, 10, 20, 40],
-     "thingspeak": {"main_channel": null, "main_read_key": null, "tilt_channel": null, "tilt_read_key": null}},
-    {"id": "ST4", "name": "Bank station near Changamari Habi", "site_id": "2602-07", "lat": 27.357716, "lon": 94.769737,
-     "level_warning_m": 5.5, "node_setbacks_m": [5, 10, 20, 40],
-     "thingspeak": {"main_channel": null, "main_read_key": null, "tilt_channel": null, "tilt_read_key": null}}
+    {
+      "id": "ST1",
+      "name": "Bank station near Dibrugarh",
+      "site_id": "2602-01",
+      "risk": "Very high",
+      "site_class": "Bank erosion",
+      "people_500m": 2864,
+      "lat": 27.461268,
+      "lon": 94.862736,
+      "level_warning_m": 6.0,
+      "piezo_tip_m": 1.0,
+      "node_setbacks_m": [
+        5,
+        10,
+        20,
+        40
+      ],
+      "thingspeak": {
+        "main_channel": null,
+        "main_read_key": null,
+        "tilt_channel": null,
+        "tilt_read_key": null
+      }
+    },
+    {
+      "id": "ST2",
+      "name": "Bank station near Nakapur",
+      "site_id": "2602-03",
+      "risk": "Very high",
+      "site_class": "Bank erosion",
+      "people_500m": 513,
+      "lat": 27.560385,
+      "lon": 95.190009,
+      "level_warning_m": 6.0,
+      "piezo_tip_m": 1.0,
+      "node_setbacks_m": [
+        5,
+        10,
+        20,
+        40
+      ],
+      "thingspeak": {
+        "main_channel": null,
+        "main_read_key": null,
+        "tilt_channel": null,
+        "tilt_read_key": null
+      }
+    },
+    {
+      "id": "ST3",
+      "name": "Bank station near Lengeri Gaon",
+      "site_id": "2602-04",
+      "risk": "Very high",
+      "site_class": "Bank erosion",
+      "people_500m": 3217,
+      "lat": 27.330821,
+      "lon": 95.03316,
+      "level_warning_m": 5.5,
+      "piezo_tip_m": 0.5,
+      "node_setbacks_m": [
+        5,
+        10,
+        20,
+        40
+      ],
+      "thingspeak": {
+        "main_channel": null,
+        "main_read_key": null,
+        "tilt_channel": null,
+        "tilt_read_key": null
+      }
+    },
+    {
+      "id": "ST4",
+      "name": "Bank station near Changamari Habi",
+      "site_id": "2602-07",
+      "risk": "Very high",
+      "site_class": "Bank erosion",
+      "people_500m": 1286,
+      "lat": 27.357716,
+      "lon": 94.769737,
+      "level_warning_m": 5.5,
+      "piezo_tip_m": 0.5,
+      "node_setbacks_m": [
+        5,
+        10,
+        20,
+        40
+      ],
+      "thingspeak": {
+        "main_channel": null,
+        "main_read_key": null,
+        "tilt_channel": null,
+        "tilt_read_key": null
+      }
+    },
+    {
+      "id": "ST5",
+      "name": "Bank station, Dibrugarh town",
+      "site_id": "2602-09",
+      "risk": "High",
+      "site_class": "Likely bank erosion",
+      "people_500m": 2336,
+      "lat": 27.487255,
+      "lon": 94.889866,
+      "level_warning_m": 6.0,
+      "piezo_tip_m": 1.0,
+      "node_setbacks_m": [
+        5,
+        10,
+        20,
+        40
+      ],
+      "thingspeak": {
+        "main_channel": null,
+        "main_read_key": null,
+        "tilt_channel": null,
+        "tilt_read_key": null
+      }
+    },
+    {
+      "id": "ST6",
+      "name": "Bank station near Naguli Ghat",
+      "site_id": "2602-39",
+      "risk": "High",
+      "site_class": "Likely bank erosion",
+      "people_500m": 1130,
+      "lat": 27.548137,
+      "lon": 94.95231,
+      "level_warning_m": 6.0,
+      "piezo_tip_m": 1.0,
+      "node_setbacks_m": [
+        5,
+        10,
+        20,
+        40
+      ],
+      "thingspeak": {
+        "main_channel": null,
+        "main_read_key": null,
+        "tilt_channel": null,
+        "tilt_read_key": null
+      }
+    }
   ]
 }
