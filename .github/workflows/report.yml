@@ -1,0 +1,63 @@
+name: Fortnightly report (PDF)
+
+# Makes the district report in English and Assamese from the published dashboard
+# data. It runs after every weekly SWiFT-Bank run, but pipeline/report.py only
+# makes a new report when the last one is at least 13 days old, so reports come
+# every two weeks. Run it by hand to make a report now. Results: docs/reports/.
+on:
+  workflow_run:
+    workflows: ["Novel method SWiFT-Bank (10 m)"]
+    types: [completed]
+  workflow_dispatch:
+    inputs:
+      force:
+        description: "Make a report now, even if the last one is less than two weeks old"
+        type: boolean
+        default: true
+
+permissions:
+  contents: write
+
+concurrency:
+  group: district-report
+  cancel-in-progress: false
+
+jobs:
+  report:
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install fonts and packages
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq fonts-noto-core > /dev/null
+          pip install pandas geopandas matplotlib pyyaml
+
+      - name: Make the report
+        env:
+          PYTHONUNBUFFERED: "1"
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ inputs.force }}" = "true" ]; then
+            python pipeline/report.py --force
+          else
+            python pipeline/report.py
+          fi
+
+      - name: Commit the report
+        run: |
+          git config user.name  "erosion-monitor-bot"
+          git config user.email "erosion-monitor-bot@users.noreply.github.com"
+          git add docs/reports
+          git commit -m "Fortnightly report $(date -u +%Y-%m-%d)" || echo "No new report"
+          git pull --rebase
+          git push
