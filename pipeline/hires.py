@@ -325,7 +325,7 @@ def main():
             ds = xr.open_dataset(f).load().rio.write_crs(cfg["crs"])
         else:
             ds = s2_10m(bbox_ll, per, cfg["crs"], cfg["max_cloud_cover"], cfg.get("max_scenes_per_tile", 15), cmask)
-            ds.to_netcdf(f, encoding={v: {"zlib": True, "complevel": 4} for v in ds.data_vars})
+            ds.to_netcdf(f)
         st[tag] = ds
     if args.only:
         print(f"  saved {args.only} composite")
