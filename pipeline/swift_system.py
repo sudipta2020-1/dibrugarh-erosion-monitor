@@ -24,6 +24,7 @@ from scipy import stats
 
 import analysis as an
 import exposure as exm
+import hires as hi
 import field
 import interventions
 import publish as pb
@@ -57,6 +58,36 @@ def _to10(da20, tmpl10, resampling):
 def _to20(arr10, tmpl10, grid20, resampling, nodata):
     da = tmpl10.copy(data=arr10).rio.write_nodata(nodata)
     return da.rio.reproject_match(grid20, resampling=resampling).values
+
+
+def _class_patches(c10, d10, z10, tmpl10, k, min_ha=0.02):
+    """Patches of one change class with lost land (sum of water-fraction change),
+    pixel footprint and a combined p-value, as in the SWiFT comparison."""
+    import geopandas as gpd
+    from rasterio.features import shapes
+    from scipy import ndimage
+    from shapely.geometry import shape
+    lab, n = ndimage.label(c10 == k, structure=np.ones((3, 3)))
+    if n == 0:
+        return gpd.GeoDataFrame({"class": []}, geometry=[], crs=tmpl10.rio.crs)
+    idx = np.arange(1, n + 1)
+    lost = np.abs(ndimage.sum(d10, lab, idx)) * 0.01
+    cnt = ndimage.sum(np.ones(c10.shape, "float32"), lab, idx)
+    zs = ndimage.sum(z10 if k != 2 else -z10, lab, idx) / (2 * np.sqrt(cnt))
+    pv = stats.norm.sf(zs)
+    keep = np.zeros(n + 1, bool)
+    keep[1:] = lost >= min_ha
+    lab = np.where(keep[lab], lab, 0).astype("int32")
+    recs = []
+    for g, v in shapes(lab, mask=lab > 0, transform=tmpl10.rio.transform(), connectivity=8):
+        i = int(v) - 1
+        recs.append({"geometry": shape(g), "lab": i, "class_id": k, "class": an.CHANGE_LABELS[k],
+                     "area_ha": round(float(lost[i]), 3), "footprint_ha": round(float(cnt[i] * 0.01), 3),
+                     "p_value": float(pv[i]), "confidence_score": round(float(1 - pv[i]), 3)})
+    if not recs:
+        return gpd.GeoDataFrame({"class": []}, geometry=[], crs=tmpl10.rio.crs)
+    g = gpd.GeoDataFrame(recs, geometry="geometry", crs=tmpl10.rio.crs)
+    return g.dissolve(by="lab", aggfunc="first").reset_index(drop=True)
 
 
 def build(cfg, ctx):
@@ -128,14 +159,15 @@ def build(cfg, ctx):
 
     # ---------- candidate sites
     frames = []
-    if len(P):
-        g = P.copy()
-        g["class_id"] = [5 if c == an.CHANGE_LABELS[5] else 1 for c in g["class"]]
-        g["area_ha"] = g["loss_ha"]
-        g["max_retreat_m"] = np.round(g["retreat_subpixel_m"].astype(float), 0)
-        g["retreat_m_per_yr"] = np.round(g["retreat_subpixel_m"].astype(float) / years, 1)
-        g["confidence_score"] = np.round(1 - g["p_value"].astype(float), 3)
-        frames.append(_latlon(g))
+    # Bank erosion and char loss: one set of patches per class, as in the standard run
+    for k in (1, 5):
+        g = _class_patches(c10, d10, z10, tmpl10, k)
+        if len(g):
+            r = hi.subpixel_retreat(g, ctx.get("lb") or [], ctx.get("lc") or [])
+            g["max_retreat_m"] = np.round(r, 0)
+            g["retreat_m_per_yr"] = np.round(r / years, 1)
+            frames.append(_latlon(g))
+        print(f"  {an.CHANGE_LABELS[k]}: {len(g)} patches")
     acc = an.patches(tmpl10.copy(data=np.where(c10 == 2, 2, 0).astype("uint8")), an.CHANGE_LABELS, 5, 10)
     if not acc.empty:
         fp = acc["area_ha"].values
