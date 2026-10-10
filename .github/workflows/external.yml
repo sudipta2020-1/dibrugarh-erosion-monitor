@@ -46,10 +46,14 @@ jobs:
           mkdir -p outputs/external
           cd outputs/external
           Z=https://zenodo.org/api/records
-          for f in REAL_reach.shp REAL_reach.shx REAL_reach.dbf REAL_reach.prj; do
-            curl -L --fail --retry 30 --retry-all-errors --retry-delay 15 -C - -o "$f" "$Z/7045021/files/$f/content" || exit 1
+          C="curl -sS -L --fail --retry 20 --retry-all-errors --retry-delay 20 --speed-limit 20000 --speed-time 60 -C -"
+          $C -o dw_tiles.zip "$Z/4766451/files/dw_expert_consensus_tiles.zip/content"
+          for f in REAL_reach.prj REAL_reach.shx REAL_reach.dbf REAL_reach.shp; do
+            for k in 1 2 3 4 5 6; do
+              $C -o "$f" "$Z/7045021/files/$f/content" && break
+              echo "attempt $k for $f failed"; sleep 60
+            done
           done
-          curl -L --fail --retry 30 --retry-all-errors --retry-delay 15 -C - -o dw_tiles.zip "$Z/4766451/files/dw_expert_consensus_tiles.zip/content"
           ls -la
 
       - name: Save reference data in the cache
