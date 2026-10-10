@@ -78,6 +78,7 @@ function inputsNote(s) {
 function accuracy(s) {
   const el = document.getElementById("accBody");
   if (!el) return;
+  if (s.accuracy_note) { el.innerHTML = `<p>${esc(s.accuracy_note)}</p>`; return; }
   const a = s.accuracy, v = s.validation;
   const per = x => `${x[0]} to ${x[1]}`;
   if (!a || a.status !== "ok") {
@@ -300,7 +301,7 @@ function fieldCard(s) {
 function downloads(s) {
   const links = [["hotspots.csv", "Priority sites (CSV)"], ["hotspots.geojson", "Priority sites (GeoJSON)"], ["history.csv", "Run history (CSV)"]]
     .map(([f, n]) => `<a href="${DATA}${f}" download>${n}</a>`);
-  links.push(`<a href="validate.html">Label validation points</a>`);
+  links.push(`<a href="${s.validate_url || "validate.html"}">Label validation points</a>`);
   if (s.repository) links.push(`<a target="_blank" rel="noopener" href="https://github.com/${s.repository}/releases/latest">Full-resolution GeoTIFFs</a>`);
   document.getElementById("downloads").innerHTML = links.join("");
 }
