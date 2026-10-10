@@ -186,14 +186,14 @@ footer{margin-top:26px;font-size:13px;color:var(--muted)}
     </div>
     <ol class="hero-steps">
       <li><b>1 Capture</b>Sentinel-1 and -2 images</li>
-      <li><b>2 Map water</b>water frequency per pixel</li>
-      <li><b>3 Detect change</b>bank loss and retreat</li>
+      <li><b>2 Map water</b>water fraction per pixel</li>
+      <li><b>3 Detect change</b>tested, below pixel size</li>
       <li><b>4 Model risk</b>RUSLE and AI</li>
       <li><b>5 Rank sites</b>people and assets at risk</li>
       <li><b>6 Alert and act</b>field check, sensors</li>
     </ol>
   </header>
-  <p class="lead">This system maps river bank erosion, land change and soil erosion risk for Dibrugarh and Majuli districts. It updates itself every week from free satellite data. This page describes how each step is calculated. Open a step to see its formulas and the values computed for each district in the most recent run. District results are on the two tabs above.</p>
+  <p class="lead">This system maps river bank erosion, land change and soil erosion risk for Dibrugarh and Majuli districts. It updates itself every week from free satellite data. Bank erosion is mapped with <b>SWiFT-Bank</b>, the method proposed in this work: the share of water in every 10 m pixel is estimated on every clear date, and the change between the two monitoring windows is tested statistically, so that land losses smaller than one pixel are found and each comes with a p-value. A standard 20 m method is kept as a baseline for comparison. This page describes how each step is calculated. Open a step to see its formulas and the values computed for each district in the most recent run. District results are on the tabs above.</p>
   <hr class="rule">
 
   <div class="grid2" id="districts">
@@ -217,8 +217,8 @@ footer{margin-top:26px;font-size:13px;color:var(--muted)}
         <defs><marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="var(--muted)"/></marker></defs>
         <g font-size="13" fill="var(--ink)">
           <g><rect x="10" y="20" width="170" height="64" rx="8" fill="var(--card)" stroke="var(--line)"/><text x="95" y="46" text-anchor="middle" font-weight="700">1–2 Inputs</text><text x="95" y="66" text-anchor="middle" fill="var(--muted)">Sentinel-2, Sentinel-1, DEM</text></g>
-          <g><rect x="210" y="20" width="170" height="64" rx="8" fill="var(--card)" stroke="var(--line)"/><text x="295" y="46" text-anchor="middle" font-weight="700">3–4 Indices, water</text><text x="295" y="66" text-anchor="middle" fill="var(--muted)">NDVI, MNDWI, BSI, frequency</text></g>
-          <g><rect x="410" y="20" width="170" height="64" rx="8" fill="var(--card)" stroke="var(--line)"/><text x="495" y="46" text-anchor="middle" font-weight="700">5–6 Change, retreat</text><text x="495" y="66" text-anchor="middle" fill="var(--muted)">6 change classes, m/yr</text></g>
+          <g><rect x="210" y="20" width="170" height="64" rx="8" fill="var(--card)" stroke="var(--line)"/><text x="295" y="46" text-anchor="middle" font-weight="700">3–4 Indices, water</text><text x="295" y="66" text-anchor="middle" fill="var(--muted)">water fraction, NDVI, BSI</text></g>
+          <g><rect x="410" y="20" width="170" height="64" rx="8" fill="var(--card)" stroke="var(--line)"/><text x="495" y="46" text-anchor="middle" font-weight="700">5–6 Tested change</text><text x="495" y="66" text-anchor="middle" fill="var(--muted)">p-values, sub-pixel retreat</text></g>
           <g><rect x="610" y="20" width="170" height="64" rx="8" fill="var(--card)" stroke="var(--line)"/><text x="695" y="46" text-anchor="middle" font-weight="700">7–8 Risk models</text><text x="695" y="66" text-anchor="middle" fill="var(--muted)">RUSLE, RF + XGBoost</text></g>
           <g><rect x="790" y="140" width="160" height="64" rx="8" fill="var(--accent-soft)" stroke="var(--accent)"/><text x="870" y="166" text-anchor="middle" font-weight="700">Dashboard</text><text x="870" y="186" text-anchor="middle" fill="var(--muted)">weekly, automatic</text></g>
           <g><rect x="410" y="140" width="170" height="64" rx="8" fill="var(--card)" stroke="var(--line)"/><text x="495" y="166" text-anchor="middle" font-weight="700">9–11 Priority sites</text><text x="495" y="186" text-anchor="middle" fill="var(--muted)">confidence, people, action</text></g>
@@ -243,14 +243,14 @@ footer{margin-top:26px;font-size:13px;color:var(--muted)}
 
     <div class="step"><div class="num">1</div><div>
       <h3>Study area and monitoring windows</h3>
-      <p>The district boundary is fixed once. Dibrugarh uses the geoBoundaries ADM2 polygon. Majuli became a district in 2016 and is missing from older boundary sets, so its polygon is built from the OpenStreetMap administrative relation (admin_level 5). All layers are placed on one grid in UTM zone 46N (EPSG:32646) at 20 m resolution.</p>
+      <p>The district boundary is fixed once. Dibrugarh uses the geoBoundaries ADM2 polygon. Majuli became a district in 2016 and is missing from older boundary sets, so its polygon is built from the OpenStreetMap administrative relation (admin_level 5). All layers use UTM zone 46N (EPSG:32646). The river corridor, which is land within 1 km of river channels of at least 50 ha, is mapped at 10 m by SWiFT-Bank. Land layers (vegetation, bare soil, RUSLE) are mapped at 20 m over the whole district.</p>
       <p>Each run compares the latest 120 days with the same calendar dates in the baseline year 2020. Comparing the same months keeps differences in river level and crop stage small, so they are not mistaken for change.</p>
       <div class="live" data-live="window"></div>
     </div></div>
 
     <div class="step"><div class="num">2</div><div>
       <h3>Satellite data and composites</h3>
-      <p>Images are read from the Microsoft Planetary Computer catalogue, which is free and needs no account. Three datasets are used: Sentinel-2 L2A surface reflectance (bands B02, B03, B04, B08, B11, B12), Sentinel-1 radiometrically terrain-corrected radar (VV, VH), and the Copernicus 30 m DEM. Clouds, shadows and cirrus are removed with the Sentinel-2 scene classification: only classes 4 (vegetation), 5 (bare soil), 6 (water) and 7 (unclassified) are kept. At most the 15 clearest scenes of each tile are used. A per-pixel median of the clear observations gives one composite for each window. Radar sees through clouds and is used where the optical view is missing.</p>
+      <p>Images are read from the Microsoft Planetary Computer catalogue, which is free and needs no account. Three datasets are used: Sentinel-2 L2A surface reflectance (bands B02, B03, B04, B08, B11, B12), Sentinel-1 radiometrically terrain-corrected radar (VV, VH), and the Copernicus 30 m DEM. Clouds, shadows and cirrus are removed with the Sentinel-2 scene classification: only classes 4 (vegetation), 5 (bare soil), 6 (water) and 7 (unclassified) are kept. At most the 15 clearest scenes of each tile are used. A per-pixel median of the clear observations gives one composite for each window. Radar sees through clouds and is used where the optical view is missing. For SWiFT-Bank, bands B03, B08 and B11 of every clear date are kept at 10 m. B11 is recorded at 20 m and is sharpened to 10 m with B08 (Du et al., 2016): SWIR<sub>10</sub> = B11 × B08 / B08<sub>2×2 mean</sub>.</p>
       <div class="live" data-live="coverage"></div>
     </div></div>
 
@@ -263,34 +263,42 @@ footer{margin-top:26px;font-size:13px;color:var(--muted)}
     </div></div>
 
     <div class="step"><div class="num">4</div><div>
-      <h3>Water mapping with a frequency rule</h3>
-      <p>A single composite can be misled by one flooded or hazy date. The system therefore classifies every clear date separately and counts how often each pixel was water. The threshold is chosen automatically by the edge-based Otsu method (Donchyts et al., 2016): pixels near the land–water edge are selected, and the threshold that best separates their MNDWI values into two groups is used. For radar, the same is done on VV backscatter (in dB).</p>
-      <div class="eq">water frequency f = k / n
-        <span class="note">k = number of clear dates on which the pixel was water, n = number of clear dates</span>
-        pixel is water if f ≥ 0.5 and n ≥ 2</div>
+      <h3>Water fraction on every clear date (SWiFT-Bank)</h3>
+      <p>A 10 m pixel on a river bank is often part water and part land. SWiFT-Bank therefore estimates the share of water in each pixel, not a water or land label. On every clear date, the mean spectrum of pure water pixels (MNDWI above 0.3) and of pure land pixels (MNDWI below −0.2) is taken within 155 m of the pixel, or within 755 m where pure pixels are few. Taking them from the same place and date lets them follow the sediment load of the river and the sand, grass and crops on the bank. The water fraction is the position of the pixel spectrum x (green, NIR and sharpened SWIR) on the line from the land spectrum l to the water spectrum w:</p>
+      <div class="eq">f = (x − l) · (w − l) / ‖w − l‖²,   limited to 0 ≤ f ≤ 1
+        <span class="note">for each window, the mean f̄ and variance s² of f over the n clear dates are kept for every pixel</span></div>
+      <p>The bank line is the 0.5 contour of the mean water fraction, traced with marching squares, so it can fall inside a pixel (Bishop-Taylor et al., 2019).</p>
+      <p class="note">Baseline method (20 m, kept for comparison): every clear date is classified as water or land with an MNDWI threshold set by edge-based Otsu (Donchyts et al., 2016). A pixel is water if it was water on at least half of its clear dates (f = k / n ≥ 0.5, n ≥ 2). Radar VV backscatter is used in the same way where optical dates are missing.</p>
       <div class="live" data-live="water"></div>
     </div></div>
 
     <div class="step"><div class="num">5</div><div>
-      <h3>Change detection</h3>
-      <p>The baseline and current water maps and indices are compared pixel by pixel. Land-to-water change is then split by the JRC Global Surface Water record (Landsat, 1984–2021, Pekel et al., 2016). Loss of land that had never been water is bank erosion of stable land. Loss inside the historical river belt is char or sandbar loss. A loss patch that does not touch a water body of at least 50 ha is a pond or flooded field, not a river bank.</p>
+      <h3>Tested change detection (SWiFT-Bank)</h3>
+      <p>For each pixel in the river corridor, the change in mean water fraction between the baseline and current windows is tested against the pixel's own day-to-day variation with Welch's t-test. Many pixels are tested at once, so the false discovery rate is held at 5 % (Benjamini and Hochberg, 1995). A pixel counts as changed when the test is significant and the change is at least 0.1, which is 10 m² of a 100 m² pixel.</p>
+      <div class="eq">t = (f̄<sub>now</sub> − f̄<sub>2020</sub>) / √(s²<sub>2020</sub> / n<sub>2020</sub> + s²<sub>now</sub> / n<sub>now</sub>),   s² ≥ 0.05²
+        lost land in a patch  A = Σ Δf<sub>i</sub> × 100 m²
+        patch p-value from Stouffer's Z = Σ z<sub>i</sub> / (2√k)  <span class="note">k pixels; the factor 2 allows for the 2 × 2 correlation of sharpened pixels</span>
+        a patch is reported if A ≥ 0.02 ha and p &lt; 0.01</div>
+      <p>Land-to-water change is split by the JRC Global Surface Water record (Landsat, 1984–2021, Pekel et al., 2016) into bank erosion of land that had never been water and loss of chars inside the historical river belt. A loss patch that does not touch a water body of at least 50 ha is a pond or flooded field. Vegetation loss and new bare soil come from the 20 m land layers.</p>
       <table>
         <tr><th>Class</th><th>Rule</th></tr>
-        <tr><td>1 Bank erosion (stable land)</td><td>land in baseline, water now, never water in 1984–2021, touches the river</td></tr>
-        <tr><td>2 Accretion</td><td>water in baseline, land now</td></tr>
-        <tr><td>3 Vegetation loss</td><td>land in both windows and ΔNDVI = NDVI<sub>current</sub> − NDVI<sub>baseline</sub> &lt; −0.15</td></tr>
-        <tr><td>4 New bare soil</td><td>land now, BSI &gt; 0.05 now and ≤ 0.05 in baseline</td></tr>
-        <tr><td>5 Char or sandbar loss</td><td>land to water inside the JRC river belt, touches the river</td></tr>
-        <tr><td>6 New inland water</td><td>land to water not touching a water body ≥ 50 ha</td></tr>
+        <tr><td>1 Bank erosion (stable land)</td><td>significant gain in water fraction, never water in 1984–2021, touches the river</td></tr>
+        <tr><td>2 Accretion</td><td>significant loss of water fraction</td></tr>
+        <tr><td>3 Vegetation loss</td><td>land in both windows and ΔNDVI = NDVI<sub>current</sub> − NDVI<sub>baseline</sub> &lt; −0.15 (20 m)</td></tr>
+        <tr><td>4 New bare soil</td><td>land now, BSI &gt; 0.05 now and ≤ 0.05 in baseline (20 m)</td></tr>
+        <tr><td>5 Char or sandbar loss</td><td>significant gain in water fraction inside the JRC river belt, touches the river</td></tr>
+        <tr><td>6 New inland water</td><td>significant gain in water fraction not touching a water body ≥ 50 ha</td></tr>
       </table>
-      <p>Patches smaller than 10 pixels (0.4 ha) are dropped as noise.</p>
+      <p>Two further checks run every week. The minimum detectable change, MDC = (z<sub>0.975</sub> + z<sub>0.80</sub>) × SE × 100 m², shows for every bank pixel the smallest loss the test can find. In a null test, the dates of the current window are split into two halves; no erosion happens between them, so any change found is a false alarm.</p>
+      <p class="note">Baseline method (20 m): water and land labels of the two windows are compared pixel by pixel, and patches smaller than 10 pixels (0.4 ha) are dropped.</p>
       <div class="live" data-live="change"></div>
     </div></div>
 
     <div class="step"><div class="num">6</div><div>
       <h3>Bank retreat</h3>
-      <p>For every pixel that turned into water, the distance to the nearest baseline water pixel is how far the bank moved back. It is computed with a Euclidean distance transform. The rate divides the largest distance in a patch by the years between the two windows.</p>
-      <div class="eq">retreat rate (m/yr) = max distance to baseline water (m) / years between windows</div>
+      <p>Bank retreat is measured between the sub-pixel bank lines of the two windows: for each loss patch, the largest distance from the current bank line to the baseline bank line. The rate divides this distance by the years between the two windows.</p>
+      <div class="eq">retreat rate (m/yr) = max distance between the baseline and current bank lines (m) / years between windows
+        <span class="note">baseline method: largest distance of an eroded pixel to the nearest baseline water pixel (Euclidean distance transform)</span></div>
     </div></div>
 
     <div class="step"><div class="num">7</div><div>
@@ -317,11 +325,10 @@ footer{margin-top:26px;font-size:13px;color:var(--muted)}
 
     <div class="step"><div class="num">9</div><div>
       <h3>Confidence of each result</h3>
-      <p>Every water or land label rests on several dates. With k water dates out of n, a Beta(k + 1, n − k + 1) distribution describes the true water frequency. The confidence of a label is the probability that the frequency lies on the same side of 0.5 as the label. A change needs both labels to be right, so the two confidences are multiplied.</p>
-      <div class="eq">confidence(water) = 1 − I<sub>0.5</sub>(k + 1, n − k + 1),   confidence(land) = I<sub>0.5</sub>(k + 1, n − k + 1)
-        <span class="note">I = regularised incomplete beta function</span>
-        change confidence = confidence<sub>baseline</sub> × confidence<sub>current</sub>
-        <span class="note">site label: High ≥ 0.90, Medium ≥ 0.75, otherwise Low. For AI sites, the agreement between the two models is used.</span></div>
+      <p>For SWiFT-Bank, the confidence of a change is one minus the p-value of its test, and each patch has a combined p-value. Sites are marked High (at least 0.90), Medium (at least 0.75) or Low. For the 20 m layers outside the corridor, every water or land label rests on several dates: with k water dates out of n, a Beta(k + 1, n − k + 1) distribution describes the true water frequency, and the confidence of a change is the product of the two label confidences.</p>
+      <div class="eq">SWiFT-Bank: confidence = 1 − p
+        baseline: confidence(water) = 1 − I<sub>0.5</sub>(k + 1, n − k + 1),   confidence(land) = I<sub>0.5</sub>(k + 1, n − k + 1)
+        <span class="note">I = regularised incomplete beta function. For AI sites, the agreement between the two models is used.</span></div>
       <div class="live" data-live="conf"></div>
     </div></div>
 
@@ -363,6 +370,8 @@ footer{margin-top:26px;font-size:13px;color:var(--muted)}
       <p>A stratified random sample of 330 points is drawn from the change map, with more points in rare classes. For each point an analyst looks at the before and after image chips on the labelling page and records the true class. User's and producer's accuracy, overall accuracy and the corrected area of each class, all with 95% confidence intervals, are then estimated by the method of Olofsson et al. (2014) and Stehman (2014). These are good-practice estimators for maps from stratified samples.</p>
       <div class="eq">area estimate Â<sub>j</sub> = A<sub>total</sub> × Σ<sub>h</sub> W<sub>h</sub> × (n<sub>hj</sub> / n<sub>h</sub>)
         <span class="note">W<sub>h</sub> = mapped share of stratum h; n<sub>hj</sub> = sample points of stratum h whose true class is j</span></div>
+      <p><b>Independent check against labelled data.</b> The three water methods were also tested against the Dynamic World expert-consensus tiles (Brown et al., 2022), Sentinel-2 scenes in which experts labelled every 10 m pixel by hand, and against the REAL global record of river bank erosion rates (Langhorst and Pavelsky). Full results are on the SWiFT-Bank method tab.</p>
+      <div class="live" id="extLive"></div>
       <div class="live" data-live="val"></div>
     </div></div>
 
@@ -389,14 +398,20 @@ footer{margin-top:26px;font-size:13px;color:var(--muted)}
 
   <section class="card" style="margin-top:16px">
     <h2>Limitations</h2>
-    <p>The change maps rely on 20 m pixels, so changes smaller than about 0.4 ha are not detected. The char/bank split uses the JRC record, which ends in 2021. On an island district such as Majuli, most of the bank was water at some time since 1984, so much real loss of island land is counted as char loss. RUSLE uses the cell size as slope length, which is a simple approximation for flat floodplains. Population near a site is an upper bound, because WorldPop cells are 100 m. All results should be confirmed in the field before works are planned.</p>
+    <p>SWiFT-Bank maps water change at 10 m in the river corridor and reports losses down to 0.02 ha of lost land. Outside the corridor, and for vegetation loss and bare soil, 20 m layers are used, so changes smaller than about 0.4 ha are not detected there. Two end-members cannot fully describe banks that mix sand, grass and shadow, and wet sand or very turbid water can shift the water fraction. The null test measures false alarms but not missed losses, and the accuracy of the smallest losses has not yet been checked in the field. The char/bank split uses the JRC record, which ends in 2021. On an island district such as Majuli, most of the bank was water at some time since 1984, so much real loss of island land is counted as char loss. RUSLE uses the cell size as slope length, which is a simple approximation for flat floodplains. Population near a site is an upper bound, because WorldPop cells are 100 m. All results should be confirmed in the field before works are planned.</p>
   </section>
 
   <section class="card" style="margin-top:16px">
     <h2>References</h2>
     <ol class="refs">
+      <li>Benjamini, Y. and Hochberg, Y. (1995). Controlling the false discovery rate: a practical and powerful approach to multiple testing. <i>Journal of the Royal Statistical Society B</i>, 57(1), 289–300.</li>
+      <li>Bishop-Taylor, R. et al. (2019). Sub-pixel waterline extraction: characterising accuracy and sensitivity to indices and spectra. <i>Remote Sensing</i>, 11(24), 2984.</li>
+      <li>Brown, C.F. et al. (2022). Dynamic World, near real-time global 10 m land use land cover mapping. <i>Scientific Data</i>, 9, 251.</li>
       <li>Donchyts, G. et al. (2016). A 30 m resolution surface water mask including estimation of positional and thematic differences using Landsat 8, SRTM and OpenStreetMap. <i>Remote Sensing</i>, 8(5), 386.</li>
+      <li>Du, Y. et al. (2016). Water bodies' mapping from Sentinel-2 imagery with Modified Normalized Difference Water Index at 10-m spatial resolution produced by sharpening the SWIR band. <i>Remote Sensing</i>, 8(4), 354.</li>
+      <li>Langhorst, T. and Pavelsky, T. Riverbank Erosion and Accretion from Landsat (REAL). Zenodo, record 7045021.</li>
       <li>McCool, D.K. et al. (1987). Revised slope steepness factor for the Universal Soil Loss Equation. <i>Transactions of the ASAE</i>, 30(5), 1387–1396.</li>
+      <li>Niroumand-Jadidi, M. and Vitti, A. (2017). Reconstruction of river boundaries at sub-pixel resolution: estimation and spatial allocation of water fractions. <i>ISPRS International Journal of Geo-Information</i>, 6(12), 383.</li>
       <li>Olofsson, P. et al. (2014). Good practices for estimating area and assessing accuracy of land change. <i>Remote Sensing of Environment</i>, 148, 42–57.</li>
       <li>Pai, D.S. et al. (2014). Development of a new high spatial resolution (0.25° × 0.25°) long period daily gridded rainfall data set over India. <i>Mausam</i>, 65(1), 1–18.</li>
       <li>Pekel, J.-F. et al. (2016). High-resolution mapping of global surface water and its long-term changes. <i>Nature</i>, 540, 418–422.</li>
@@ -404,6 +419,7 @@ footer{margin-top:26px;font-size:13px;color:var(--muted)}
       <li>Singh, G., Ram Babu and Chandra, S. (1981). Soil loss prediction research in India. Bulletin T-12/D-9, CSWCRTI, Dehradun.</li>
       <li>Stehman, S.V. (2014). Estimating area and map accuracy for stratified random sampling when the strata are different from the map classes. <i>International Journal of Remote Sensing</i>, 35(13), 4923–4939.</li>
       <li>Van der Knijff, J.M., Jones, R.J.A. and Montanarella, L. (2000). <i>Soil Erosion Risk Assessment in Europe</i>. EUR 19044 EN, European Commission.</li>
+      <li>Welch, B.L. (1947). The generalization of Student's problem when several different population variances are involved. <i>Biometrika</i>, 34, 28–35.</li>
       <li>Williams, J.R. (1995). The EPIC model. In: Singh, V.P. (ed.), <i>Computer Models of Watershed Hydrology</i>, 909–1000.</li>
       <li>Xu, H. (2006). Modification of normalised difference water index (NDWI) to enhance open water features in remotely sensed imagery. <i>International Journal of Remote Sensing</i>, 27(14), 3025–3033.</li>
     </ol>
@@ -415,8 +431,8 @@ footer{margin-top:26px;font-size:13px;color:var(--muted)}
 <script>
 (function () {
   const SRC = {
-    dib: { name: "Dibrugarh", url: "https://sudipta2020-1.github.io/dibrugarh-erosion-monitor/data/summary.json" },
-    maj: { name: "Majuli", url: "https://sudipta2020-1.github.io/majuli-erosion-monitor/data/summary.json" }
+    dib: { name: "Dibrugarh", url: "https://sudipta2020-1.github.io/dibrugarh-erosion-monitor/swift/data/summary.json" },
+    maj: { name: "Majuli", url: "https://sudipta2020-1.github.io/majuli-erosion-monitor/swift/data/summary.json" }
   };
   const fmt = (v, d = 0) => (v === undefined || v === null || isNaN(v)) ? "–" :
     Number(v).toLocaleString("en-IN", { maximumFractionDigits: d, minimumFractionDigits: d });
@@ -433,8 +449,8 @@ footer{margin-top:26px;font-size:13px;color:var(--muted)}
     window: s => `${(s.period_current || []).join(" to ")} compared with ${(s.period_baseline || []).join(" to ")}`,
     coverage: s => `${fmt(s.clear_coverage_pct, 1)}% of the district had a clear optical view; run confidence: ${s.confidence || "–"}`,
     water: s => {
-      const w = get(s, "water_detection.current") || {};
-      return `MNDWI threshold ${fmt(w.mndwi_threshold_otsu, 3)} (Otsu), radar VV threshold ${fmt(w.vv_threshold_otsu, 1)} dB; ${fmt(w.share_from_optical_frequency_pct, 1)}% of pixels labelled from optical frequency`;
+      const w = s.swift || {}, m = w.mdc_bank_m2 || {}, n = w.null_test || {};
+      return "river corridor " + fmt(w.corridor_km2) + " km² mapped at 10 m; median detection limit along the bank " + fmt(m.median) + " m² per pixel; " + fmt(w.small_patches) + " losses below 0.4 ha; null test " + fmt(n.swift_footprint_ha, 2) + " ha of false change";
     },
     change: s => `bank erosion ${fmt(ca(s, "Bank erosion"))} ha, char loss ${fmt(ca(s, "Char"))} ha, accretion ${fmt(ca(s, "Accretion"))} ha, vegetation loss ${fmt(ca(s, "Vegetation"))} ha, new inland water ${fmt(ca(s, "New inland"))} ha`,
     rusle: s => {
@@ -450,8 +466,9 @@ footer{margin-top:26px;font-size:13px;color:var(--muted)}
     },
     val: s => {
       const v = s.validation || {}, a = s.accuracy || {};
-      return a.overall_accuracy !== undefined ? `overall accuracy ${fmt(100 * a.overall_accuracy, 1)}% ± ${fmt(100 * (a.overall_ci95 || 0), 1)}%` :
-        `${fmt(v.sample_points)} points drawn; accuracy will appear once the points are labelled`;
+      if (a.overall_accuracy !== undefined) return "overall accuracy " + fmt(100 * a.overall_accuracy, 1) + "% ± " + fmt(100 * (a.overall_ci95 || 0), 1) + "%";
+      if (v.sample_points) return fmt(v.sample_points) + " points drawn; accuracy will appear once the points are labelled";
+      return "330 sample points drawn for the baseline change map; a sample for the SWiFT-Bank map is the next step. Accuracy appears here once the points are labelled";
     }
   };
 
@@ -486,6 +503,18 @@ footer{margin-top:26px;font-size:13px;color:var(--muted)}
     });
   });
 })();
+</script>
+<script>
+fetch("data/external/summary.json?t=" + Date.now()).then(r => r.ok ? r.json() : null).then(E => {
+  const el = document.getElementById("extLive");
+  const t = E && E.test1_dynamic_world;
+  if (!el || !t || !t.shoreline_20m) { if (el) el.style.display = "none"; return; }
+  const pc = x => (100 * x).toFixed(1) + "%";
+  const sh = t.shoreline_20m, po = t.pooled;
+  el.innerHTML = "<div style='font-weight:600;margin-bottom:2px'>Expert-labelled tiles (" + t.tiles_used + " tiles)</div>" +
+    "<div>Overall accuracy: SWiFT-Bank " + pc(po["M3 SWiFT-Bank"].overall_accuracy) + ", 10 m " + pc(po["M2 10 m sharpened"].overall_accuracy) + ", baseline 20 m " + pc(po["M1 standard 20 m"].overall_accuracy) + "</div>" +
+    "<div>Within 20 m of the shoreline: SWiFT-Bank " + pc(sh["M3 SWiFT-Bank"].overall_accuracy) + ", 10 m " + pc(sh["M2 10 m sharpened"].overall_accuracy) + ", baseline 20 m " + pc(sh["M1 standard 20 m"].overall_accuracy) + "</div>";
+}).catch(() => {});
 </script>
 <script src="assets/fx.js"></script>
 </body>
