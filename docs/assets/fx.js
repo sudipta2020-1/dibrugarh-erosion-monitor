@@ -84,3 +84,59 @@
     });
   }).observe(document.body, { childList: true, subtree: true });
 })();
+
+// 4. Method page: show each calculation step as a compact tile; the full text,
+//    formulas and latest values open in a pop-up, so the page fits its window.
+(function () {
+  var steps = document.querySelectorAll(".step");
+  if (!steps.length) return;
+  var ov = document.createElement("div");
+  ov.className = "fx-modal"; ov.hidden = true; ov.setAttribute("role", "dialog"); ov.setAttribute("aria-modal", "true");
+  ov.innerHTML = '<div class="fx-modal-box"><button class="fx-x" aria-label="Close">×</button><div class="fx-modal-body"></div></div>';
+  document.body.appendChild(ov);
+  var body = ov.querySelector(".fx-modal-body");
+  function close() { ov.hidden = true; }
+  ov.addEventListener("click", function (e) { if (e.target === ov || e.target.closest(".fx-x")) close(); });
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape") close(); });
+  steps.forEach(function (st) {
+    var inner = st.children[1], h3 = inner && inner.querySelector("h3"), p = inner && inner.querySelector("p");
+    if (!inner || !h3) return;
+    var txt = p ? p.textContent.trim() : "";
+    var first = (txt.match(/^.*?[.!?](\s|$)/) || [txt])[0].trim();
+    if (first.length > 170) first = first.slice(0, 167).replace(/\s+\S*$/, "") + "…";
+    var tile = document.createElement("div");
+    tile.className = "fx-tile";
+    tile.innerHTML = "<p></p>";
+    tile.querySelector("p").textContent = first;
+    var btn = document.createElement("button");
+    btn.type = "button"; btn.className = "fx-more"; btn.textContent = "See how it is calculated →";
+    tile.appendChild(btn);
+    inner.classList.add("fx-full");
+    inner.parentNode.insertBefore(tile, inner);
+    tile.insertBefore(h3, tile.firstChild);
+    function open() {
+      body.innerHTML = "";
+      var num = st.querySelector(".num").cloneNode(true);
+      var head = document.createElement("div"); head.className = "fx-mhead";
+      head.appendChild(num); head.appendChild(h3.cloneNode(true));
+      body.appendChild(head);
+      body.appendChild(inner.cloneNode(true)).classList.remove("fx-full");
+      body.style.setProperty("--sc", getComputedStyle(st).getPropertyValue("--sc"));
+      // The page may sit in a tall embed box, so place the pop-up next to the tile, not at the top
+      var box = ov.querySelector(".fx-modal-box"), docH = document.documentElement.scrollHeight;
+      ov.style.height = docH + "px"; ov.hidden = false;
+      var y = tile.getBoundingClientRect().top + window.scrollY - 140;
+      box.style.marginTop = Math.max(16, Math.min(y, docH - box.offsetHeight - 16)) + "px";
+      ov.querySelector(".fx-x").focus({ preventScroll: true });
+    }
+    btn.addEventListener("click", open);
+    h3.style.cursor = "pointer"; h3.addEventListener("click", open);
+  });
+  // References fold into a short list that can be opened
+  var refs = document.querySelector(".refs");
+  if (refs && !refs.closest("details")) {
+    var d = document.createElement("details"); d.className = "fx-refs";
+    d.innerHTML = "<summary>Show all " + refs.children.length + " references</summary>";
+    refs.parentNode.insertBefore(d, refs); d.appendChild(refs);
+  }
+})();
