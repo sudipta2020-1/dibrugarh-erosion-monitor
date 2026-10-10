@@ -67,6 +67,36 @@ tbody tr:hover{background:color-mix(in srgb,var(--fx3) 10%,transparent)}
 .fx-on .fx-r{opacity:0;transform:translateY(18px);transition:opacity .7s ease,transform .7s ease}
 .fx-on .fx-r.fx-in{opacity:1;transform:none}
 
+/* Layout: use the full window width and spread long text into columns on wide screens */
+body{max-width:1900px}
+.kpis{grid-template-columns:repeat(auto-fit,minmax(140px,1fr)) !important}
+.wrap{max-width:1680px}
+.method p{max-width:none !important}
+@media (min-width:1100px){
+  .card.method:not(:has(.ml-grid)){columns:2 30em;column-gap:36px;column-rule:1px solid var(--line,#e2ded4)}
+  .card.method:not(:has(.ml-grid))>.card-head,.card.method:not(:has(.ml-grid))>h2,
+  .card.method:not(:has(.ml-grid))>table,.card.method:not(:has(.ml-grid))>.table-wrap{column-span:all}
+  .card.method:not(:has(.ml-grid)) p{margin:0 0 10px;break-inside:avoid-column}
+  section.card:has(>.step){display:grid;grid-template-columns:repeat(2,minmax(0,1fr));column-gap:36px;align-items:start}
+  section.card:has(>.step)>h2{grid-column:1/-1;justify-self:start}
+  .step:nth-of-type(2){border-top:0}
+  .lead{max-width:none}
+  .refs{columns:2 28em;column-gap:36px}
+  .refs li{break-inside:avoid}
+}
+@media (min-width:1700px){
+  section.card:has(>.step){grid-template-columns:repeat(3,minmax(0,1fr))}
+  .step:nth-of-type(3){border-top:0}
+  .card.method:not(:has(.ml-grid)){columns:3 28em}
+}
+
+@media (max-width:900px){
+  .grid,.sensor-grid,.ml-grid{grid-template-columns:minmax(0,1fr) !important}
+  .card,.kpi{min-width:0}
+  .controls{flex-wrap:wrap}
+  .top{padding:18px 16px 54px !important}
+}
+html,body{overflow-x:hidden}
 @media (prefers-reduced-motion: reduce){
   body::before,.top,.fx-waves *,.fx-sat,.fx-tag i,.card-head h2::after,.card:not(.district)>h2::after{animation:none !important}
   .fx-on .fx-r{opacity:1;transform:none;transition:none}
