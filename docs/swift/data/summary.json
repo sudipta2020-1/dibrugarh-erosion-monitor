@@ -1,5 +1,5 @@
 {
-  "run_date": "2026-10-10 13:17 UTC",
+  "run_date": "2026-10-10 13:45 UTC",
   "district": "Dibrugarh",
   "period_baseline": [
     "2019-10-31",
@@ -67,10 +67,10 @@
   },
   "hotspots_listed": 50,
   "sites_by_urgency": {
-    "Immediate": 5,
+    "Immediate": 9,
     "Before monsoon": 15,
-    "Routine": 23,
-    "Monitor": 7
+    "Routine": 20,
+    "Monitor": 6
   },
   "field": {
     "records": 0
