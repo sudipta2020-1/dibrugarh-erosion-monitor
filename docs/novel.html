@@ -78,6 +78,18 @@ table.cmp3 td:first-child { color: var(--muted); }
   <p class="note">Bank lines are the 0.5 contour of the mean water fraction. Orange circles mark SWiFT-Bank losses smaller than 0.4 ha. Click a patch for its lost land, p-value and retreat. "Detection limit" shows, for pixels along the bank, the smallest land loss the test can detect there.</p>
 </section>
 
+<section class="card" id="extCard" hidden>
+  <h2>Independent accuracy check <span class="newtag">labelled data</span></h2>
+  <p><b>Test 1. Water mapping against expert labels.</b> The Dynamic World expert-consensus test set (Brown et al., 2022) contains Sentinel-2 tiles of 5.1 km × 5.1 km in which several experts labelled every 10 m pixel by hand. For each tile with both water and land, the same Sentinel-2 scene was mapped by the three methods and compared with the labels. One tile lies on the Brahmaputra at Majuli. The 95 % confidence intervals come from a bootstrap over tiles.</p>
+  <div class="table-wrap" style="max-height:none"><table class="cmp3" id="extT1"></table></div>
+  <p class="note" id="extT1note"></p>
+  <p><b>Sub-pixel test.</b> The 10 m labels were averaged to 20 m and 30 m blocks, which gives the true share of water in each block. SWiFT-Bank estimated this share from the block reflectance; a hard water/land map can only say 0 or 1.</p>
+  <div class="table-wrap" style="max-height:none"><table id="extSub"></table></div>
+  <p><b>Test 2. Bank erosion rates against a global Landsat record.</b> REAL (Langhorst and Pavelsky) gives the bank erosion rate of each river reach from Landsat water maps. The land lost in each reach in Dibrugarh and Majuli was turned into a retreat rate and ranked against REAL. The periods differ, so this tests whether each method finds the same eroding reaches as an independent record, not its exact accuracy.</p>
+  <div class="table-wrap" style="max-height:none"><table class="cmp3" id="extT2"></table></div>
+  <p class="note" id="extNote">References: Brown, C. F. et al. (2022). Dynamic World, near real-time global 10 m land use land cover mapping. <i>Scientific Data</i> 9, 251 (test tiles: Zenodo 4766451). Langhorst, T. and Pavelsky, T. Riverbank Erosion and Accretion from Landsat (REAL), Zenodo 7045021.</p>
+</section>
+
 <section class="card method">
   <h2>How SWiFT-Bank works <span class="newtag">new</span></h2>
   <p>SWiFT-Bank stands for statistically tested sub-pixel water-fraction time series for bank erosion. The standard methods give each pixel a water or land label and count whole pixels that changed. SWiFT-Bank instead estimates how much of each pixel is water on every clear date, and then tests whether that amount changed between the two windows.</p>
@@ -196,6 +208,39 @@ table.cmp3 td:first-child { color: var(--muted); }
     } catch (e) {}
     document.querySelectorAll("input[name=m]").forEach(r => r.onchange = () => show(r.value));
     show("swift");
+    // Independent accuracy check
+    try {
+      const E = await getJ("data/external/summary.json");
+      const t1 = E.test1_dynamic_world, t2 = E.test2_real;
+      const pc = (x, d = 1) => (x == null || !isFinite(x)) ? "–" : (100 * x).toFixed(d) + "%";
+      const ci = k => { const c = (t1.ci95 || {})[k]; return c ? " (" + pc(c[0]) + "–" + pc(c[1]) + ")" : ""; };
+      const M = ["M1 standard 20 m", "M2 10 m sharpened", "M3 SWiFT-Bank"], K = ["M1", "M2", "M3"], N = ["Standard 20 m", "10 m frequency", "SWiFT-Bank (new)"];
+      if (t1 && t1.pooled) {
+        document.getElementById("extCard").hidden = false;
+        let h = "<thead><tr><th></th><th>" + N.join("</th><th>") + "</th></tr></thead><tbody>";
+        h += "<tr><td>Overall accuracy</td>" + M.map((m, i) => "<td>" + pc(t1.pooled[m].overall_accuracy) + ci(K[i] + "_oa") + "</td>").join("") + "</tr>";
+        h += "<tr><td>Water F1 score</td>" + M.map((m, i) => "<td>" + pc(t1.pooled[m].water_f1) + ci(K[i] + "_f1") + "</td>").join("") + "</tr>";
+        h += "<tr><td>Accuracy within 20 m of the shoreline</td>" + M.map((m, i) => "<td>" + pc(t1.shoreline_20m[m].overall_accuracy) + ci(K[i] + "_shore_oa") + "</td>").join("") + "</tr>";
+        h += "<tr><td>Shoreline water found (producer's accuracy)</td>" + M.map(m => "<td>" + pc(t1.shoreline_20m[m].water_producers) + "</td>").join("") + "</tr>";
+        const mj = t1.majuli_tile;
+        if (mj) h += "<tr><td>Majuli tile (" + esc(mj.date) + "): overall / shoreline</td>" + M.map(m => "<td>" + pc(mj[m].overall_accuracy) + " / " + pc(mj[m].shoreline_oa) + "</td>").join("") + "</tr>";
+        document.getElementById("extT1").innerHTML = h + "</tbody>";
+        const d1 = (t1.differences || {})["M3_minus_M1_shore_oa"], d0 = (t1.differences || {})["M3_minus_M1_oa"];
+        document.getElementById("extT1note").textContent = t1.tiles_used + " of " + t1.tiles_in_set + " tiles were used (tiles with both water and land, and a matching scene in the Planetary Computer archive). " +
+          (d1 ? "SWiFT-Bank is better than the standard method by " + pc(d0.mean) + " overall (95% CI " + pc(d0.ci95[0]) + " to " + pc(d0.ci95[1]) + ") and by " + pc(d1.mean) + " within 20 m of the shoreline (95% CI " + pc(d1.ci95[0]) + " to " + pc(d1.ci95[1]) + "), where bank change happens." : "");
+        const sp = t1.subpixel || {};
+        let s = "<thead><tr><th>Block size</th><th>Mixed blocks</th><th>Error of water share, hard map</th><th>Error of water share, SWiFT-Bank</th><th>Water area error, hard map</th><th>Water area error, SWiFT-Bank</th></tr></thead><tbody>";
+        Object.keys(sp).forEach(k => { const r = sp[k]; s += "<tr><td>" + k + " m</td><td>" + fmt(r.mixed_blocks) + "</td><td>" + fmt(r.hard_mae, 2) + "</td><td>" + fmt(r.swift_mae, 2) + "</td><td>" + fmt(r.hard_area_error_pct, 0) + "%</td><td>" + fmt(r.swift_area_error_pct, 0) + "%</td></tr>"; });
+        document.getElementById("extSub").innerHTML = s + "</tbody>";
+      }
+      if (t2 && t2.correlation) {
+        let r = "<thead><tr><th></th><th>" + N.join("</th><th>") + "</th></tr></thead><tbody>";
+        r += "<tr><td>Rank correlation with REAL (Spearman ρ)</td>" + M.map(m => "<td>" + (t2.correlation[m] ? fmt(t2.correlation[m].spearman_rho, 2) + " (p = " + fmt(t2.correlation[m].p_value, 3) + ")" : "–") + "</td>").join("") + "</tr>";
+        r += "<tr><td>River reaches compared</td>" + M.map(m => "<td>" + (t2.correlation[m] ? fmt(t2.correlation[m].reaches) : "–") + "</td>").join("") + "</tr>";
+        r += "<tr><td>Median bank retreat (m/yr); REAL " + fmt(t2.real_median_rate_m_yr, 1) + " m/yr for " + (t2.real_years || []).join("–") + "</td>" + M.map(m => "<td>" + (t2.correlation[m] ? fmt(t2.correlation[m].median_rate_m_yr, 1) : "–") + "</td>").join("") + "</tr>";
+        document.getElementById("extT2").innerHTML = r + "</tbody>";
+      }
+    } catch (e) {}
   }
   main();
 })();
