@@ -66,11 +66,15 @@ def _get(url, path=None, timeout=600):
     for k in range(4):
         try:
             r = requests.get(url, timeout=timeout)
+            if r.status_code == 404:
+                raise FileNotFoundError(url)
             r.raise_for_status()
             if path:
                 Path(path).write_bytes(r.content)
                 return path
             return r.content
+        except FileNotFoundError:
+            raise
         except Exception as e:
             print("  retry", k + 1, url, e)
             time.sleep(10 * (k + 1))
@@ -298,7 +302,9 @@ def test2():
         aois.append(a[["district", "geometry"]])
     A = pd.concat(aois, ignore_index=True)
     bbox = tuple(np.array(A.total_bounds) + np.array([-0.05, -0.05, 0.05, 0.05]))
-    R = gpd.read_file(WORK / "REAL_reach.shp", bbox=bbox)
+    # The reach file stores SWORD reach centre longitude and latitude as x and y
+    R = gpd.read_file(WORK / "REAL_reach.shp",
+                      where=f"x >= {bbox[0]} AND x <= {bbox[2]} AND y >= {bbox[1]} AND y <= {bbox[3]}")
     print("REAL columns:", list(R.columns))
     print(f"  {len(R)} REAL reaches in the box")
     col = "ERate" if "ERate" in R.columns else next(c for c in R.columns if "ERate" in c or "Erate" in c)
@@ -364,20 +370,26 @@ def test2():
 
 
 def main():
+    import sys
+    which = sys.argv[1] if len(sys.argv) > 1 else "all"
     OUT.mkdir(parents=True, exist_ok=True)
     WORK.mkdir(parents=True, exist_ok=True)
     t0 = time.time()
-    res = {"run": time.strftime("%Y-%m-%d %H:%M UTC", time.gmtime())}
-    try:
-        res["test2_real"] = test2()
-    except Exception as e:
-        import traceback
-        traceback.print_exc()
-        res["test2_real"] = {"error": str(e)}
-    (OUT / "summary.json").write_text(json.dumps(res, indent=2, default=float))
-    res["test1_dynamic_world"] = test1()
+    f = OUT / "summary.json"
+    res = json.loads(f.read_text()) if f.exists() else {}
+    res["run"] = time.strftime("%Y-%m-%d %H:%M UTC", time.gmtime())
+    if which in ("all", "test2"):
+        try:
+            res["test2_real"] = test2()
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            res["test2_real"] = {"error": str(e)}
+        f.write_text(json.dumps(res, indent=2, default=float))
+    if which in ("all", "test1"):
+        res["test1_dynamic_world"] = test1()
     res["runtime_min"] = round((time.time() - t0) / 60, 1)
-    (OUT / "summary.json").write_text(json.dumps(res, indent=2, default=float))
+    f.write_text(json.dumps(res, indent=2, default=float))
 
 
 if __name__ == "__main__":
