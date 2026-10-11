@@ -443,6 +443,6 @@
     if (sel.options.length && !box.dataset.done) { box.dataset.done = "1"; layerText(); }
     cardButtons();
     var g = guideButton();
-    if ((cards.length && box.dataset.done && g) || tries > 60) clearInterval(timer);
+    if (tries > 120) clearInterval(timer);
   }, 500);
 })();
