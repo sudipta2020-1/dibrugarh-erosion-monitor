@@ -209,6 +209,22 @@
   var rel = function (d, tag, f) { return "https://github.com/" + OWNER + "/" + D[d] + "/releases/" + (tag === "latest" ? "latest/download/" : "download/" + tag + "/") + f; };
   var esc = function (s) { return String(s == null ? "" : s).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); };
   var getJ = function (u) { return fetch(u, { cache: "no-cache" }).then(function (r) { return r.ok ? r.json() : null; }).catch(function () { return null; }); };
+  // The part of this page that is visible on screen. Inside a Google Sites embed the frame can be
+  // larger than the screen or partly scrolled away, so pop-ups are fitted to what can be seen.
+  window.fxVisible = window.fxVisible || function (cb) {
+    var vw = document.documentElement.clientWidth, vh = window.innerHeight, full = { top: 0, bottom: vh, left: 0, right: vw }, done = false;
+    var finish = function (v) { if (!done) { done = true; cb(v); } };
+    try {
+      var io = new IntersectionObserver(function (es) {
+        io.disconnect();
+        var r = es[0].intersectionRect;
+        if (!es[0].isIntersecting || r.height < 120) finish(full);
+        else finish({ top: Math.max(0, r.top), bottom: Math.min(vh, r.bottom), left: Math.max(0, r.left), right: Math.min(vw, r.right) });
+      });
+      io.observe(document.documentElement);
+      setTimeout(function () { finish(full); }, 300);
+    } catch (e) { finish(full); }
+  };
   var ddmm = function (s) { var p = String(s).slice(0, 10).split("-"); return p.length === 3 ? p[2] + "-" + p[1] + "-" + p[0] : s; };
 
   var css = document.createElement("style");
@@ -302,7 +318,14 @@
     open = open === which ? null : which;
     bar.querySelectorAll(".dl-btn").forEach(function (b) { b.setAttribute("aria-expanded", String(b.dataset.p === open)); });
     panel.hidden = !open;
-    if (open) render(open);
+    if (open) {
+      render(open);
+      window.fxVisible(function (v) {
+        var t = panel.getBoundingClientRect().top;
+        panel.style.maxHeight = Math.max(160, v.bottom - Math.max(t, v.top) - 12) + "px";
+        if (t > v.bottom - 160 || t < v.top) panel.scrollIntoView({ block: "nearest" });
+      });
+    }
   }
   bar.addEventListener("click", function (e) {
     var b = e.target.closest(".dl-btn");
@@ -364,7 +387,7 @@
     "border:1px solid #0f6e8c;background:#fff;color:#0f6e8c;font:italic 700 11px/1 Georgia,serif;cursor:pointer;vertical-align:2px;flex:none}" +
     ".xp-btn:hover,.xp-btn[aria-expanded=true]{background:#0f6e8c;color:#fff}" +
     ".kpi .label{display:flex;align-items:flex-start;justify-content:space-between;gap:4px}.kpi .xp-btn{margin-left:4px}" +
-    ".xp-pop{position:absolute;z-index:1300;width:min(400px,calc(100vw - 32px));background:#fff;border:1px solid #d9d4c7;border-radius:10px;" +
+    ".xp-pop{position:fixed;z-index:1300;width:min(400px,calc(100vw - 24px));overflow:auto;background:#fff;border:1px solid #d9d4c7;border-radius:10px;" +
     "box-shadow:0 10px 30px rgba(0,0,0,.16);padding:12px 14px;font-size:13.5px;line-height:1.5;color:#1d1d1b}" +
     ".xp-pop p{margin:0 0 8px}.xp-pop p:last-child{margin:0}.xp-pop ul,.xp-pop ol{margin:4px 0 8px;padding-left:18px}.xp-pop li{margin-bottom:4px}" +
     ".xp-pop .xp-h{font-weight:700;margin-bottom:6px;color:#0f5d73}" +
@@ -383,14 +406,26 @@
     close();
     pop.innerHTML = "<div class='xp-h'></div>" + html;
     pop.firstChild.textContent = title;
+    pop.style.visibility = "hidden"; pop.style.maxHeight = ""; pop.style.left = "0px"; pop.style.top = "0px";
     pop.hidden = false;
-    var r = btn.getBoundingClientRect(), w = pop.offsetWidth;
-    var left = Math.max(16, Math.min(r.left + window.scrollX - 12, window.scrollX + document.documentElement.clientWidth - w - 16));
-    pop.style.left = left + "px"; pop.style.top = (r.bottom + window.scrollY + 8) + "px";
     btn.setAttribute("aria-expanded", "true"); openBtn = btn;
+    (window.fxVisible || function (cb) { cb({ top: 0, bottom: window.innerHeight, left: 0, right: document.documentElement.clientWidth }); })(function (v) {
+      if (openBtn !== btn) return;
+      var r = btn.getBoundingClientRect(), gap = 8, m = 12;
+      pop.style.maxHeight = Math.max(120, v.bottom - v.top - 2 * m) + "px";
+      var w = pop.offsetWidth, h = pop.offsetHeight;
+      var left = Math.max(v.left + m, Math.min(r.left - 12, v.right - w - m));
+      var below = v.bottom - r.bottom - gap - m, above = r.top - v.top - gap - m, top;
+      if (h <= below) top = r.bottom + gap;
+      else if (h <= above) top = r.top - gap - h;
+      else top = Math.max(v.top + m, v.bottom - h - m);
+      pop.style.left = left + "px"; pop.style.top = top + "px"; pop.style.visibility = "";
+    });
   }
   document.addEventListener("click", function (e) { if (openBtn && !pop.contains(e.target) && e.target !== openBtn) close(); });
   document.addEventListener("keydown", function (e) { if (e.key === "Escape") close(); });
+  window.addEventListener("scroll", close, { passive: true });
+  window.addEventListener("resize", close);
   function button(title, html) {
     var b = document.createElement("button");
     b.type = "button"; b.className = "xp-btn"; b.textContent = "i";
