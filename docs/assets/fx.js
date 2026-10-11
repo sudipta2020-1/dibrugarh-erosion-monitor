@@ -369,7 +369,8 @@
     ".xp-pop p{margin:0 0 8px}.xp-pop p:last-child{margin:0}.xp-pop ul,.xp-pop ol{margin:4px 0 8px;padding-left:18px}.xp-pop li{margin-bottom:4px}" +
     ".xp-pop .xp-h{font-weight:700;margin-bottom:6px;color:#0f5d73}" +
     ".xp-layer{margin-top:8px;padding:8px 12px;background:#f3f7f8;border-left:3px solid #1f8a8a;border-radius:6px;font-size:13px;line-height:1.5;color:#2b2b28}" +
-    ".xp-layer .xp-t{font-weight:700;color:#0f5d73;margin-right:4px}";
+    ".xp-layer .xp-t{font-weight:700;color:#0f5d73;margin-right:4px}" +
+    ".dl-bar .xp-guide{margin-right:auto}";
   document.head.appendChild(css);
 
   var pop = document.createElement("div");
