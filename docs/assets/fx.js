@@ -313,3 +313,136 @@
   document.addEventListener("click", function (e) { if (open && !bar.contains(e.target)) show(open); });
   document.addEventListener("keydown", function (e) { if (e.key === "Escape" && open) show(open); });
 })();
+
+// 7. "How to read" help on the SWiFT-Bank district dashboards: an (i) button on each key
+//    figure and card, a short explanation under the map legend for the chosen layer, and a
+//    reading guide next to the download buttons.
+(function () {
+  if (!/\/swift\//.test(location.pathname) || !document.getElementById("layerSelect")) return;
+
+  var KPI = {
+    "District area": "Total area of the district, inside the boundary used for all maps.",
+    "Sites for immediate action": "Bank erosion sites where the loss is statistically sure (High or Medium confidence) and at least one of these holds: 500 or more people live within 500 m, an embankment lies inside the site, or the bank is retreating 50 m or more a year. Inform the Water Resources Department before the monsoon. The small text gives the number of further sites to check before the monsoon.",
+    "High + very high risk": "Land where the estimated soil loss from rain (RUSLE) is above 20 t/ha/yr: High is 20 to 40, Very high is above 40. This is sheet and rill erosion on slopes and bare land, not river bank loss.",
+    "Land lost to river 1984–2021": "Land that became permanent or seasonal water in the JRC Landsat record (30 m, 1984 to 2021). It shows where the river has taken land over 37 years, including sand bars. Use it as background for the current change.",
+    "People near active bank erosion": "People living within 500 m of bank erosion found in the current window, from WorldPop 2020 (100 m cells). It is an upper estimate, because a 100 m cell may be partly outside the 500 m zone.",
+    "Bank erosion": "Stable land that turned into water between the two windows. Stable means it was never water from 1984 to 2021. In the river corridor this is the land lost found by SWiFT-Bank, counted inside mixed pixels, and every patch has p < 0.01.",
+    "Accretion": "Water that turned into land: new deposits left by the river. Much of it is on sand bars and may be washed away again.",
+    "Char / sandbar loss": "Land inside the river belt (water at some time since 1984) that turned into water. Mostly shifting chars and sand bars. It matters where people live or farm on chars, as in Majuli.",
+    "Vegetation loss": "Land where the greenness index (NDVI) fell by more than 0.15 between the two windows. Common causes are harvest, tea pruning and clearing, so check the cause before acting.",
+    "Mean soil loss": "Average estimated soil loss from rain (RUSLE) over all land in the district. Values below 5 t/ha/yr are in the Very low class."
+  };
+
+  var CARD = {
+    "Map": "<p>Choose what to show with <b>Layer</b>; the text under the colour key explains the chosen layer. <b>Opacity</b> makes the layer lighter so the satellite picture shows through.</p><p>Numbered circles are the priority sites (number = rank, colour = type). Click a circle for its details, the suggested action and directions. The yellow line is the district boundary. Use the button at the top right of the map to switch between the satellite and street maps.</p><p><b>Tip:</b> zoom in on a site, then switch between <i>Change since baseline</i> and <i>Satellite image</i> to see what changed on the ground.</p>",
+    "Area by erosion risk class": "<p>Each bar is the land area in one soil erosion risk class from RUSLE: Very low up to 5, Low 5 to 10, Moderate 10 to 20, High 20 to 40, Very high above 40 t/ha/yr.</p><p>Flat floodplains and paddy land fall in Very low, so that bar is always the largest. The High and Very high bars are the ones to act on: slopes and bare land that need cover, bunds or check dams.</p>",
+    "Change over successive runs": "<p>Each point is one weekly run. A line shows how the area of one change type has developed.</p><p>The lines stay flat while no new clear image arrives (for example in the monsoon), and move when new dry-season images come in. A sudden jump in one run can be caused by clouds or haze, so check the satellite image before reading it as real change.</p>",
+    "Priority sites for field verification": "<p>Sites are sorted by <b>Priority</b> = hazard × (0.3 + 0.7 × exposure). Hazard depends on the type of change, its area and how sure it is; exposure counts the people, buildings, cropland, roads, embankments, schools and health facilities within 500 m.</p><ul><li><b>Confidence</b>: High is 0.9 or more, Medium 0.75 to 0.9, Low below. For SWiFT-Bank sites it is 1 minus the p-value of the change test; for AI sites, how far the two models agree.</li><li><b>Action</b>: urgency (Immediate, Before monsoon, Routine, Monitor) and the lead department.</li><li><b>Bank retreat</b>: how far the bank moved, in metres per year, measured between the sub-pixel bank lines.</li><li><b>Field check</b>: the result of the field form, once staff have visited.</li></ul><p>Start from the top and with the Immediate sites. Click a row to see the site on the map.</p>",
+    "Live sensor stations": "<p>These readings are <b>simulated</b> until real stations are installed. Each station measures river level, rain, soil moisture and the tilt of stakes 5 to 40 m back from the bank.</p><p>Warning signs: the river rising fast, soil near saturation, and a stake that tilts and then stops reporting, which usually means the bank edge has reached it. Active warnings are listed under <i>Active alerts</i>.</p>",
+    "Field verification": "<p>This card shows how many priority sites have been visited with the field form and how many were confirmed, by site type. A high share of confirmed sites means the maps can be trusted for planning; sites marked <i>Not confirmed</i> help tune the method.</p>",
+    "AI bank-erosion model compared with RUSLE": "<p>The table scores each method on land it did not see during training. <b>ROC AUC</b>: 0.5 means no skill and 1.0 perfect. <b>PR AUC</b>: how well the top-ranked land matches the land actually lost. <b>Captured</b>: the share of real loss found in the 10 % or 20 % of land the method ranks highest, which is what matters when only a few sites can be visited.</p><p>The bar chart shows which inputs the model uses most. It shows what the model relies on, not proof of cause.</p>",
+    "Accuracy assessment": "<p><b>User's accuracy</b>: of the area the map calls a class, the share that is right. <b>Producer's accuracy</b>: of the true area of a class, the share the map found. Estimated areas correct the mapped areas for the errors in the sample.</p><p>Until the sample points are labelled, this card shows the sample only. Tests of SWiFT-Bank against independent labelled data are on the method comparison page.</p>"
+  };
+
+  var LAYER = {
+    change: "<b>What changed</b> between the baseline window and the current window. <b>Red</b>: stable land lost to the river (bank erosion). <b>Pink</b>: char or sand bar lost inside the river belt. <b>Dark blue</b>: new land left by the river. <b>Green</b>: new ponds or flooded fields, not erosion. <b>Orange</b>: vegetation loss. <b>Brown</b>: new bare soil. Within 1 km of the river, water change comes from SWiFT-Bank at 10 m and is statistically tested; elsewhere the 20 m layers are used. Red next to villages, roads or embankments matters most. Confirm every site in the field.",
+    ai: "<b>Where the river is likely to take land next</b>, over a period about as long as the gap between the two windows. Dark red is very high susceptibility. It covers land within 3 km of the river. It is a likelihood, not a date or a certainty. Trust it most where the <i>AI model agreement</i> layer is also high; the model's tested skill is in the AI card below.",
+    confidence: "<b>How sure the change test is</b>, shown only where change was found. Yellow (near 1.0) means very sure; dark purple (near 0.5) means weak evidence. In the river corridor the value is 1 minus the p-value of the SWiFT-Bank test. Sites marked High have 0.9 or more. Use it to decide which changes to visit first.",
+    agreement: "<b>How closely the two AI models agree</b> (Random Forest and XGBoost), from 0.5 (they disagree) to 1.0 (they agree). Yellow means agreement; purple means disagreement. Treat AI predictions in purple areas with care.",
+    history: "<b>Long-term river movement, 1984 to 2021</b>, from 37 years of Landsat images (JRC Global Surface Water). <b>Purple</b>: land that became permanent water. <b>Pink</b>: land that became seasonal water. <b>Dark blue</b>: permanent water that became land. <b>Light blue</b>: seasonal water that became land. Banks that moved in the past often keep moving; compare with the current change layer.",
+    risk: "<b>Soil erosion risk from rain</b> (RUSLE classes, t/ha/yr): Very low up to 5, Low 5 to 10, Moderate 10 to 20, High 20 to 40, Very high above 40. High values are on slopes with little cover and on bare land. This is not river bank erosion. Use it to find land that needs grass cover, cover crops, contour bunds or check dams.",
+    soilloss: "<b>Estimated soil lost to rain each year</b> (t/ha/yr), shown on a log scale from 0.1 to 100. Losses above about 10 t/ha/yr are generally more than the soil can rebuild. Flat paddy land and floodplains show low values; slopes, bare fields and cleared land show high values.",
+    ndvi: "<b>Greenness of vegetation</b> in the current window (NDVI, from -0.2 to 0.9). Red: water, sand, bare soil or built-up land. Yellow: sparse cover or dry crops. Green: dense crops, tea gardens and forest. The images are from the dry season, so many fields are bare after harvest.",
+    truecolour: "<b>A natural-colour picture</b> made from the clear dates of the current window. Use it to see what is on the ground: the river (dark), sand bars (light grey), fields, tea gardens and villages. Switch to it at the same zoom to see what a change patch looks like."
+  };
+
+  var GUIDE = "<p><b>How to read this page</b></p><ol><li><b>Key figures</b> at the top give the totals for the district. Click (i) on any card for its meaning.</li><li><b>Map</b>: start with <i>Change since baseline</i>. Red next to settlements, roads or embankments is the main warning. The text under the colour key explains each layer.</li><li><b>Priority sites</b>: read the table from the top. Immediate sites come first; click a row to see it on the map.</li><li><b>Confidence</b>: check it before acting. Every site still needs a field check.</li><li><b>Report and data</b>: use the two buttons for the two-weekly report (English and Assamese) and the map files.</li></ol>";
+
+  var css = document.createElement("style");
+  css.textContent =
+    ".xp-btn{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;margin-left:6px;padding:0;border-radius:50%;" +
+    "border:1px solid #0f6e8c;background:#fff;color:#0f6e8c;font:italic 700 11px/1 Georgia,serif;cursor:pointer;vertical-align:2px;flex:none}" +
+    ".xp-btn:hover,.xp-btn[aria-expanded=true]{background:#0f6e8c;color:#fff}" +
+    ".kpi .label{display:flex;align-items:flex-start;justify-content:space-between;gap:4px}.kpi .xp-btn{margin-left:4px}" +
+    ".xp-pop{position:absolute;z-index:1300;width:min(400px,calc(100vw - 32px));background:#fff;border:1px solid #d9d4c7;border-radius:10px;" +
+    "box-shadow:0 10px 30px rgba(0,0,0,.16);padding:12px 14px;font-size:13.5px;line-height:1.5;color:#1d1d1b}" +
+    ".xp-pop p{margin:0 0 8px}.xp-pop p:last-child{margin:0}.xp-pop ul,.xp-pop ol{margin:4px 0 8px;padding-left:18px}.xp-pop li{margin-bottom:4px}" +
+    ".xp-pop .xp-h{font-weight:700;margin-bottom:6px;color:#0f5d73}" +
+    ".xp-layer{margin-top:8px;padding:8px 12px;background:#f3f7f8;border-left:3px solid #1f8a8a;border-radius:6px;font-size:13px;line-height:1.5;color:#2b2b28}" +
+    ".xp-layer .xp-t{font-weight:700;color:#0f5d73;margin-right:4px}";
+  document.head.appendChild(css);
+
+  var pop = document.createElement("div");
+  pop.className = "xp-pop"; pop.hidden = true; pop.setAttribute("role", "dialog");
+  document.body.appendChild(pop);
+  var openBtn = null;
+  function close() { pop.hidden = true; if (openBtn) openBtn.setAttribute("aria-expanded", "false"); openBtn = null; }
+  function open(btn, title, html) {
+    if (openBtn === btn) { close(); return; }
+    close();
+    pop.innerHTML = "<div class='xp-h'></div>" + html;
+    pop.firstChild.textContent = title;
+    pop.hidden = false;
+    var r = btn.getBoundingClientRect(), w = pop.offsetWidth;
+    var left = Math.max(16, Math.min(r.left + window.scrollX - 12, window.scrollX + document.documentElement.clientWidth - w - 16));
+    pop.style.left = left + "px"; pop.style.top = (r.bottom + window.scrollY + 8) + "px";
+    btn.setAttribute("aria-expanded", "true"); openBtn = btn;
+  }
+  document.addEventListener("click", function (e) { if (openBtn && !pop.contains(e.target) && e.target !== openBtn) close(); });
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape") close(); });
+  function button(title, html) {
+    var b = document.createElement("button");
+    b.type = "button"; b.className = "xp-btn"; b.textContent = "i";
+    b.setAttribute("aria-label", "How to read: " + title); b.setAttribute("aria-expanded", "false"); b.title = "How to read this";
+    b.addEventListener("click", function (e) { e.stopPropagation(); open(b, title, html); });
+    return b;
+  }
+
+  // Cards
+  function cardButtons() {
+    document.querySelectorAll(".card h2").forEach(function (h) {
+      var t = h.textContent.trim();
+      Object.keys(CARD).forEach(function (k) { if (t.indexOf(k) === 0 && !h.querySelector(".xp-btn")) h.appendChild(button(k, CARD[k])); });
+    });
+  }
+  cardButtons();
+
+  // Layer explanation under the legend
+  var sel = document.getElementById("layerSelect"), leg = document.getElementById("legend");
+  var box = document.createElement("div"); box.className = "xp-layer";
+  leg.parentNode.insertBefore(box, leg.nextSibling);
+  function layerText() {
+    var k = sel.value, txt = LAYER[k];
+    box.hidden = !txt;
+    if (txt) box.innerHTML = "<span class='xp-t'>Reading this layer:</span>" + txt;
+  }
+  sel.addEventListener("change", layerText);
+
+  // Reading guide next to the download buttons
+  function guideButton() {
+    var bar = document.querySelector(".dl-bar");
+    if (!bar || bar.querySelector(".xp-guide")) return !!bar;
+    var g = document.createElement("button");
+    g.type = "button"; g.className = "dl-btn xp-guide";
+    g.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/></svg>How to read this page';
+    g.addEventListener("click", function (e) { e.stopPropagation(); open(g, "Reading guide", GUIDE); });
+    bar.insertBefore(g, bar.firstChild);
+    return true;
+  }
+
+  // Key figures and the layer list are filled after the data loads
+  var tries = 0;
+  var timer = setInterval(function () {
+    tries++;
+    var cards = document.querySelectorAll("#kpis .kpi .label");
+    cards.forEach(function (l) {
+      if (l.querySelector(".xp-btn")) return;
+      var t = l.textContent.trim();
+      if (KPI[t]) { var s = document.createElement("span"); s.textContent = t; l.textContent = ""; l.appendChild(s); l.appendChild(button(t, "<p>" + KPI[t] + "</p>")); }
+    });
+    if (sel.options.length && !box.dataset.done) { box.dataset.done = "1"; layerText(); }
+    cardButtons();
+    var g = guideButton();
+    if ((cards.length && box.dataset.done && g) || tries > 60) clearInterval(timer);
+  }, 500);
+})();
