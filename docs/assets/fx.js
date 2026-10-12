@@ -343,6 +343,9 @@
 (function () {
   if (!/\/swift\//.test(location.pathname) || !document.getElementById("layerSelect")) return;
 
+  // English text of a heading or label, also after the page has been switched to Assamese
+  var en = function (el) { return (window.fxEn ? window.fxEn(el) : el.textContent).trim(); };
+
   var KPI = {
     "District area": "Total area of the district, inside the boundary used for all maps.",
     "Sites for immediate action": "Bank erosion sites where the loss is statistically sure (High or Medium confidence) and at least one of these holds: 500 or more people live within 500 m, an embankment lies inside the site, or the bank is retreating 50 m or more a year. Inform the Water Resources Department before the monsoon. The small text gives the number of further sites to check before the monsoon.",
@@ -437,7 +440,7 @@
   // Cards
   function cardButtons() {
     document.querySelectorAll(".card h2").forEach(function (h) {
-      var t = h.textContent.trim();
+      var t = en(h);
       Object.keys(CARD).forEach(function (k) { if (t.indexOf(k) === 0 && !h.querySelector(".xp-btn")) h.appendChild(button(k, CARD[k])); });
     });
   }
@@ -473,7 +476,7 @@
     var cards = document.querySelectorAll("#kpis .kpi .label");
     cards.forEach(function (l) {
       if (l.querySelector(".xp-btn")) return;
-      var t = l.textContent.trim();
+      var t = en(l);
       if (KPI[t]) { var s = document.createElement("span"); s.textContent = t; l.textContent = ""; l.appendChild(s); l.appendChild(button(t, "<p>" + KPI[t] + "</p>")); }
     });
     if (sel.options.length && !box.dataset.done) { box.dataset.done = "1"; layerText(); }
@@ -481,4 +484,311 @@
     var g = guideButton();
     if (tries > 120) clearInterval(timer);
   }, 500);
+})();
+
+// 8. English / Assamese switch. The page is written in English; when অসমীয়া is chosen, every
+//    sentence, label, pop-up and chart label is replaced from a dictionary (assets/i18n_as.json).
+//    Numbers and district names are filled in, so the same entry serves every run. The choice is
+//    remembered, so all tabs of the site open in the language last chosen.
+(function () {
+  // ---- translation core (shared with the string collector) ----
+  var INL = { B: 1, STRONG: 1, I: 1, EM: 1, A: 1, SUB: 1, SUP: 1, BR: 1, CODE: 1, SPAN: 1, SMALL: 1, ABBR: 1, U: 1 };
+  var SKIP = { SCRIPT: 1, STYLE: 1, NOSCRIPT: 1, TEXTAREA: 1 };
+  var NUM = /\d+(?:[.,]\d+)*(?:e[-+]?\d+)?|\b(?:Dibrugarh|Majuli)\b/g, LET = /[A-Za-z]/;
+  function skipEl(el) {
+    for (var q = el; q && q.nodeType === 1; q = q.parentNode) {
+      if (SKIP[q.tagName] || q.classList.contains("notranslate") || q.classList.contains("leaflet-tile-pane") ||
+        q.classList.contains("leaflet-control-attribution") || q.classList.contains("eqn") || q.classList.contains("fx-lang")) return true;
+    }
+    return false;
+  }
+  function isBlock(el) {
+    if (!el.children.length || el.classList.contains("eq") || el.tagName === "text") return false;
+    var direct = false;
+    for (var c = el.firstChild; c; c = c.nextSibling) if (c.nodeType === 3 && LET.test(c.nodeValue)) { direct = true; break; }
+    if (!direct) return false;
+    var d = el.getElementsByTagName("*");
+    for (var i = 0; i < d.length; i++) {
+      var t = d[i];
+      if (opaque(t)) continue;
+      if (!INL[t.tagName] || t.id || (t.tagName === "A" && !t.getAttribute("href"))) {
+        for (var q = t.parentNode; q && q !== el; q = q.parentNode) if (opaque(q)) break;
+        if (q === el) return false;
+      }
+    }
+    return true;
+  }
+  function opaque(t) { return t.classList.contains("eqn") || t.classList.contains("eq") || t.tagName === "SVG" || t.tagName === "svg"; }
+  function tagName(k) { var s = ""; k++; while (k > 0) { k--; s = String.fromCharCode(65 + k % 26) + s; k = Math.floor(k / 26); } return "t" + s; }
+  function tagIndex(n) { var k = 0; for (var i = 1; i < n.length; i++) k = k * 26 + (n.charCodeAt(i) - 64); return k - 1; }
+  // Text of a block with its inline elements as lettered tags: <tA>…</tA>; formulas as <tB/>; <br> stays <br>.
+  function blockKey(el) {
+    var n = 0, nums = [], els = [];
+    function walk(p) {
+      var s = "";
+      for (var c = p.firstChild; c; c = c.nextSibling) {
+        if (c.nodeType === 3) s += c.nodeValue;
+        else if (c.nodeType === 1) {
+          if (c.tagName === "BR") { s += "<br>"; continue; }
+          var k = n++; els[k] = c;
+          if (opaque(c)) { s += "<" + tagName(k) + "/>"; continue; }
+          s += "<" + tagName(k) + ">" + walk(c) + "</" + tagName(k) + ">";
+        }
+      }
+      return s;
+    }
+    var raw = walk(el).replace(/\s+/g, " ").trim();
+    return { key: tpl(raw, nums), nums: nums, els: els };
+  }
+  // Numbers and district names become {0}, {1} … so one entry serves every value.
+  function tpl(s, nums) { return s.replace(NUM, function (m) { nums.push(m); return "{" + (nums.length - 1) + "}"; }); }
+  function textKey(s) { var nums = []; return { key: tpl(s.replace(/\s+/g, " ").trim(), nums), nums: nums }; }
+  function fill(t, nums) { return t.replace(/\{(\d+)\}/g, function (m, i) { return nums[+i] != null ? nums[+i] : m; }); }
+  // Collect translatable units under a root: blocks, loose text nodes and attributes.
+  function units(root) {
+    var out = { blocks: [], texts: [], attrs: [] };
+    if (!root || root.nodeType !== 1 && root.nodeType !== 9) return out;
+    var top = root.nodeType === 9 ? root.body : root;
+    if (!top || skipEl(top)) return out;
+    var inBlock = [];
+    var all = [top].concat([].slice.call(top.getElementsByTagName("*")));
+    all.forEach(function (el) {
+      if (skipEl(el)) return;
+      for (var i = 0; i < inBlock.length; i++) if (inBlock[i].contains(el)) return;
+      if (isBlock(el)) { inBlock.push(el); out.blocks.push(el); }
+      ["title", "placeholder", "aria-label"].forEach(function (a) { var v = el.getAttribute(a); if (v && LET.test(v)) out.attrs.push([el, a]); });
+    });
+    var w = document.createTreeWalker(top, NodeFilter.SHOW_TEXT), t;
+    while ((t = w.nextNode())) {
+      if (!LET.test(t.nodeValue) || skipEl(t.parentNode)) continue;
+      var ok = true;
+      for (var j = 0; j < inBlock.length; j++) if (inBlock[j].contains(t)) { ok = false; break; }
+      if (ok) out.texts.push(t);
+    }
+    return out;
+  }
+
+  // ---- switch, dictionary and live translation ----
+  var SRC = (document.currentScript && document.currentScript.src) || "";
+  var DICT_URL = SRC ? SRC.replace(/fx\.js(\?.*)?$/, "i18n_as.json") : "assets/i18n_as.json";
+  var KEY = "fx-lang", NAMES = { Dibrugarh: "ডিব্ৰুগড়", Majuli: "মাজুলী" };
+  var D = null, PAT = [], lang = "en", done = [], loading = null;
+  var store = {
+    get: function () { try { return localStorage.getItem(KEY); } catch (e) { return null; } },
+    set: function (v) { try { localStorage.setItem(KEY, v); } catch (e) {} }
+  };
+  function fillT(t, nums) {
+    return t.replace(/\{(\d+)\}/g, function (m, i) {
+      var v = nums[+i];
+      if (v == null) return m;
+      return lang === "as" && NAMES[v] ? NAMES[v] : v;
+    });
+  }
+  function trKey(key, depth) {
+    if (!D) return null;
+    if (Object.prototype.hasOwnProperty.call(D, key)) return D[key];
+    if ((depth || 0) > 2) return null;
+    for (var i = 0; i < PAT.length; i++) {
+      var m = PAT[i][0].exec(key);
+      if (!m) continue;
+      var k = 0;
+      return PAT[i][1].replace(/\{\*\}/g, function () { return part(m[++k], depth); });
+    }
+    return null;
+  }
+  // Translate a captured piece of a pattern, keeping its {n} numbers.
+  function part(c, depth) {
+    var ids = [];
+    var r = c.replace(/\{(\d+)\}/g, function (x, n) { ids.push(n); return "{" + (ids.length - 1) + "}"; });
+    var t = trKey(r, (depth || 0) + 1);
+    if (t == null) return c;
+    return t.replace(/\{(\d+)\}/g, function (x, n) { return ids[+n] != null ? "{" + ids[+n] + "}" : x; });
+  }
+  function doText(n) {
+    var v = n.nodeValue;
+    if (n.__fxT === v) return;
+    var k = textKey(v), t = trKey(k.key);
+    if (t == null) return;
+    var out = v.match(/^\s*/)[0] + fillT(t, k.nums) + v.match(/\s*$/)[0];
+    n.__fxO = v; n.nodeValue = out; n.__fxT = out; done.push(n);
+  }
+  function doAttr(el, a) {
+    var v = el.getAttribute(a), s = el.__fxA || (el.__fxA = {});
+    if (s[a] && s[a].t === v) return;
+    var k = textKey(v), t = trKey(k.key);
+    if (t == null) return;
+    var out = fillT(t, k.nums);
+    s[a] = { o: v, t: out }; el.setAttribute(a, out); done.push(el);
+  }
+  function doBlock(el) {
+    if (el.__fxT != null && el.innerHTML === el.__fxT) return;
+    var bk = blockKey(el), t = trKey(bk.key);
+    if (t == null) {
+      // No entry for the whole block: translate its pieces one by one
+      var w = document.createTreeWalker(el, NodeFilter.SHOW_TEXT), n, list = [];
+      while ((n = w.nextNode())) if (LET.test(n.nodeValue) && !skipEl(n.parentNode)) list.push(n);
+      list.forEach(doText);
+      return;
+    }
+    var snap = { nodes: [].slice.call(el.childNodes), els: bk.els, kids: bk.els.map(function (e) { return opaque(e) ? null : [].slice.call(e.childNodes); }) };
+    var s = fillT(t, bk.nums);
+    bk.els.forEach(function (e, i) { if (snap.kids[i]) while (e.firstChild) e.removeChild(e.firstChild); });
+    while (el.firstChild) el.removeChild(el.firstChild);
+    var stack = [el], re = /<(\/?)(t[A-Z]+)(\/?)>|<br>/g, last = 0, m;
+    var top = function () { return stack[stack.length - 1]; };
+    var text = function (x) { if (x) top().appendChild(document.createTextNode(x)); };
+    while ((m = re.exec(s))) {
+      text(s.slice(last, m.index)); last = re.lastIndex;
+      if (m[0] === "<br>") { top().appendChild(document.createElement("br")); continue; }
+      var e = bk.els[tagIndex(m[2])];
+      if (!e) continue;
+      if (m[3]) top().appendChild(e);
+      else if (m[1]) { if (stack.length > 1) stack.pop(); }
+      else { top().appendChild(e); stack.push(e); }
+    }
+    text(s.slice(last));
+    el.__fxS = snap; el.__fxT = el.innerHTML; done.push(el);
+  }
+  function undo() {
+    for (var i = done.length - 1; i >= 0; i--) {
+      var x = done[i];
+      if (x.nodeType === 3) { if (x.nodeValue === x.__fxT) x.nodeValue = x.__fxO; x.__fxT = null; continue; }
+      if (x.__fxA) { for (var a in x.__fxA) if (x.getAttribute(a) === x.__fxA[a].t) x.setAttribute(a, x.__fxA[a].o); x.__fxA = null; }
+      var sn = x.__fxS;
+      if (sn && x.innerHTML === x.__fxT) {
+        sn.els.forEach(function (e, j) { if (sn.kids[j]) { while (e.firstChild) e.removeChild(e.firstChild); sn.kids[j].forEach(function (c) { e.appendChild(c); }); } });
+        while (x.firstChild) x.removeChild(x.firstChild);
+        sn.nodes.forEach(function (c) { x.appendChild(c); });
+      }
+      x.__fxS = null; x.__fxT = null;
+    }
+    done = [];
+  }
+  function translate(root) {
+    var u = units(root);
+    u.blocks.forEach(doBlock); u.texts.forEach(doText);
+    u.attrs.forEach(function (p) { doAttr(p[0], p[1]); });
+  }
+  // English text of an element, even after it has been translated (used by the help buttons).
+  window.fxEn = function (el) {
+    var s = "", w = document.createTreeWalker(el, NodeFilter.SHOW_TEXT), n;
+    while ((n = w.nextNode())) s += (n.__fxT != null && n.nodeValue === n.__fxT) ? n.__fxO : n.nodeValue;
+    return s;
+  };
+
+  // Charts draw text on a canvas, so their labels are changed in the chart itself.
+  function charts() {
+    if (!window.Chart || !Chart.instances) return;
+    Object.keys(Chart.instances).forEach(function (id) {
+      var c = Chart.instances[id];
+      if (!c || c.$fxL === lang) return;
+      var back = c.$fxB || (c.$fxB = {});
+      var tr = function (v) {
+        if (typeof v !== "string") return v;
+        if (lang === "en") return back[v] != null ? back[v] : v;
+        if (!LET.test(v)) return v;
+        var k = textKey(v), t = trKey(k.key);
+        if (t == null) return v;
+        var out = fillT(t, k.nums); back[out] = v; return out;
+      };
+      var labels = c.data.labels || [];
+      for (var i = 0; i < labels.length; i++) labels[i] = Array.isArray(labels[i]) ? labels[i].map(tr) : tr(labels[i]);
+      c.data.datasets.forEach(function (d) { if (d.label) d.label = tr(d.label); });
+      var sc = c.options.scales || {};
+      Object.keys(sc).forEach(function (k) { if (sc[k] && sc[k].title && sc[k].title.text) sc[k].title.text = tr(sc[k].title.text); });
+      c.$fxL = lang;
+      try { c.update("none"); } catch (e) {}
+    });
+  }
+
+  var pending = [], timer = null;
+  var mo = new MutationObserver(function (recs) { if (lang === "as" && D) queue(recs); });
+  function queue(recs) {
+    recs.forEach(function (r) { var t = r.type === "characterData" ? r.target.parentNode : r.target; if (t && t.nodeType === 1) pending.push(t); });
+    if (!timer) timer = setTimeout(flush, 30);
+  }
+  function flush() {
+    timer = null;
+    mo.takeRecords().forEach(function (r) { var t = r.type === "characterData" ? r.target.parentNode : r.target; if (t && t.nodeType === 1) pending.push(t); });
+    var roots = pending; pending = [];
+    var seen = [];
+    roots.forEach(function (t) {
+      if (!t.isConnected || seen.indexOf(t) >= 0) return;
+      seen.push(t);
+      // Work on the whole sentence: climb to the outermost block around the change
+      var r = t;
+      for (var q = t, i = 0; q && q !== document.body && i < 6; q = q.parentNode, i++) if (q.nodeType === 1 && !skipEl(q) && isBlock(q)) r = q;
+      translate(r);
+    });
+    charts();
+    mo.takeRecords();
+  }
+
+  function fonts() {
+    if (document.getElementById("fx-lang-font")) return;
+    var l = document.createElement("link");
+    l.id = "fx-lang-font"; l.rel = "stylesheet";
+    l.href = "https://fonts.googleapis.com/css2?family=Noto+Sans+Bengali:wght@400;600;700&display=swap";
+    document.head.appendChild(l);
+  }
+  function load() {
+    if (D) return Promise.resolve();
+    if (!loading) loading = fetch(DICT_URL, { cache: "no-cache" }).then(function (r) { return r.json(); }).then(function (j) {
+      D = j.dict || {};
+      PAT = (j.patterns || []).map(function (p) {
+        var src = "^" + p[0].replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/\\\{\\\*\\\}/g, "(.+?)") + "$";
+        return [new RegExp(src), p[1]];
+      });
+    }).catch(function () { loading = null; });
+    return loading;
+  }
+  function setLang(l, save) {
+    l = l === "as" ? "as" : "en";
+    if (save) store.set(l);
+    paint(l);
+    if (l === lang) return;
+    if (l === "en") {
+      lang = "en"; undo(); charts(); document.documentElement.lang = "en";
+      return;
+    }
+    fonts();
+    load().then(function () {
+      if (!D) { paint("en"); return; }
+      lang = "as"; document.documentElement.lang = "as";
+      translate(document); charts(); mo.takeRecords();
+      // charts and late content can appear a little after the data loads
+      var n = 0, iv = setInterval(function () { if (lang !== "as" || ++n > 20) clearInterval(iv); else charts(); }, 1500);
+    });
+  }
+
+  // The switch: English | অসমীয়া, next to the report and data buttons
+  var css = document.createElement("style");
+  css.textContent =
+    ".fx-lang{display:inline-flex;border:1px solid #0f6e8c;border-radius:8px;overflow:hidden;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.06);flex:none}" +
+    ".fx-lang button{font:inherit;font-size:13.5px;font-weight:600;padding:6px 11px;border:0;background:#fff;color:#0f6e8c;cursor:pointer;line-height:1.3}" +
+    ".fx-lang button+button{border-left:1px solid #0f6e8c}.fx-lang button.on{background:#0f6e8c;color:#fff}" +
+    ".fx-lang button[data-l=as]{font-family:'Noto Sans Bengali','Source Sans 3',system-ui,sans-serif}" +
+    ".fx-lang-float{position:fixed;top:8px;right:8px;z-index:1400}" +
+    "html[lang=as] body,html[lang=as] button,html[lang=as] select,html[lang=as] input{font-family:'Source Sans 3','Noto Sans Bengali',system-ui,sans-serif}" +
+    "html[lang=as] h1,html[lang=as] h2,html[lang=as] h3{font-family:'Source Serif 4','Noto Sans Bengali',Georgia,serif}";
+  document.head.appendChild(css);
+  var sw = document.createElement("div");
+  sw.className = "fx-lang notranslate"; sw.setAttribute("role", "group"); sw.setAttribute("aria-label", "Language / ভাষা");
+  sw.innerHTML = '<button type="button" data-l="en" lang="en">English</button><button type="button" data-l="as" lang="as">অসমীয়া</button>';
+  function paint(l) { [].forEach.call(sw.children, function (b) { var on = b.dataset.l === l; b.classList.toggle("on", on); b.setAttribute("aria-pressed", String(on)); }); }
+  sw.addEventListener("click", function (e) { var b = e.target.closest("button"); if (b) { e.stopPropagation(); setLang(b.dataset.l, true); } });
+  var bar = document.querySelector(".dl-bar");
+  if (bar) bar.insertBefore(sw, bar.querySelector(".dl-btn[data-p]") || null);
+  else { sw.classList.add("fx-lang-float"); document.body.appendChild(sw); }
+
+  mo.observe(document.body, { childList: true, subtree: true, characterData: true });
+  window.addEventListener("storage", function (e) { if (e.key === KEY && e.newValue) setLang(e.newValue, false); });
+  var q = /[?&]lang=(as|en)\b/.exec(location.search);
+  var start = q ? q[1] : store.get();
+  if (q) store.set(q[1]);
+  paint("en");
+  if (start === "as") {
+    if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", function () { setLang("as", false); });
+    else setLang("as", false);
+  }
 })();
