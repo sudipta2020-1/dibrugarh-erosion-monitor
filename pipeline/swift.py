@@ -29,8 +29,14 @@ Method
      where small losses can and cannot be seen.
   6. Null test. The clear dates of the current window are split into two halves
      (odd and even dates). No real erosion happens between them, so any change found
-     is a false alarm. The same test is run on the 10 m frequency method.
+     is a false alarm. The same test is run on the 10 m and 20 m frequency methods.
   7. Sub-pixel bank lines are the 0.5 contour of the mean water fraction.
+  8. Test of the baseline maps. The two frequency baselines have no test of their own.
+     As a check, the water and land date counts of every pixel in the two windows are
+     compared with Fisher's exact test (false discovery rate 5 %), the pixel tests are
+     combined over each baseline loss patch, and the share of patches with p < 0.01 is
+     reported. The 20 m counts come from the same dates, with green and SWIR averaged
+     over 2 x 2 pixels, which gives the native 20 m bands.
 
 Run:  python pipeline/swift.py --only baseline   (composite job)
       python pipeline/swift.py --only current
@@ -145,7 +151,28 @@ def block_stats(g, n, s, subsets):
             out[f"{name}_nm"] = ok.sum(0).astype("uint8")
             for th in THRESHOLDS:
                 out[f"{name}_k{tkey(th)}"] = (ok & (m > th)).sum(0).astype("uint8")
+        # 20 m baseline: green and SWIR averaged over 2 x 2 pixels (the native 20 m bands)
+        M20 = mndwi20(g, s)
+        for name, idx in subsets.items():
+            m = M20[idx]
+            ok = np.isfinite(m)
+            out[f"m20_{name}_nm"] = ok.sum(0).astype("uint8")
+            for th in THRESHOLDS:
+                out[f"m20_{name}_k{tkey(th)}"] = (ok & (m > th)).sum(0).astype("uint8")
     return out
+
+
+def _half(a):
+    """Mean over 2 x 2 pixels (NaN if any of the four is missing); odd edges are padded."""
+    T, h, w = a.shape
+    a = np.pad(a, ((0, 0), (0, h % 2), (0, w % 2)), constant_values=np.nan)
+    return a.reshape(T, a.shape[1] // 2, 2, a.shape[2] // 2, 2).mean(axis=(2, 4))
+
+
+def mndwi20(g, s):
+    g2, s2 = _half(g.astype("float32")), _half(s.astype("float32"))
+    with np.errstate(invalid="ignore", divide="ignore"):
+        return (g2 - s2) / (g2 + s2)
 
 
 def period_stats(bbox_ll, period, crs, max_cloud, per_tile, cmask, split):
@@ -184,10 +211,14 @@ def period_stats(bbox_ll, period, crs, max_cloud, per_tile, cmask, split):
         part = lazy.isel(y=slice(i, i + BLOCK), x=slice(j, j + BLOCK)).compute()
         res = block_stats(part["g"].values, part["n"].values, part["s"].values, subsets)
         if arrs is None:
-            arrs = {v: (np.full((H, W), np.nan, a.dtype) if a.dtype.kind == "f" else np.zeros((H, W), a.dtype))
+            shp = lambda v: ((H + 1) // 2, (W + 1) // 2) if v.startswith("m20_") else (H, W)
+            arrs = {v: (np.full(shp(v), np.nan, a.dtype) if a.dtype.kind == "f" else np.zeros(shp(v), a.dtype))
                     for v, a in res.items()}
         for v, a in res.items():
-            arrs[v][i:i + BLOCK, j:j + BLOCK] = a
+            if v.startswith("m20_"):
+                arrs[v][i // 2:i // 2 + a.shape[0], j // 2:j // 2 + a.shape[1]] = a
+            else:
+                arrs[v][i:i + BLOCK, j:j + BLOCK] = a
         if k % 5 == 0 or k == len(blocks):
             print(f"  water fraction {period[0][:7]}: block {k} of {len(blocks)} done", flush=True)
     arrs["x"] = lazy.x.values
@@ -281,6 +312,37 @@ def freq_change(Ka, Na, Kb, Nb, inside, min_px=5):
     return loss, gain, wa, wb
 
 
+def count_test(Ka, Na, Kb, Nb, ok):
+    """Fisher's exact test of the water-date counts of each pixel (window A against B).
+    Returns z (one-sided, more water in B = land loss) and FDR significance."""
+    sel = np.nonzero((ok & (Na >= 2) & (Nb >= 2)).ravel())[0]
+    ka, na = Ka.ravel()[sel].astype(int), Na.ravel()[sel].astype(int)
+    kb, nb = Kb.ravel()[sel].astype(int), Nb.ravel()[sel].astype(int)
+    p_up = stats.hypergeom.sf(kb - 1, na + nb, ka + kb, nb)
+    p_dn = stats.hypergeom.cdf(kb, na + nb, ka + kb, nb)
+    p_two = np.minimum(1.0, 2 * np.minimum(p_up, p_dn))
+    rej = bh_reject(p_two, FDR_Q)
+    Z = np.zeros(Ka.shape, "float32"); Z.ravel()[sel] = np.clip(stats.norm.isf(np.clip(p_up, 1e-300, 1)), -40, 40)
+    S = np.zeros(Ka.shape, bool); S.ravel()[sel] = rej
+    return Z, S
+
+
+def baseline_patch_test(loss, Z, S, px_ha, deflate):
+    """Combine the pixel tests over each baseline loss patch (Stouffer). A patch passes when
+    p < PATCH_P and at least one of its pixels is significant after FDR."""
+    lab, n = ndimage.label(loss, structure=np.ones((3, 3)))
+    if n == 0:
+        return {"patches": 0, "significant": 0, "share_patches": None, "share_area": None, "loss_ha": 0.0}
+    idx = np.arange(1, n + 1)
+    k = ndimage.sum(np.ones(loss.shape, "float32"), lab, idx)
+    p = stats.norm.sf(ndimage.sum(Z, lab, idx) / (deflate * np.sqrt(k)))
+    anysig = ndimage.maximum(S.astype("uint8"), lab, idx) > 0
+    ok = (p < PATCH_P) & anysig
+    return {"patches": int(n), "significant": int(ok.sum()), "share_patches": round(float(ok.mean()), 3),
+            "share_area": round(float(k[ok].sum() / k.sum()), 3), "loss_ha": round(float(k.sum() * px_ha), 1),
+            "loss_ha_significant": round(float(k[ok].sum() * px_ha), 1)}
+
+
 # ---------------------------------------------------------------------- main
 def load(raw, tag, end):
     z = np.load(raw / f"swift_{tag}_{end}.npz")
@@ -318,7 +380,7 @@ def main():
     if args.only:
         per = periods[args.only]
         f = raw / f"swift_{args.only}_{per[1]}.npz"
-        if f.exists():
+        if f.exists() and "m20_all_nm" in np.load(f).files:
             print("  already built:", f.name)
             return
         arrs = period_stats(bbox_ll, per, cfg["crs"], cfg["max_cloud_cover"], cfg.get("max_scenes_per_tile", 15),
@@ -439,6 +501,37 @@ def main():
     except Exception as e:
         print("  20 m release not read:", e)
 
+    # 6. 20 m frequency baseline on the same dates: null test, and the test of both baselines
+    t20 = summ.get("water_detection", {})
+    tb20 = min(THRESHOLDS, key=lambda v: abs(v - t20.get("baseline", {}).get("mndwi_threshold_used", 0.1)))
+    tc20 = min(THRESHOLDS, key=lambda v: abs(v - t20.get("current", {}).get("mndwi_threshold_used", 0.1)))
+    btests = {"method": "Fisher exact test of water and land date counts per pixel; FDR 5 %; patch p < 0.01",
+              "thresholds": {"freq10": [tb, th], "freq20": [tb20, tc20]}}
+    try:
+        Z10, S10 = count_test(B[f"all_k{tkey(tb)}"], B["all_nm"], C[f"all_k{tkey(th)}"], C["all_nm"], inside)
+        btests["freq10"] = baseline_patch_test(floss, Z10, S10, px_ha, 2.0)
+        if "m20_all_nm" in C and "m20_all_nm" in B:
+            h2, w2 = C["m20_all_nm"].shape
+            ins = np.pad(inside, ((0, 2 * h2 - H), (0, 2 * w2 - W)))
+            inside20 = ins.reshape(h2, 2, w2, 2).sum(axis=(1, 3)) >= 2
+            px20 = 0.04
+            n20l, n20g, _, _ = freq_change(C[f"m20_odd_k{tkey(tc20)}"], C["m20_odd_nm"], C[f"m20_even_k{tkey(tc20)}"],
+                                           C["m20_even_nm"], inside20, min_px=10)
+            null_f20_n = int(ndimage.label(n20l | n20g, structure=np.ones((3, 3)))[1])
+            null_f20_ha = float((n20l | n20g).sum() * px20)
+            print(f"  null test 20 m: {null_f20_n} patches {null_f20_ha:.2f} ha")
+            f20l, _, _, _ = freq_change(B[f"m20_all_k{tkey(tb20)}"], B["m20_all_nm"], C[f"m20_all_k{tkey(tc20)}"],
+                                        C["m20_all_nm"], inside20, min_px=10)
+            Z20, S20 = count_test(B[f"m20_all_k{tkey(tb20)}"], B["m20_all_nm"], C[f"m20_all_k{tkey(tc20)}"],
+                                  C["m20_all_nm"], inside20)
+            btests["freq20"] = baseline_patch_test(f20l, Z20, S20, px20, 1.0)
+        else:
+            null_f20_n, null_f20_ha = None, None
+        print("  baseline tests:", json.dumps({k: v for k, v in btests.items() if k.startswith("freq")}))
+    except Exception as e:
+        print("  baseline tests failed:", e)
+        null_f20_n, null_f20_ha = None, None
+
     small = P[P.loss_ha < 0.4] if len(P) else P
     out = {"run": time.strftime("%Y-%m-%d %H:%M UTC", time.gmtime()), "periods": periods,
            "method": "SWiFT-Bank", "resolution_m": RES, "min_patch_ha": MMU_HA,
@@ -460,9 +553,11 @@ def main():
                            "share_below_25m2": round(float((mdc_bank < 25).mean()), 3) if mdc_bank.size else None},
            "null_test": {"swift_patches": null_swift_n, "swift_ha": round(null_swift_ha, 2), "swift_footprint_ha": round(null_swift_fp, 2),
                          "freq10_patches": int(fpl), "freq10_ha": round(null_freq_ha, 2),
+                         "freq20_patches": null_f20_n, "freq20_ha": None if null_f20_ha is None else round(null_f20_ha, 2),
                          "dates_odd": int(np.nanmax(C["odd_n"])), "dates_even": int(np.nanmax(C["even_n"])),
                          "threshold_freq10": th},
            "agreement": agree,
+           "baseline_tests": btests,
            "bankline_km": {}, "legend": [[CLASSES[k], COLORS[k]] for k in [1, 5, 6, 2]],
            "mdc_legend": [[MDC_LABELS[i], MDC_COLORS[i + 1]] for i in range(5)]}
     if len(P) and np.isfinite(P["retreat_subpixel_m"]).any():
