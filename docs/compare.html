@@ -18,6 +18,7 @@
 .trio .s { background: #eef0fb; } .trio .h { background: #e3f3f1; } .trio .t { background: #f3f1ec; }
 .trio span { display: block; font-size: 11px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .trio b { font-size: 18px; font-variant-numeric: tabular-nums; }
+.trio small { display: block; font-weight: 400; font-size: 11.5px; line-height: 1.35; color: var(--muted); margin-top: 2px; }
 .cmp .note { margin: 6px 0 0; }
 #cmap { height: 600px; border-radius: 8px; border: 1px solid var(--line); }
 .lyr { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 13px; color: var(--muted); align-items: center; }
@@ -159,10 +160,12 @@ table.m3 td:first-child { color: var(--muted); }
     const P = (W || H).periods;
     document.getElementById("meta").innerHTML = `Run <b>${esc((W || H).run)}</b><br>Window <b>${esc(P.current.join(" to "))}</b> · Baseline <b>${esc(P.baseline.join(" to "))}</b>`;
 
+    const bt = w.baseline_tests || {};
+    const tcell = t => t && t.patches != null ? `No<small>added check: ${fmt(t.significant)} of ${fmt(t.patches)} patches pass (${fmt(t.loss_ha_significant, 1)} of ${fmt(t.loss_ha, 1)} ha)</small>` : "No";
     const kp = [
       ["Smallest change reported", `${fmt(w.min_patch_ha, 2)} ha`, H ? `${fmt(H.min_patch_ha, 2)} ha` : "–", H ? `${fmt(st.min_patch_ha, 1)} ha` : "–", "SWiFT-Bank: lost land in a tested patch. Baselines: 5 pixels at 10 m and 10 pixels at 20 m."],
-      ["Statistical test of change", "Yes", "No", "No", "SWiFT-Bank gives each patch a p-value; the baselines give none."],
-      ["False change in the null test (ha)", fmt(nt.swift_footprint_ha, 1), fmt(nt.freq10_ha), "–", "Change found between two halves of the same window, where none can exist. Not computed for the 20 m baseline."],
+      ["Statistical test of change", `Yes<small>${fmt(w.bank_loss_patches)} patches, each p < 0.01</small>`, tcell(bt.freq10), tcell(bt.freq20), "SWiFT-Bank tests every patch as part of the method (Welch t-test). The baselines have no test of their own. As a check, Fisher's exact test was applied to the water and land date counts of each pixel, and a baseline land-loss patch passes when its combined p-value is below 0.01."],
+      ["False change in the null test (ha)", fmt(nt.swift_footprint_ha, 1), fmt(nt.freq10_ha), fmt(nt.freq20_ha), "Change found between the odd and even dates of the same window, where none can exist. All three methods use the same dates."],
       ["Land-loss patches", fmt(w.bank_loss_patches), fmt(hi.bank_loss_patches), fmt(st.bank_loss_patches), "Bank erosion and char loss patches in the river corridor."],
       ["Land-loss area (ha)", fmt(w.bank_loss_ha), fmt(hi.bank_loss_ha), fmt(st.bank_loss_ha), "SWiFT-Bank counts lost land within mixed pixels; the baselines count whole pixels."],
       ["Losses below 0.4 ha", fmt(w.small_patches), fmt(hi.small_patches), H ? "0" : "–", `Area in these patches: SWiFT-Bank ${fmt(w.small_ha, 1)} ha, baseline 10 m ${fmt(hi.small_ha, 1)} ha.`],
@@ -178,7 +181,7 @@ table.m3 td:first-child { color: var(--muted); }
     if (W) {
       document.getElementById("verdictCard").hidden = false;
       let v = `In ${fmt(w.area_analysed_km2)} km² of river corridor, SWiFT-Bank found <b>${fmt(w.bank_loss_patches)}</b> land-loss patches, each with a p-value below 0.01, and <b>${fmt(w.small_patches)}</b> of them are smaller than 0.4 ha. `;
-      v += `In the null test, where no erosion can occur, SWiFT-Bank reported <b>${fmt(nt.swift_footprint_ha, 1)} ha</b> of false change, while the 10 m baseline reported <b>${fmt(nt.freq10_ha)} ha</b>. `;
+      v += `In the null test, where no erosion can occur, SWiFT-Bank reported <b>${fmt(nt.swift_footprint_ha, 1)} ha</b> of false change, while the 10 m baseline reported <b>${fmt(nt.freq10_ha)} ha</b>${nt.freq20_ha != null ? ` and the 20 m baseline <b>${fmt(nt.freq20_ha)} ha</b>` : ""}. `;
       v += `SWiFT-Bank also found ${pc(ag.share_std20_loss_found)} of the land loss mapped by the 20 m baseline and ${pc(ag.share_freq10_loss_found)} of that mapped by the 10 m baseline, so it keeps the large losses that the baselines see. `;
       if (t1) v += `On independent expert labels, accuracy within 20 m of the shoreline was ${pc(t1.shoreline_20m[M[0]].overall_accuracy)} for SWiFT-Bank, ${pc(t1.shoreline_20m[M[1]].overall_accuracy)} for the 10 m baseline and ${pc(t1.shoreline_20m[M[2]].overall_accuracy)} for the 20 m baseline.`;
       document.getElementById("verdict").innerHTML = v;
