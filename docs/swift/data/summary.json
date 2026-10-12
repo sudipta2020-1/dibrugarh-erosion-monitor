@@ -1,5 +1,5 @@
 {
-  "run_date": "2026-10-10 18:39 UTC",
+  "run_date": "2026-10-12 09:12 UTC",
   "district": "Dibrugarh",
   "period_baseline": [
     "2019-10-31",
@@ -230,6 +230,8 @@
       "swift_footprint_ha": 0.0,
       "freq10_patches": 5161,
       "freq10_ha": 1864.63,
+      "freq20_patches": 1052,
+      "freq20_ha": 1333.2,
       "dates_odd": 8,
       "dates_even": 7,
       "threshold_freq10": 0.1
