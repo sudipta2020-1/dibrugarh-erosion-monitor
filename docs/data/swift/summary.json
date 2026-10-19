@@ -1,13 +1,13 @@
 {
-  "run": "2026-10-12 16:17 UTC",
+  "run": "2026-10-19 14:09 UTC",
   "periods": {
     "baseline": [
-      "2020-06-14",
-      "2020-10-12"
+      "2020-06-21",
+      "2020-10-19"
     ],
     "current": [
-      "2026-06-14",
-      "2026-10-12"
+      "2026-06-21",
+      "2026-10-19"
     ]
   },
   "method": "SWiFT-Bank",
@@ -27,30 +27,30 @@
     ]
   },
   "tests": {
-    "pixels_tested": 12170424,
-    "pixels_significant": 1538563
+    "pixels_tested": 12537632,
+    "pixels_significant": 1715627
   },
   "area_ha": {
-    "Bank erosion (stable land to water)": 844.4,
-    "Accretion (water to land)": 5249.1,
-    "Char or sandbar lost (within river belt)": 5116.6,
-    "New inland water (pond or flooding)": 170.8
+    "Bank erosion (stable land to water)": 863.4,
+    "Accretion (water to land)": 5609.0,
+    "Char or sandbar lost (within river belt)": 5253.6,
+    "New inland water (pond or flooding)": 199.3
   },
-  "bank_loss_patches": 2156,
-  "bank_loss_ha": 5961.0,
-  "bank_footprint_ha": 7190.2,
-  "small_patches": 1362,
-  "small_ha": 157.07,
-  "patch_p_median": 6.639935546771192e-22,
+  "bank_loss_patches": 2183,
+  "bank_loss_ha": 6117.0,
+  "bank_footprint_ha": 7577.1,
+  "small_patches": 1329,
+  "small_ha": 153.09,
+  "patch_p_median": 3.333204777727649e-24,
   "size_hist": [
-    495,
-    306,
+    480,
     297,
-    264,
-    261,
-    334,
-    150,
-    49
+    293,
+    259,
+    307,
+    342,
+    160,
+    45
   ],
   "size_labels": [
     "0.02\u20130.05",
@@ -63,60 +63,60 @@
     "> 20"
   ],
   "mdc_bank_m2": {
-    "median": 32.8,
-    "p10": 9.0,
-    "p90": 66.8,
-    "share_below_25m2": 0.401
+    "median": 35.1,
+    "p10": 8.7,
+    "p90": 64.0,
+    "share_below_25m2": 0.377
   },
   "null_test": {
     "swift_patches": 0,
     "swift_ha": 0.0,
     "swift_footprint_ha": 0.0,
-    "freq10_patches": 7277,
-    "freq10_ha": 7481.3,
-    "freq20_patches": 2189,
-    "freq20_ha": 7037.88,
+    "freq10_patches": 7367,
+    "freq10_ha": 12521.37,
+    "freq20_patches": 2596,
+    "freq20_ha": 12153.92,
     "dates_odd": 6,
-    "dates_even": 6,
+    "dates_even": 7,
     "threshold_freq10": 0.1
   },
   "agreement": {
-    "share_freq10_loss_found": 0.743,
-    "share_swift_loss_in_freq10": 0.948,
-    "share_std20_loss_found": 0.74
+    "share_freq10_loss_found": 0.753,
+    "share_swift_loss_in_freq10": 0.936,
+    "share_std20_loss_found": 0.738
   },
   "baseline_tests": {
     "method": "Fisher exact test of water and land date counts per pixel; FDR 5 %; patch p < 0.01",
     "thresholds": {
       "freq10": [
-        0.15,
+        0.1,
         0.1
       ],
       "freq20": [
-        0.2,
-        0.15
+        0.15,
+        0.1
       ]
     },
     "freq10": {
-      "patches": 3337,
+      "patches": 3182,
       "significant": 0,
       "share_patches": 0.0,
       "share_area": 0.0,
-      "loss_ha": 11441.6,
+      "loss_ha": 11607.0,
       "loss_ha_significant": 0.0
     },
     "freq20": {
-      "patches": 1203,
+      "patches": 1197,
       "significant": 0,
       "share_patches": 0.0,
       "share_area": 0.0,
-      "loss_ha": 11274.9,
+      "loss_ha": 11762.8,
       "loss_ha_significant": 0.0
     }
   },
   "bankline_km": {
-    "baseline": 2470.4,
-    "current": 2672.9
+    "baseline": 2502.6,
+    "current": 2727.4
   },
   "legend": [
     [
@@ -159,7 +159,7 @@
     ]
   ],
   "retreat": {
-    "median_subpixel_m": 49.9
+    "median_subpixel_m": 51.9
   },
   "layers": {
     "swift": {
@@ -189,5 +189,5 @@
       ]
     }
   },
-  "runtime_min": 2.0
+  "runtime_min": 1.7
 }
