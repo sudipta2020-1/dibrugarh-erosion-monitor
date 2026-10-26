@@ -1,15 +1,15 @@
 {
  "tag": "swift-latest",
  "repository": "sudipta2020-1/dibrugarh-erosion-monitor",
- "run": "2026-10-19 14:10 UTC",
+ "run": "2026-10-26 13:49 UTC",
  "periods": {
   "baseline": [
-   "2020-06-21",
-   "2020-10-19"
+   "2020-06-28",
+   "2020-10-26"
   ],
   "current": [
-   "2026-06-21",
-   "2026-10-19"
+   "2026-06-28",
+   "2026-10-26"
   ]
  },
  "crs": "EPSG:32646",
@@ -19,56 +19,56 @@
    "label": "Change classes, tested (10 m)",
    "format": "GeoTIFF",
    "group": "swift",
-   "size_mb": 0.68
+   "size_mb": 0.73
   },
   {
    "name": "swift_water_fraction_change_10m.tif",
    "label": "Change in water share of each pixel, % (10 m)",
    "format": "GeoTIFF",
    "group": "swift",
-   "size_mb": 7.87
+   "size_mb": 8.01
   },
   {
    "name": "swift_water_fraction_baseline_10m.tif",
-   "label": "Mean water share of each pixel, baseline window 2020-06-21 to 2020-10-19, % (10 m)",
+   "label": "Mean water share of each pixel, baseline window 2020-06-28 to 2020-10-26, % (10 m)",
    "format": "GeoTIFF",
    "group": "swift",
-   "size_mb": 6.68
+   "size_mb": 6.89
   },
   {
    "name": "swift_water_fraction_current_10m.tif",
-   "label": "Mean water share of each pixel, current window 2026-06-21 to 2026-10-19, % (10 m)",
+   "label": "Mean water share of each pixel, current window 2026-06-28 to 2026-10-26, % (10 m)",
    "format": "GeoTIFF",
    "group": "swift",
-   "size_mb": 6.78
+   "size_mb": 6.84
   },
   {
    "name": "swift_detection_limit_m2_10m.tif",
    "label": "Smallest detectable land loss per pixel, m\u00b2 (10 m)",
    "format": "GeoTIFF",
    "group": "swift",
-   "size_mb": 7.01
+   "size_mb": 7.14
   },
   {
    "name": "swift_loss_patches_shp.zip",
    "label": "Land-loss patches with lost land and p-value",
    "format": "Shapefile",
    "group": "swift",
-   "size_mb": 0.41
+   "size_mb": 0.4
   },
   {
    "name": "swift_bank_lines_shp.zip",
    "label": "Sub-pixel bank lines, baseline and current",
    "format": "Shapefile",
    "group": "swift",
-   "size_mb": 5.8
+   "size_mb": 6.26
   },
   {
    "name": "priority_sites_shp.zip",
    "label": "Priority sites for field verification",
    "format": "Shapefile",
    "group": "sites",
-   "size_mb": 0.06
+   "size_mb": 0.07
   },
   {
    "name": "README_swift_data.txt",
