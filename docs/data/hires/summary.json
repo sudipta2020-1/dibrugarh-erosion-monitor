@@ -1,13 +1,13 @@
 {
-  "run": "2026-10-19 11:54 UTC",
+  "run": "2026-10-26 12:00 UTC",
   "periods": {
     "baseline": [
-      "2020-06-21",
-      "2020-10-19"
+      "2020-06-28",
+      "2020-10-26"
     ],
     "current": [
-      "2026-06-21",
-      "2026-10-19"
+      "2026-06-28",
+      "2026-10-26"
     ]
   },
   "district": "Dibrugarh",
@@ -19,44 +19,44 @@
     "baseline": {
       "threshold": 0.1,
       "otsu": 0.121,
-      "edge_px": 1750742
+      "edge_px": 1767847
     },
     "current": {
       "threshold": 0.1,
-      "otsu": 0.075,
-      "edge_px": 1682474
+      "otsu": 0.081,
+      "edge_px": 1931865
     }
   },
   "hires": {
     "area_ha": {
-      "Bank erosion (stable land to water)": 1149.8,
-      "Accretion (water to land)": 13917.3,
-      "Char or sandbar lost (within river belt)": 10371.6,
-      "New inland water (pond or flooding)": 130.9
+      "Bank erosion (stable land to water)": 1058.8,
+      "Accretion (water to land)": 18441.9,
+      "Char or sandbar lost (within river belt)": 9460.5,
+      "New inland water (pond or flooding)": 121.8
     },
-    "bank_loss_patches": 2750,
-    "bank_loss_ha": 11542.6,
+    "bank_loss_patches": 2654,
+    "bank_loss_ha": 10537.5,
     "size_hist": [
       0,
-      736,
-      451,
-      368,
-      373,
-      484,
-      242,
-      96
+      698,
+      452,
+      372,
+      364,
+      450,
+      232,
+      86
     ],
-    "small_patches": 1555,
-    "small_ha": 212.56,
-    "mean_confidence": 0.822,
+    "small_patches": 1522,
+    "small_ha": 212.08,
+    "mean_confidence": 0.797,
     "bankline_km": {
-      "baseline": 2467.2,
-      "current": 2584.2
+      "baseline": 2471.3,
+      "current": 2956.0
     },
     "retreat": {
-      "median_subpixel_m": 32.2,
-      "median_pixel_m": 22.0,
-      "p90_subpixel_m": 151.9
+      "median_subpixel_m": 37.8,
+      "median_pixel_m": 28.0,
+      "p90_subpixel_m": 165.8
     }
   },
   "size_labels": [
@@ -71,32 +71,32 @@
   ],
   "standard": {
     "area_ha": {
-      "Bank erosion (stable land to water)": 1181.1,
-      "Accretion (water to land)": 13456.2,
-      "Char or sandbar lost (within river belt)": 10780.4,
-      "New inland water (pond or flooding)": 195.2
+      "Bank erosion (stable land to water)": 1045.6,
+      "Accretion (water to land)": 18487.6,
+      "Char or sandbar lost (within river belt)": 9641.7,
+      "New inland water (pond or flooding)": 162.2
     },
     "resolution_m": 20,
     "min_patch_ha": 0.4,
-    "bank_loss_patches": 1216,
-    "bank_loss_ha": 11784.8,
+    "bank_loss_patches": 1113,
+    "bank_loss_ha": 10514.2,
     "size_hist": [
       0,
       0,
       0,
       0,
-      393,
-      480,
-      243,
-      100
+      358,
+      449,
+      219,
+      87
     ]
   },
   "agreement": {
-    "iou_bank_loss": 0.892,
-    "share_10m_within_20m_of_standard": 0.983,
+    "iou_bank_loss": 0.884,
+    "share_10m_within_20m_of_standard": 0.976,
     "share_standard_within_20m_of_10m": 0.995,
-    "new_small_patches": 1154,
-    "new_small_ha": 140.06
+    "new_small_patches": 1231,
+    "new_small_ha": 158.99
   },
   "layers": {
     "change20": {
@@ -146,45 +146,45 @@
   ],
   "examples_small": [
     {
-      "lat": 27.332405,
-      "lon": 94.943237,
-      "area_ha": 0.39
-    },
-    {
-      "lat": 27.27908,
-      "lon": 94.842057,
-      "area_ha": 0.39
-    },
-    {
-      "lat": 27.185926,
-      "lon": 94.604446,
-      "area_ha": 0.39
-    },
-    {
-      "lat": 27.412933,
-      "lon": 94.78248,
+      "lat": 27.609443,
+      "lon": 95.054579,
       "area_ha": 0.38
     },
     {
-      "lat": 27.610115,
-      "lon": 95.258159,
+      "lat": 27.512357,
+      "lon": 94.861061,
+      "area_ha": 0.38
+    },
+    {
+      "lat": 27.487889,
+      "lon": 94.844913,
+      "area_ha": 0.38
+    },
+    {
+      "lat": 27.416185,
+      "lon": 94.728878,
+      "area_ha": 0.38
+    },
+    {
+      "lat": 27.208405,
+      "lon": 94.619407,
+      "area_ha": 0.38
+    },
+    {
+      "lat": 27.59976,
+      "lon": 95.098918,
       "area_ha": 0.37
     },
     {
-      "lat": 27.233723,
-      "lon": 94.611543,
+      "lat": 27.413053,
+      "lon": 94.704202,
       "area_ha": 0.37
     },
     {
-      "lat": 27.607715,
-      "lon": 95.182339,
-      "area_ha": 0.36
-    },
-    {
-      "lat": 27.404188,
-      "lon": 94.792351,
-      "area_ha": 0.36
+      "lat": 27.36193,
+      "lon": 94.692551,
+      "area_ha": 0.37
     }
   ],
-  "runtime_min": 4.1
+  "runtime_min": 6.5
 }
