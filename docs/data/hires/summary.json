@@ -1,5 +1,5 @@
 {
-  "run": "2026-10-26 12:00 UTC",
+  "run": "2026-11-02 13:56 UTC",
   "periods": {
     "baseline": [
       "2020-06-28",
@@ -186,5 +186,5 @@
       "area_ha": 0.37
     }
   ],
-  "runtime_min": 6.5
+  "runtime_min": 4.6
 }
