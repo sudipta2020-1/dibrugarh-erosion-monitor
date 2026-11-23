@@ -1,13 +1,13 @@
 {
-  "run": "2026-11-16 14:11 UTC",
+  "run": "2026-11-23 16:43 UTC",
   "periods": {
     "baseline": [
-      "2020-07-19",
-      "2020-11-16"
+      "2020-07-26",
+      "2020-11-23"
     ],
     "current": [
-      "2026-07-19",
-      "2026-11-16"
+      "2026-07-26",
+      "2026-11-23"
     ]
   },
   "district": "Dibrugarh",
@@ -71,32 +71,32 @@
   ],
   "standard": {
     "area_ha": {
-      "Bank erosion (stable land to water)": 942.5,
-      "Accretion (water to land)": 24183.4,
-      "Char or sandbar lost (within river belt)": 9829.2,
-      "New inland water (pond or flooding)": 195.8
+      "Bank erosion (stable land to water)": 945.1,
+      "Accretion (water to land)": 23493.0,
+      "Char or sandbar lost (within river belt)": 10078.0,
+      "New inland water (pond or flooding)": 217.4
     },
     "resolution_m": 20,
     "min_patch_ha": 0.4,
-    "bank_loss_patches": 1173,
-    "bank_loss_ha": 10590.7,
+    "bank_loss_patches": 1198,
+    "bank_loss_ha": 10840.3,
     "size_hist": [
       0,
       0,
       0,
       0,
-      404,
-      454,
-      223,
-      92
+      416,
+      448,
+      238,
+      96
     ]
   },
   "agreement": {
-    "iou_bank_loss": 0.889,
+    "iou_bank_loss": 0.873,
     "share_10m_within_20m_of_standard": 0.978,
-    "share_standard_within_20m_of_10m": 0.999,
-    "new_small_patches": 1355,
-    "new_small_ha": 176.4
+    "share_standard_within_20m_of_10m": 0.985,
+    "new_small_patches": 1284,
+    "new_small_ha": 164.82
   },
   "layers": {
     "change20": {
@@ -176,14 +176,14 @@
       "area_ha": 0.38
     },
     {
-      "lat": 27.279379,
-      "lon": 94.67458,
+      "lat": 27.2421,
+      "lon": 94.678616,
       "area_ha": 0.38
     },
     {
-      "lat": 27.270673,
-      "lon": 94.751821,
-      "area_ha": 0.38
+      "lat": 27.628076,
+      "lon": 95.170534,
+      "area_ha": 0.37
     }
   ],
   "runtime_min": 3.5
