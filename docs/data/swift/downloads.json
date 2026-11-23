@@ -1,15 +1,15 @@
 {
  "tag": "swift-latest",
  "repository": "sudipta2020-1/dibrugarh-erosion-monitor",
- "run": "2026-11-16 16:41 UTC",
+ "run": "2026-11-23 19:03 UTC",
  "periods": {
   "baseline": [
-   "2020-07-19",
-   "2020-11-16"
+   "2020-07-26",
+   "2020-11-23"
   ],
   "current": [
-   "2026-07-19",
-   "2026-11-16"
+   "2026-07-26",
+   "2026-11-23"
   ]
  },
  "crs": "EPSG:32646",
@@ -30,14 +30,14 @@
   },
   {
    "name": "swift_water_fraction_baseline_10m.tif",
-   "label": "Mean water share of each pixel, baseline window 2020-07-19 to 2020-11-16, % (10 m)",
+   "label": "Mean water share of each pixel, baseline window 2020-07-26 to 2020-11-23, % (10 m)",
    "format": "GeoTIFF",
    "group": "swift",
    "size_mb": 7.08
   },
   {
    "name": "swift_water_fraction_current_10m.tif",
-   "label": "Mean water share of each pixel, current window 2026-07-19 to 2026-11-16, % (10 m)",
+   "label": "Mean water share of each pixel, current window 2026-07-26 to 2026-11-23, % (10 m)",
    "format": "GeoTIFF",
    "group": "swift",
    "size_mb": 6.76
@@ -68,7 +68,7 @@
    "label": "Priority sites for field verification",
    "format": "Shapefile",
    "group": "sites",
-   "size_mb": 0.07
+   "size_mb": 0.08
   },
   {
    "name": "README_swift_data.txt",

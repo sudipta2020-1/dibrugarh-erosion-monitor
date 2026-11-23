@@ -1,13 +1,13 @@
 {
-  "run": "2026-11-16 16:39 UTC",
+  "run": "2026-11-23 19:00 UTC",
   "periods": {
     "baseline": [
-      "2020-07-19",
-      "2020-11-16"
+      "2020-07-26",
+      "2020-11-23"
     ],
     "current": [
-      "2026-07-19",
-      "2026-11-16"
+      "2026-07-26",
+      "2026-11-23"
     ]
   },
   "method": "SWiFT-Bank",
@@ -83,7 +83,7 @@
   "agreement": {
     "share_freq10_loss_found": 0.863,
     "share_swift_loss_in_freq10": 0.882,
-    "share_std20_loss_found": 0.867
+    "share_std20_loss_found": 0.853
   },
   "baseline_tests": {
     "method": "Fisher exact test of water and land date counts per pixel; FDR 5 %; patch p < 0.01",
@@ -189,5 +189,5 @@
       ]
     }
   },
-  "runtime_min": 2.3
+  "runtime_min": 2.4
 }
